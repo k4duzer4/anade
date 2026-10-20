@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 const config: NextConfig = {
   poweredByHeader: false,
+  // As artes locais são servidas pelo CDN; a rota de otimização retorna 404 nos Services.
+  images: { unoptimized: true },
   async rewrites() {
     // Na Vercel, o roteamento público é definido pelos Services em vercel.json.
     if (process.env.VERCEL === '1') return [];

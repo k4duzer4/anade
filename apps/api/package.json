@@ -1,0 +1,24 @@
+{
+  "name": "@anade/api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch src/index.js",
+    "demo": "node --env-file-if-exists=.env --watch src/index.js --demo",
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "test": "node --test test/*.test.js",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.js"
+  },
+  "dependencies": {
+    "express": "5.3.0",
+    "express-session": "^1.18.2",
+    "connect-pg-simple": "^10.0.0",
+    "pg": "^8.16.3",
+    "helmet": "^8.1.0",
+    "express-rate-limit": "^8.2.1"
+  },
+  "devDependencies": {
+    "pg-mem": "^3.0.5"
+  }
+}

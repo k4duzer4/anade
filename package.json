@@ -1,0 +1,27 @@
+{
+  "name": "anade-portal",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
+  "engines": {
+    "node": ">=22.14"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c yellow,green \"npm run dev -w @anade/api\" \"npm run dev -w @anade/web\"",
+    "demo": "concurrently -k -n api,web -c yellow,green \"npm run demo -w @anade/api\" \"npm run dev -w @anade/web\"",
+    "build": "npm run build -w @anade/web",
+    "start": "concurrently -k -n api,web \"npm start -w @anade/api\" \"npm start -w @anade/web\"",
+    "typecheck": "npm run typecheck -w @anade/web",
+    "lint": "npm run lint -w @anade/web",
+    "test": "npm test -w @anade/api",
+    "db:migrate": "npm run db:migrate -w @anade/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.10"
+  }
+}

@@ -1,0 +1,2538 @@
+/* Tipografia e composição dos cards do diretório. */
+:root {
+  --font: 'Manrope', Arial, sans-serif;
+  --display: 'Sora', 'Manrope', sans-serif;
+  --card-radius: 21px;
+  --card-padding: 26px;
+  --card-glint: #bda65c;
+  --card-edge: #d7decb;
+  --card-fill: #fffef9;
+  --card-subtle: #f2f4e9;
+  --date-surface: #163e2c;
+  --date-ink: #f9f0cf;
+  --date-accent: #e9c355;
+}
+html[data-theme='dark'] {
+  --card-edge: #344333;
+  --card-fill: #132018;
+  --card-subtle: #18281d;
+  --date-surface: #253d28;
+  --date-ink: #edf1d8;
+  --date-accent: #d0d895;
+}
+body {
+  font-family: var(--font);
+  font-feature-settings: 'ss01' on;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+.page-heading h1 {
+  font-family: var(--display);
+  font-size: clamp(25px, 2.35vw, 36px);
+  line-height: 1.23;
+  letter-spacing: -1.45px;
+  font-weight: 600;
+  max-width: 880px;
+  overflow-wrap: normal;
+  text-wrap: balance;
+}
+.page-heading p {
+  font-size: 13px;
+  line-height: 1.85;
+  max-width: 680px;
+  color: var(--soft-text);
+}
+.page-heading .eyebrow {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2.4px;
+  color: var(--accent);
+}
+.eyebrow {
+  font-family: var(--font);
+  font-weight: 700;
+}
+.button {
+  font-family: var(--font);
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+.text-button {
+  font-weight: 700;
+}
+.tabs > button {
+  font-family: var(--font);
+  font-weight: 600;
+}
+.badge {
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.1px;
+}
+.breadcrumb,
+.sidebar nav a {
+  font-weight: 600;
+}
+.sidebar-motto strong {
+  font-size: 33px;
+  line-height: 0.94;
+}
+.hero-content h2 {
+  font-size: clamp(58px, 5.6vw, 82px);
+  letter-spacing: -1.5px;
+}
+.hero-content p {
+  font-size: 13px;
+  line-height: 1.85;
+}
+.hero-content > a {
+  font-weight: 700;
+  font-size: 12px;
+}
+.hero-content .eyebrow {
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+.login-content h1 {
+  font-family: var(--display);
+  font-size: clamp(29px, 2.7vw, 43px);
+  letter-spacing: -1.4px;
+  line-height: 1.18;
+  font-weight: 600;
+}
+.login-wordmark {
+  font-size: 75px;
+}
+.login-intro {
+  font-size: 14px;
+  line-height: 1.9;
+}
+.login-content h1 em {
+  display: inline-block;
+  margin-top: 3px;
+}
+.login-features span {
+  font-weight: 600;
+}
+.modal > header h2 {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.8px;
+}
+.field {
+  font-weight: 600;
+  font-size: 12px;
+}
+.field > input,
+.field > select,
+.field > textarea {
+  font-family: var(--font);
+  font-size: 13px;
+}
+.form-description {
+  font-size: 13px;
+}
+.field small {
+  font-size: 10px;
+  font-weight: 500;
+}
+.form-section > header h2,
+.profile-summary h2,
+.member-detail-heading h3 {
+  font-family: var(--display);
+  letter-spacing: -0.7px;
+  line-height: 1.45;
+}
+.form-section > header h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.form-section > header p {
+  font-size: 12px;
+}
+.form-section {
+  border-radius: var(--card-radius);
+  position: relative;
+  background: linear-gradient(130deg, var(--card-fill), var(--white));
+  border-color: var(--line);
+}
+.form-section > header {
+  border-bottom-style: dashed;
+  padding-bottom: 23px;
+}
+.form-section > header .section-icon {
+  border-radius: 13px;
+  box-shadow:
+    inset 0 1px #fff1,
+    0 4px 12px #00000004;
+}
+.form-section > header .section-icon svg {
+  stroke-width: 1.7;
+}
+.profile-summary {
+  border-radius: var(--card-radius);
+  background: radial-gradient(ellipse at 100% 0%, #a8ba6624, transparent 65%), var(--card-fill);
+  border-color: var(--card-edge);
+  box-shadow: 0 12px 35px -25px #18372466;
+}
+.profile-summary-top .portrait {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 29px;
+  border-radius: 24px;
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--card-fill) 70%, var(--accent-soft)),
+    0 0 0 7px var(--line);
+  transform: rotate(-4deg);
+}
+.profile-summary h2 {
+  font-size: 21px;
+  font-weight: 500;
+}
+.profile-summary-top > .badge {
+  margin-top: 8px;
+}
+.summary-data strong {
+  font-weight: 600;
+  font-size: 13px;
+}
+.summary-data small {
+  font-size: 8px;
+  letter-spacing: 1.7px;
+}
+.degree-grid label {
+  font-size: 12px;
+  font-weight: 500;
+}
+.privacy-toggle strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.profile-callout {
+  border-radius: var(--card-radius);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(115deg, var(--accent-soft), var(--paper-dark));
+  border-color: var(--card-edge);
+}
+.profile-callout strong {
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: -0.3px;
+}
+/* A data é o cabeçalho do encontro, com leitura de dia, mês e horário. */
+.meetings-grid {
+  align-items: start;
+  gap: 26px;
+}
+.meetings-grid > .panel {
+  border-color: var(--card-edge);
+  border-radius: var(--card-radius);
+  box-shadow: 0 12px 40px -25px #11271c55;
+  transition:
+    border-color 0.25s,
+    box-shadow 0.25s,
+    transform 0.25s;
+  background: var(--card-fill);
+  position: relative;
+}
+.meetings-grid > .panel:hover {
+  border-color: color-mix(in srgb, var(--card-glint) 60%, var(--card-edge));
+  box-shadow: 0 20px 55px -30px #18352199;
+  transform: translateY(-3px);
+}
+.meeting-card,
+.meetings-grid .meeting-card,
+.dashboard-columns .meeting-card {
+  padding: var(--card-padding);
+  position: relative;
+}
+.meeting-date {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: calc(-1 * var(--card-padding)) calc(-1 * var(--card-padding)) 25px;
+  padding: 22px 25px;
+  background: var(--date-surface);
+  min-height: 158px;
+  border-bottom: 1px solid #b9c16d3b;
+  color: var(--date-ink);
+}
+.meeting-date:before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 5% -50%, #d7cb7860, transparent 65%),
+    repeating-radial-gradient(
+      ellipse at 140% 130%,
+      transparent 0px,
+      transparent 19px,
+      #b1c4810d 20px,
+      #b1c4810d 21px
+    );
+  pointer-events: none;
+}
+.meeting-date:after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid #c7d38b12;
+  border-radius: 13px;
+  pointer-events: none;
+}
+.date-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+.date-weekday {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font);
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #bfcead;
+  font-weight: 600;
+}
+.date-weekday > i {
+  height: 4px;
+  width: 4px;
+  background: var(--date-accent);
+  border-radius: 50%;
+}
+.date-figure {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 7px;
+}
+.date-figure > strong {
+  font-family: var(--display);
+  font-size: 67px;
+  line-height: 1.12;
+  letter-spacing: -5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--date-accent);
+  text-shadow: 0 2px 20px #00000008;
+}
+.date-figure > span {
+  display: flex;
+  flex-direction: column;
+  padding-top: 6px;
+  gap: 5px;
+}
+.date-figure b {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 500;
+  text-transform: capitalize;
+  letter-spacing: -0.5px;
+  color: var(--date-ink);
+}
+.date-figure small {
+  font-size: 10px;
+  color: #a8bd9e;
+  letter-spacing: 2.5px;
+  font-weight: 500;
+}
+.date-hour {
+  padding-left: 17px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+  min-width: 111px;
+  flex-shrink: 0;
+}
+.date-hour-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #a2b597;
+  font-size: 6px;
+  letter-spacing: 1.1px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.date-hour-label svg {
+  color: #b2c07e;
+  width: 11px;
+  height: 11px;
+}
+.date-hour > strong {
+  font-family: var(--display);
+  font-size: 27px;
+  letter-spacing: -1.5px;
+  line-height: 1.2;
+  font-weight: 500;
+  margin: 9px 0 3px;
+  font-variant-numeric: tabular-nums;
+}
+.date-hour > strong > small {
+  font-family: var(--font);
+  font-size: 12px;
+  color: #b5c2a0;
+  letter-spacing: 0;
+  margin-left: 3px;
+  font-weight: 400;
+}
+.date-timezone {
+  color: #8fa686;
+  font-size: 6px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  margin-top: 2px;
+}
+.date-online {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8px;
+  color: #b8c8a4;
+  margin-top: 14px;
+}
+.date-perforation {
+  border-left: 1px dashed #b7c18a47;
+  position: relative;
+  margin-left: 10px;
+  align-self: stretch;
+  margin-block: 1px;
+}
+.date-perforation:before,
+.date-perforation:after {
+  content: '';
+  position: absolute;
+  background: var(--card-fill);
+  border-radius: 50%;
+  height: 12px;
+  width: 12px;
+  left: -6.5px;
+}
+.date-perforation:before {
+  top: -29px;
+}
+.date-perforation:after {
+  bottom: -29px;
+}
+.date-watermark {
+  position: absolute;
+  right: -3px;
+  top: -45px;
+  font: 800 200px/0.9 var(--heading);
+  color: #d5dc9a05;
+  letter-spacing: -8px;
+  pointer-events: none;
+  transform: rotate(-10deg);
+}
+.meeting-date.past {
+  filter: saturate(0.55);
+}
+.meeting-top {
+  display: block;
+  margin-bottom: 3px;
+}
+.meeting-intro {
+  width: 100%;
+}
+.meeting-intro > .badge {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+.meeting-intro h3,
+.meetings-grid .meeting-intro h3,
+.dashboard-columns .meeting-intro h3 {
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.42;
+  letter-spacing: -0.8px;
+  margin: 14px 0 12px;
+  color: var(--ink);
+  max-width: 450px;
+}
+.meeting-meta {
+  margin-top: 10px;
+}
+.meeting-meta > span,
+.meetings-grid .meeting-meta > span,
+.dashboard-columns .meeting-meta > span {
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.meeting-meta svg {
+  stroke-width: 1.6;
+}
+.meeting-agenda {
+  padding-top: 25px;
+}
+.meeting-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+  gap: 12px;
+}
+.meeting-section-label > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--soft-text);
+}
+.meeting-section-label > span > svg {
+  color: var(--accent);
+  stroke-width: 1.7;
+}
+.meeting-section-label > b {
+  font-family: var(--display);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  background: var(--card-subtle);
+  padding: 4px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+}
+.meeting-agenda ol {
+  gap: 0;
+  margin: 12px 0 23px;
+}
+.meeting-agenda li,
+.meetings-grid .meeting-agenda li,
+.dashboard-columns .meeting-agenda li {
+  font-size: 12px;
+  line-height: 1.8;
+  gap: 12px;
+  padding: 9px 0;
+  align-items: baseline;
+  color: var(--soft-text);
+}
+.meeting-agenda li > span {
+  font-family: var(--display);
+  font-size: 8px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 5px;
+  letter-spacing: 0.5px;
+  height: 20px;
+  width: 23px;
+}
+.meeting-resources {
+  gap: 9px;
+  margin-bottom: 24px;
+}
+.meeting-resource {
+  border-radius: 11px;
+  padding: 13px 14px;
+  background: linear-gradient(120deg, var(--card-subtle), transparent);
+  border-color: var(--line);
+}
+.meeting-resource strong {
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+}
+.meeting-resource small {
+  font-size: 9px;
+  font-weight: 500;
+}
+.resource-icon {
+  background: var(--card-fill);
+  border: 1px solid var(--line);
+  height: 35px;
+  width: 35px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px #00000003;
+}
+.pending-resource {
+  background: transparent;
+}
+.pending-resource strong {
+  font-size: 10px;
+  font-weight: 500;
+}
+.pending-resource .resource-icon {
+  background: transparent;
+  border: 0;
+}
+.pending-resource small {
+  font-size: 9px;
+  font-weight: 400;
+}
+.meeting-actions {
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+  gap: 15px;
+  align-items: center;
+}
+.meeting-actions .button,
+.meetings-grid .meeting-actions .button {
+  font-size: 11px;
+  padding: 11px 14px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+.attendance-count {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 500;
+  gap: 7px;
+}
+.attendee-stack {
+  display: flex;
+  padding-left: 0;
+}
+.attendee-stack > span {
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  border: 2px solid var(--card-fill);
+  background: #d5dabb;
+  color: #516445;
+  display: grid;
+  place-items: center;
+  font-family: var(--font);
+  font-size: 6px;
+  font-weight: 700;
+  margin-left: -7px;
+}
+.attendee-stack > span:first-child {
+  margin-left: 0;
+}
+.attendee-stack > span:nth-child(2) {
+  background: #ede1bd;
+  color: #8f7c44;
+}
+.attendee-stack > span:nth-child(3) {
+  background: #c4d6c5;
+  color: #59745d;
+}
+.meeting-card > [data-card-action='manage'] {
+  width: 100%;
+  padding-top: 19px;
+  margin-top: 20px;
+  justify-content: flex-end;
+  font-size: 10px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+.meeting-card > [data-card-action='manage']:hover {
+  color: var(--accent);
+}
+.compact .meeting-date {
+  min-height: 139px;
+  padding-block: 20px;
+}
+.compact .date-figure > strong {
+  font-size: 59px;
+}
+.compact .date-hour > strong {
+  font-size: 24px;
+}
+.compact .date-weekday {
+  font-size: 8px;
+}
+.compact .date-figure b {
+  font-size: 13px;
+}
+.compact .date-hour-label {
+  font-size: 5px;
+}
+.compact .date-perforation:before {
+  top: -26px;
+}
+.compact .date-perforation:after {
+  bottom: -26px;
+}
+.compact .meeting-intro h3 {
+  font-size: 19px;
+}
+.compact .meeting-section-label > span {
+  font-size: 10px;
+}
+.compact .meeting-resource {
+  padding: 11px;
+}
+.compact .meeting-resource strong {
+  font-size: 10px;
+}
+.compact .meeting-resource small {
+  font-size: 9px;
+}
+.compact .meeting-agenda li {
+  font-size: 11px;
+}
+.compact .meeting-actions .button {
+  font-size: 10px;
+  padding: 10px 12px;
+}
+/* Métriques : composition et éléments propres à chaque module. */
+.stats-grid {
+  gap: 20px;
+}
+.stat-card {
+  display: block;
+  border-radius: var(--card-radius);
+  padding: 23px 25px;
+  min-height: 216px;
+  border: 1px solid var(--card-edge);
+  background: radial-gradient(ellipse at 100% 0%, #c3d19824, transparent 65%), var(--card-fill);
+  box-shadow: 0 10px 30px -22px #17322255;
+  position: relative;
+  isolation: isolate;
+}
+.stat-card:after {
+  content: '';
+  position: absolute;
+  left: 25px;
+  right: 25px;
+  bottom: 54px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--line), transparent);
+}
+.stat-card:before {
+  top: 23px;
+  bottom: 23px;
+  width: 2px;
+  background: linear-gradient(180deg, #bbaf5e, #91b383);
+}
+.stat-card > div > span {
+  font-size: 11px;
+  line-height: 1.7;
+  font-weight: 600;
+  color: var(--soft-text);
+  display: block;
+  padding-right: 35px;
+}
+.stat-card strong {
+  font-family: var(--display);
+  font-size: 47px;
+  line-height: 1.12;
+  letter-spacing: -3px;
+  font-weight: 500;
+  margin: 16px 0 9px;
+  color: var(--ink);
+}
+.stat-card small {
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.8;
+  color: var(--muted);
+  max-width: 200px;
+  padding-right: 14px;
+}
+.stat-icon {
+  position: absolute;
+  top: 20px;
+  right: 21px;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent-soft) 75%, var(--card-fill));
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px #ffffff05;
+  color: var(--accent);
+  transform: rotate(-5deg);
+  transition: transform 0.3s;
+}
+.stat-card:hover .stat-icon {
+  transform: rotate(0deg);
+}
+.stat-icon > svg {
+  height: 17px;
+  width: 17px;
+  stroke-width: 1.7;
+}
+.metric-watermark {
+  position: absolute;
+  right: -12px;
+  top: 54px;
+  width: 105px;
+  height: 105px;
+  stroke-width: 0.55;
+  color: var(--accent);
+  opacity: 0.07;
+  transform: rotate(-16deg);
+  z-index: -1;
+  transition: transform 0.4s;
+}
+.stat-card:hover .metric-watermark {
+  transform: rotate(-6deg) scale(1.08);
+}
+.metric-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--accent);
+  position: absolute;
+  bottom: 19px;
+  left: 25px;
+  right: 25px;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 10px;
+}
+.metric-action svg {
+  transition: transform 0.2s;
+}
+.stat-card:hover .metric-action svg {
+  transform: translate(2px, -2px);
+}
+.stat-card[data-metric='1'] {
+  background: radial-gradient(ellipse at 100% 0%, #dac87525, transparent 65%), var(--card-fill);
+}
+.stat-card[data-metric='1'] .metric-watermark {
+  color: #b9a45b;
+}
+.stat-card[data-metric='2'] {
+  background: radial-gradient(ellipse at 100% 0%, #a8c9b126, transparent 65%), var(--card-fill);
+}
+/* Painéis do dashboard, votações e listas. */
+.panel {
+  border-radius: var(--card-radius);
+  border-color: var(--card-edge);
+  background: var(--card-fill);
+  box-shadow: 0 12px 35px -25px #11241a55;
+}
+.panel-heading {
+  padding: 24px 26px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(115deg, var(--card-subtle), transparent);
+  border-color: var(--line);
+}
+.panel-heading:after {
+  content: '';
+  position: absolute;
+  left: 26px;
+  top: 27px;
+  width: 2px;
+  height: 28px;
+  background: linear-gradient(180deg, #c7ae57, #79a270);
+  border-radius: 2px;
+}
+.panel-heading > div {
+  padding-left: 12px;
+}
+.panel-heading .eyebrow {
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.panel-heading h2,
+.dashboard-columns .panel-heading h2 {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.5px;
+  margin-top: 7px;
+}
+.panel-heading .text-button {
+  font-size: 10px;
+  white-space: nowrap;
+}
+.dashboard-poll {
+  padding: 24px 26px;
+  position: relative;
+  transition: background 0.2s;
+}
+.dashboard-poll:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22px;
+  bottom: 22px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--card-glint);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.dashboard-poll:hover:before {
+  opacity: 1;
+}
+.dashboard-poll h3,
+.dashboard-columns .dashboard-poll h3 {
+  font-family: var(--display);
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: -0.5px;
+  font-weight: 500;
+  margin: 15px 0 12px;
+}
+.dashboard-poll p,
+.dashboard-columns .dashboard-poll p {
+  font-size: 10px;
+  line-height: 1.8;
+}
+.poll-label,
+.dashboard-columns .poll-label {
+  font-weight: 600;
+  font-size: 9px;
+}
+.dashboard-poll > .text-button {
+  font-size: 11px;
+}
+.member-strip {
+  padding: 22px;
+}
+.member-mini {
+  padding: 8px;
+  border-radius: 11px;
+}
+.member-mini strong {
+  font-family: var(--display);
+  font-size: 10px;
+  letter-spacing: -0.2px;
+  font-weight: 500;
+}
+.member-mini .avatar {
+  border-radius: 10px;
+  width: 35px;
+  height: 35px;
+  font-family: var(--display);
+  font-weight: 500;
+}
+.member-mini span {
+  font-size: 9px;
+  margin-top: 5px;
+}
+.member-mini:hover .avatar {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.poll-card {
+  border-radius: var(--card-radius);
+  padding: 26px;
+  background: radial-gradient(ellipse at 120% -30%, #c8cb5d13, transparent 65%), var(--card-fill);
+  border-color: var(--card-edge);
+  position: relative;
+}
+.poll-card:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 26px;
+  right: 26px;
+  height: 2px;
+  background: linear-gradient(90deg, #799765, #c4b061, transparent);
+  opacity: 0.8;
+}
+.poll-card-top {
+  align-items: center;
+  margin-bottom: 22px;
+  min-height: 54px;
+  gap: 15px;
+}
+.poll-emblem {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  background: radial-gradient(ellipse at 0% 0%, #acc77f28, transparent 75%), var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  box-shadow:
+    inset 0 1px #fff1,
+    0 6px 16px #00000005;
+  flex-shrink: 0;
+  transform: rotate(-5deg);
+}
+.poll-emblem > svg {
+  stroke-width: 1.4;
+}
+.poll-emblem.is-closed {
+  background: var(--card-subtle);
+  color: var(--muted);
+  transform: rotate(0deg);
+}
+.poll-card-status {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.poll-card-status .badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 5px 8px;
+}
+.poll-privacy {
+  font-size: 9px;
+  font-weight: 500;
+}
+.poll-card > h2 {
+  font-family: var(--display);
+  font-size: 23px;
+  line-height: 1.4;
+  letter-spacing: -0.85px;
+  font-weight: 500;
+  margin: 24px 0 14px;
+  max-width: 450px;
+}
+.poll-description {
+  font-size: 13px;
+  color: var(--soft-text);
+  line-height: 1.9;
+  margin-bottom: 20px;
+}
+.poll-deadline {
+  display: inline-flex;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--card-subtle);
+  font-size: 10px;
+  margin-bottom: 25px;
+}
+.poll-options {
+  gap: 10px;
+}
+.poll-options legend {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+.poll-options label {
+  position: relative;
+  padding: 12px;
+  border-radius: 12px;
+  background: transparent;
+  border-color: var(--line);
+  font-size: 12px;
+  min-height: 56px;
+}
+.poll-options input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.poll-options label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.option-label {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  line-height: 1.7;
+  color: var(--soft-text);
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+}
+.option-label > small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 29px;
+  min-width: 29px;
+  height: 30px;
+  border-radius: 8px;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--card-subtle);
+  border: 1px solid var(--line);
+}
+.selected .option-label > small {
+  background: var(--accent);
+  color: var(--paper);
+  border-color: transparent;
+}
+.selected .option-label {
+  color: var(--ink);
+  font-weight: 600;
+}
+.poll-options label.selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 6%, transparent);
+  background: linear-gradient(115deg, var(--accent-soft), transparent);
+}
+.poll-options .abstention-option {
+  min-height: 51px;
+}
+.poll-options .abstention-option .option-label {
+  color: var(--muted);
+}
+.poll-options .abstention-option .option-label > small {
+  background: transparent;
+  border-style: dashed;
+}
+.poll-results > div > div {
+  font-size: 12px;
+  font-family: var(--font);
+}
+.poll-results b {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: -0.3px;
+}
+.result-track {
+  height: 8px;
+  border-radius: 3px;
+}
+.result-track > div {
+  border-radius: 3px;
+  background: linear-gradient(90deg, #75945f, #a8bf73);
+}
+.poll-card-bottom {
+  border-top-style: dashed;
+  padding-top: 22px;
+}
+.poll-card-bottom > span {
+  font-size: 10px;
+  font-weight: 500;
+}
+.participation-summary {
+  border-top-style: solid;
+  font-size: 10px;
+  padding-top: 18px;
+  gap: 10px 20px;
+}
+.participation-summary b {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 500;
+}
+.participation-summary small {
+  font-size: 9px;
+}
+.privacy-note {
+  font-size: 10px;
+  line-height: 1.8;
+}
+.voted-notice {
+  font-size: 12px;
+  border-radius: 11px;
+  line-height: 1.8;
+}
+.poll-card .close-poll {
+  font-size: 10px;
+}
+.ballots {
+  font-size: 11px;
+}
+.vote-confirmation {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  line-height: 1.7;
+}
+/* Ficha de filiado : bandeira de identificação e conteúdo independente. */
+.member-card {
+  padding: 0 24px 23px;
+  border-radius: var(--card-radius);
+  border-color: var(--card-edge);
+  background: var(--card-fill);
+  box-shadow: 0 10px 35px -25px #152c1e66;
+  overflow: hidden;
+  isolation: isolate;
+  position: relative;
+}
+.member-card:before {
+  display: none;
+}
+.member-banner {
+  height: 88px;
+  margin: 0 -24px;
+  background: linear-gradient(125deg, #1d4430, #163525);
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 19px 22px;
+  border-bottom: 1px solid #b4bd6735;
+  overflow: hidden;
+}
+.member-banner:before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: repeating-radial-gradient(
+    ellipse at 110% 140%,
+    transparent 0px,
+    transparent 12px,
+    #bacb7311 13px,
+    #bacb7311 14px
+  );
+}
+.member-banner > span {
+  color: #92ae8a;
+  font-size: 6px;
+  font-weight: 600;
+  line-height: 1.8;
+  letter-spacing: 1.8px;
+}
+.member-banner > b {
+  font-family: var(--heading);
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: #dce3b9;
+  opacity: 0.8;
+  transform: rotate(-7deg);
+}
+.member-banner em {
+  font-style: normal;
+  color: #ceb959;
+  margin-left: 1px;
+}
+.member-card-top {
+  margin-top: -25px;
+  margin-bottom: 18px;
+  align-items: flex-end;
+  position: relative;
+  z-index: 1;
+}
+.member-card-top .avatar.large {
+  height: 60px;
+  width: 60px;
+  border-radius: 18px;
+  border: 4px solid var(--card-fill);
+  background: #d7dfc2;
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 6px 13px #00000007;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 18px;
+  color: #506343;
+  position: relative;
+}
+.member-card-top .badge {
+  font-size: 9px;
+  margin: 0 0 4px;
+  background: var(--card-subtle);
+  color: var(--soft-text);
+  border-color: var(--line);
+  padding: 5px 8px;
+}
+.member-card h2 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: -0.65px;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.member-card .blue-handle {
+  font-size: 11px;
+  font-weight: 500;
+  gap: 4px;
+}
+.member-card > p.member-office {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11px;
+  margin: 22px 0 13px;
+  color: var(--soft-text);
+  line-height: 1.6;
+}
+.member-office svg {
+  color: var(--muted);
+  flex-shrink: 0;
+  margin-top: 2px;
+  stroke-width: 1.6;
+}
+.member-ideology {
+  font-family: var(--font);
+  font-size: 10px;
+  line-height: 1.7;
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: var(--card-subtle);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  font-weight: 500;
+}
+.member-card-bottom {
+  border-top-style: dashed;
+  margin-top: 24px;
+  padding-top: 18px;
+  gap: 8px;
+}
+.member-card-bottom > span {
+  font-size: 10px;
+  font-weight: 500;
+}
+.member-card-bottom > .text-button {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.member-details dd {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.7;
+}
+.member-bio {
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.principles-grid h3 {
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: -0.8px;
+  line-height: 1.3;
+  font-weight: 500;
+  max-width: none;
+}
+.principles-grid article {
+  padding: 28px 23px;
+}
+.principles-grid p {
+  font-size: 12px;
+  line-height: 1.9;
+}
+.principles-grid {
+  border-radius: var(--card-radius);
+}
+.party-gallery h2 {
+  font-family: var(--display);
+  font-size: 25px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.9px;
+}
+.party-gallery a {
+  border-radius: var(--card-radius);
+}
+.values-strip {
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 8px;
+  letter-spacing: 1.9px;
+}
+.meeting-service > header > span {
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+}
+.meeting-service {
+  border-radius: 14px;
+}
+.meeting-admin-note {
+  font-size: 11px;
+  line-height: 1.9;
+}
+.meeting-notes-editor summary {
+  font-size: 12px;
+}
+.portal-footer {
+  font-size: 9px;
+}
+html[data-theme='dark'] .meetings-grid > .panel,
+html[data-theme='dark'] .panel,
+html[data-theme='dark'] .member-card,
+html[data-theme='dark'] .stat-card {
+  box-shadow:
+    0 9px 35px -20px #0009,
+    inset 0 1px #bddb8107;
+}
+html[data-theme='dark'] .meeting-date {
+  background: linear-gradient(115deg, #2b422a, #1a3524);
+}
+html[data-theme='dark'] .date-figure > strong {
+  background: linear-gradient(180deg, #ecedc6, #b8c97c);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+html[data-theme='dark'] .date-figure small {
+  color: #8f9f7f;
+}
+html[data-theme='dark'] .date-weekday {
+  color: #b4c19c;
+}
+html[data-theme='dark'] .date-hour-label {
+  color: #8c9e7f;
+}
+html[data-theme='dark'] .date-online {
+  color: #a8b795;
+}
+html[data-theme='dark'] .date-perforation {
+  border-color: #b7c18a35;
+}
+html[data-theme='dark'] .stat-card {
+  background: radial-gradient(ellipse at 100% 0%, #8d9f4224, transparent 65%), var(--card-fill);
+}
+html[data-theme='dark'] .stat-card[data-metric='1'] {
+  background: radial-gradient(ellipse at 100% 0%, #d3b05016, transparent 65%), var(--card-fill);
+}
+html[data-theme='dark'] .stat-card[data-metric='2'] {
+  background: radial-gradient(ellipse at 100% 0%, #83b59c19, transparent 65%), var(--card-fill);
+}
+html[data-theme='dark'] .stat-icon {
+  border-color: #52673e50;
+  background: #293c2633;
+  color: #c6d09b;
+}
+html[data-theme='dark'] .stat-motion:nth-child(2) .stat-icon {
+  background: #403d2233;
+  color: #c5b97b;
+}
+html[data-theme='dark'] .stat-motion:nth-child(3) .stat-icon {
+  background: #253e3033;
+  color: #a6c5ac;
+}
+html[data-theme='dark'] .metric-watermark {
+  opacity: 0.06;
+  color: #d7e59e;
+}
+html[data-theme='dark'] .member-banner {
+  background: linear-gradient(125deg, #31462c, #203c29);
+}
+html[data-theme='dark'] .member-banner > b {
+  color: #c7d3a5;
+}
+html[data-theme='dark'] .member-card-top .avatar.large {
+  background: #3d5030;
+  color: #c8d5ad;
+}
+html[data-theme='dark'] .member-card-top .badge {
+  color: #aaba91;
+}
+html[data-theme='dark'] .attendee-stack > span {
+  background: #405331;
+  color: #c8d2af;
+}
+html[data-theme='dark'] .attendee-stack > span:nth-child(2) {
+  background: #574e31;
+  color: #ddd2a7;
+}
+html[data-theme='dark'] .attendee-stack > span:nth-child(3) {
+  background: #354f3e;
+  color: #adc7b1;
+}
+html[data-theme='dark'] .selected .option-label > small {
+  background: #bacb7c;
+  color: #24321c;
+}
+html[data-theme='dark'] .poll-emblem {
+  background: radial-gradient(ellipse at 0 0, #b9cd6c18, transparent), #1e3223;
+  border-color: #97ad6d38;
+  color: #becf8a;
+}
+html[data-theme='dark'] .poll-card:before {
+  background: linear-gradient(90deg, #adc083, #918451, transparent);
+}
+html[data-theme='dark'] .card-subtle {
+  background: #18281d;
+}
+@media (min-width: 1450px) {
+  .page-heading h1 {
+    font-size: 36px;
+  }
+  .meeting-intro h3,
+  .meetings-grid .meeting-intro h3 {
+    font-size: 23px;
+  }
+  .meeting-card,
+  .meetings-grid .meeting-card,
+  .dashboard-columns .meeting-card {
+    --card-padding: 29px;
+  }
+  .date-figure > strong {
+    font-size: 76px;
+  }
+  .meeting-date {
+    min-height: 169px;
+    padding-inline: 28px;
+  }
+  .date-figure b {
+    font-size: 16px;
+  }
+  .date-hour {
+    min-width: 140px;
+    padding-left: 25px;
+  }
+  .date-hour > strong {
+    font-size: 32px;
+  }
+  .date-hour-label {
+    font-size: 7px;
+  }
+  .date-weekday {
+    font-size: 10px;
+  }
+  .date-timezone {
+    font-size: 7px;
+  }
+  .date-online {
+    font-size: 9px;
+  }
+  .date-figure small {
+    font-size: 11px;
+  }
+  .compact .meeting-date {
+    min-height: 155px;
+  }
+  .compact .date-figure > strong {
+    font-size: 67px;
+  }
+  .compact .date-hour > strong {
+    font-size: 29px;
+  }
+  .stat-card {
+    min-height: 230px;
+    padding: 26px 28px;
+  }
+  .stat-card strong {
+    font-size: 53px;
+  }
+  .stat-card > div > span {
+    font-size: 12px;
+  }
+  .stat-card small {
+    font-size: 11px;
+    max-width: 230px;
+  }
+  .stat-card:after {
+    left: 28px;
+    right: 28px;
+  }
+  .metric-action {
+    left: 28px;
+    right: 28px;
+    font-size: 11px;
+  }
+  .panel-heading h2,
+  .dashboard-columns .panel-heading h2 {
+    font-size: 17px;
+  }
+  .meeting-agenda li,
+  .meetings-grid .meeting-agenda li {
+    font-size: 13px;
+  }
+  .poll-card > h2 {
+    font-size: 25px;
+  }
+  .poll-description {
+    font-size: 14px;
+  }
+  .member-card h2 {
+    font-size: 20px;
+  }
+  .member-card .blue-handle {
+    font-size: 12px;
+  }
+  .member-card > p.member-office {
+    font-size: 12px;
+  }
+  .member-ideology {
+    font-size: 11px;
+  }
+  .member-banner {
+    height: 96px;
+    padding-top: 21px;
+  }
+  .member-banner > b {
+    font-size: 28px;
+  }
+  .member-banner > span {
+    font-size: 7px;
+  }
+  .member-card-top {
+    margin-top: -28px;
+  }
+  .member-card-top .avatar.large {
+    height: 65px;
+    width: 65px;
+    font-size: 20px;
+  }
+}
+@media (max-width: 1150px) {
+  .meeting-card,
+  .meetings-grid .meeting-card,
+  .dashboard-columns .meeting-card {
+    --card-padding: 23px;
+  }
+  .meeting-date {
+    padding: 20px;
+    min-height: 150px;
+  }
+  .date-weekday {
+    font-size: 8px;
+    letter-spacing: 1.3px;
+  }
+  .date-figure {
+    gap: 10px;
+  }
+  .date-figure > strong {
+    font-size: 61px;
+    letter-spacing: -4px;
+  }
+  .date-figure b {
+    font-size: 13px;
+    letter-spacing: -0.5px;
+  }
+  .date-figure small {
+    font-size: 9px;
+  }
+  .date-hour {
+    min-width: 105px;
+    padding-left: 15px;
+  }
+  .date-hour > strong {
+    font-size: 24px;
+  }
+  .date-hour-label {
+    font-size: 5px;
+    letter-spacing: 0.9px;
+  }
+  .date-perforation {
+    margin-left: 7px;
+  }
+  .date-perforation:before {
+    top: -27px;
+  }
+  .date-perforation:after {
+    bottom: -27px;
+  }
+  .date-timezone {
+    font-size: 5px;
+    letter-spacing: 1.4px;
+  }
+  .date-online {
+    font-size: 7px;
+  }
+  .meeting-intro h3,
+  .meetings-grid .meeting-intro h3,
+  .dashboard-columns .meeting-intro h3 {
+    font-size: 18px;
+    letter-spacing: -0.65px;
+    line-height: 1.5;
+  }
+  .meeting-agenda li,
+  .meetings-grid .meeting-agenda li,
+  .dashboard-columns .meeting-agenda li {
+    font-size: 11px;
+  }
+  .meeting-resource strong {
+    font-size: 11px;
+  }
+  .attendance-count {
+    font-size: 8px;
+  }
+  .attendee-stack > span {
+    height: 21px;
+    width: 21px;
+  }
+  .meeting-actions {
+    gap: 13px;
+  }
+  .meeting-actions .button,
+  .meetings-grid .meeting-actions .button {
+    font-size: 10px;
+    padding: 10px 12px;
+  }
+  .stat-card {
+    padding: 23px 20px;
+    min-height: 220px;
+  }
+  .stat-card > div > span {
+    font-size: 10px;
+    padding-right: 26px;
+  }
+  .stat-card strong {
+    font-size: 42px;
+  }
+  .stat-card small {
+    font-size: 9px;
+    max-width: 150px;
+    padding-right: 5px;
+  }
+  .stat-icon {
+    height: 29px;
+    width: 29px;
+    top: 19px;
+    right: 17px;
+    border-radius: 9px;
+  }
+  .stat-icon svg {
+    height: 15px;
+    width: 15px;
+  }
+  .metric-watermark {
+    width: 85px;
+    right: -16px;
+    top: 60px;
+  }
+  .metric-action {
+    left: 20px;
+    right: 20px;
+    font-size: 9px;
+  }
+  .stat-card:after {
+    left: 20px;
+    right: 20px;
+  }
+  .panel-heading,
+  .dashboard-columns .panel-heading {
+    padding: 22px 23px;
+  }
+  .panel-heading:after {
+    left: 23px;
+    top: 24px;
+  }
+  .panel-heading h2,
+  .dashboard-columns .panel-heading h2 {
+    font-size: 13px;
+  }
+  .panel-heading .eyebrow {
+    font-size: 6px;
+    letter-spacing: 1.6px;
+  }
+  .dashboard-poll,
+  .dashboard-columns .dashboard-poll {
+    padding: 22px 23px;
+  }
+  .dashboard-poll h3,
+  .dashboard-columns .dashboard-poll h3 {
+    font-size: 14px;
+  }
+  .poll-card {
+    padding: 24px;
+  }
+  .poll-card > h2 {
+    font-size: 21px;
+  }
+  .poll-description {
+    font-size: 12px;
+  }
+  .member-card {
+    padding-inline: 22px;
+  }
+  .member-banner {
+    margin-inline: -22px;
+  }
+  .member-card h2 {
+    font-size: 17px;
+  }
+  .member-card .blue-handle {
+    font-size: 10px;
+  }
+  .member-card > p.member-office {
+    font-size: 10px;
+  }
+  .member-card-bottom .text-button {
+    font-size: 10px;
+  }
+  .principles-grid h3 {
+    font-size: 18px;
+  }
+  .profile-summary h2 {
+    font-size: 19px;
+  }
+  .form-section > header h2 {
+    font-size: 14px;
+  }
+  .form-section > header p {
+    font-size: 11px;
+  }
+}
+@media (min-width: 701px) and (max-width: 900px) {
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-columns .meeting-date {
+    min-height: 160px;
+  }
+  .dashboard-columns .date-figure > strong {
+    font-size: 76px;
+  }
+  .dashboard-columns .date-figure b {
+    font-size: 17px;
+  }
+  .dashboard-columns .date-hour {
+    min-width: 160px;
+    padding-left: 25px;
+  }
+  .dashboard-columns .date-hour > strong {
+    font-size: 32px;
+  }
+  .dashboard-columns .date-hour-label {
+    font-size: 7px;
+  }
+  .dashboard-columns .date-timezone {
+    font-size: 7px;
+  }
+  .dashboard-columns .date-online {
+    font-size: 10px;
+  }
+  .dashboard-columns .meeting-intro h3 {
+    font-size: 22px;
+  }
+  .meetings-grid .meeting-date {
+    min-height: 165px;
+  }
+  .meetings-grid .date-figure > strong {
+    font-size: 77px;
+  }
+  .meetings-grid .date-figure b {
+    font-size: 17px;
+  }
+  .meetings-grid .date-hour {
+    min-width: 160px;
+  }
+  .meetings-grid .date-hour > strong {
+    font-size: 32px;
+  }
+  .meetings-grid .date-hour-label {
+    font-size: 7px;
+  }
+  .meetings-grid .date-timezone {
+    font-size: 7px;
+  }
+  .meetings-grid .date-online {
+    font-size: 9px;
+  }
+  .meetings-grid .meeting-intro h3 {
+    font-size: 22px;
+  }
+  .stat-card {
+    padding: 20px 16px;
+    min-height: 222px;
+  }
+  .stat-card > div > span {
+    font-size: 10px;
+    max-width: 100px;
+    padding: 0;
+  }
+  .stat-icon {
+    height: 24px;
+    width: 24px;
+    right: 12px;
+    top: 17px;
+  }
+  .stat-icon svg {
+    height: 13px;
+    width: 13px;
+  }
+  .metric-action {
+    left: 16px;
+    right: 16px;
+    font-size: 8px;
+  }
+  .stat-card:after {
+    left: 16px;
+    right: 16px;
+  }
+  .stat-card strong {
+    font-size: 37px;
+  }
+  .stat-card small {
+    font-size: 9px;
+    max-width: 120px;
+  }
+  .metric-watermark {
+    display: none;
+  }
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+  .members-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .page-heading h1 {
+    font-size: 27px;
+    letter-spacing: -1.1px;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  .page-heading p {
+    font-size: 12px;
+    line-height: 1.85;
+  }
+  .page-heading .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1.8px;
+  }
+  .hero-content h2 {
+    font-size: 60px;
+  }
+  .hero-content p {
+    font-size: 11px;
+  }
+  .hero-content > a {
+    font-size: 10px;
+  }
+  .hero-content .eyebrow {
+    font-size: 7px;
+  }
+  .hero-content {
+    max-width: 88%;
+  }
+  .login-content h1 {
+    font-size: 31px;
+    letter-spacing: -1.1px;
+    line-height: 1.19;
+  }
+  .login-wordmark {
+    font-size: 68px;
+  }
+  .login-intro {
+    font-size: 13px;
+  }
+  .login-features span {
+    font-size: 10px;
+  }
+  .modal > header h2 {
+    font-size: 20px;
+  }
+  .field > input,
+  .field > textarea,
+  .field > select {
+    font-size: 13px;
+  }
+  .meeting-card,
+  .meetings-grid .meeting-card,
+  .dashboard-columns .meeting-card {
+    --card-padding: 22px;
+    padding: var(--card-padding);
+  }
+  .meeting-date,
+  .compact .meeting-date {
+    padding: 20px;
+    min-height: 148px;
+    margin-bottom: 24px;
+  }
+  .date-figure > strong,
+  .compact .date-figure > strong {
+    font-size: 62px;
+    letter-spacing: -4.5px;
+  }
+  .date-weekday,
+  .compact .date-weekday {
+    font-size: 7px;
+    letter-spacing: 1.5px;
+  }
+  .date-figure {
+    gap: 11px;
+  }
+  .date-figure b,
+  .compact .date-figure b {
+    font-size: 13px;
+    letter-spacing: -0.5px;
+  }
+  .date-figure small {
+    font-size: 9px;
+    letter-spacing: 2px;
+  }
+  .date-hour {
+    padding-left: 14px;
+    min-width: 103px;
+  }
+  .date-hour > strong,
+  .compact .date-hour > strong {
+    font-size: 25px;
+    letter-spacing: -1.4px;
+    margin-top: 10px;
+  }
+  .date-hour-label,
+  .compact .date-hour-label {
+    font-size: 5px;
+    letter-spacing: 0.8px;
+  }
+  .date-hour-label > svg {
+    display: none;
+  }
+  .date-timezone {
+    font-size: 5px;
+    letter-spacing: 1.3px;
+  }
+  .date-online {
+    font-size: 7px;
+    margin-top: 14px;
+    gap: 4px;
+  }
+  .date-online > svg {
+    height: 11px;
+    width: 11px;
+  }
+  .date-perforation {
+    margin-left: 9px;
+  }
+  .date-perforation:before,
+  .compact .date-perforation:before {
+    top: -27px;
+  }
+  .date-perforation:after,
+  .compact .date-perforation:after {
+    bottom: -27px;
+  }
+  .date-watermark {
+    top: -32px;
+    font-size: 170px;
+    right: -4px;
+  }
+  .meeting-intro h3,
+  .meetings-grid .meeting-intro h3,
+  .dashboard-columns .meeting-intro h3,
+  .compact .meeting-intro h3 {
+    font-size: 19px !important;
+    letter-spacing: -0.7px;
+    line-height: 1.45;
+    margin: 15px 0 12px;
+  }
+  .meeting-meta > span,
+  .meetings-grid .meeting-meta > span,
+  .dashboard-columns .meeting-meta > span {
+    font-size: 11px;
+  }
+  .meeting-agenda {
+    padding-top: 23px;
+  }
+  .meeting-section-label > span,
+  .compact .meeting-section-label > span {
+    font-size: 11px;
+  }
+  .meeting-section-label {
+    padding-top: 20px;
+  }
+  .meeting-agenda li,
+  .meetings-grid .meeting-agenda li,
+  .dashboard-columns .meeting-agenda li,
+  .compact .meeting-agenda li {
+    font-size: 11px !important;
+    line-height: 1.9;
+    gap: 10px;
+    padding-block: 8px;
+  }
+  .meeting-agenda li > span {
+    height: 19px;
+    width: 21px;
+    font-size: 7px;
+  }
+  .meeting-resources {
+    gap: 9px;
+  }
+  .meeting-resource,
+  .compact .meeting-resource {
+    padding: 12px;
+  }
+  .meeting-resource strong,
+  .compact .meeting-resource strong {
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .meeting-resource small,
+  .compact .meeting-resource small {
+    font-size: 9px;
+    line-height: 1.8;
+  }
+  .pending-resource strong,
+  .compact .pending-resource strong {
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .resource-icon,
+  .compact .resource-icon {
+    height: 31px;
+    width: 31px;
+  }
+  .meeting-actions {
+    padding-top: 21px;
+    gap: 12px;
+    justify-content: space-between;
+  }
+  .meeting-actions .button,
+  .meetings-grid .meeting-actions .button,
+  .compact .meeting-actions .button {
+    font-size: 10px;
+    padding: 10px 12px;
+  }
+  .attendance-count {
+    font-size: 8px;
+    gap: 5px;
+  }
+  .attendee-stack > span {
+    height: 20px;
+    width: 20px;
+    font-size: 5px;
+    margin-left: -8px;
+  }
+  .attendee-stack > span:first-child {
+    margin-left: 0;
+  }
+  .meeting-card > [data-card-action='manage'] {
+    font-size: 10px;
+    padding-top: 17px;
+    margin-top: 18px;
+  }
+  .meetings-grid > .panel {
+    border-radius: 18px;
+  }
+  .stats-grid {
+    gap: 9px;
+  }
+  .stat-card {
+    padding: 17px 12px;
+    min-height: 210px;
+    border-radius: 14px;
+  }
+  .stat-card > div > span {
+    font-size: 9px;
+    line-height: 1.8;
+    max-width: none;
+    padding: 0;
+    min-height: 30px;
+    font-weight: 600;
+  }
+  .stat-card strong {
+    font-size: 36px;
+    letter-spacing: -2px;
+    margin: 13px 0 10px;
+  }
+  .stat-card small {
+    font-size: 8px;
+    line-height: 1.85;
+    max-width: 105px;
+    padding: 0;
+  }
+  .stat-card .stat-icon {
+    display: none;
+  }
+  .metric-watermark {
+    display: none;
+  }
+  .stat-card:after {
+    left: 12px;
+    right: 12px;
+    bottom: 46px;
+  }
+  .metric-action {
+    left: 12px;
+    right: 12px;
+    bottom: 15px;
+    font-size: 7px;
+    gap: 4px;
+  }
+  .metric-action svg {
+    height: 10px;
+    width: 10px;
+  }
+  .panel {
+    border-radius: 18px;
+  }
+  .panel-heading,
+  .dashboard-columns .panel-heading,
+  .members-preview .panel-heading {
+    padding: 22px;
+  }
+  .panel-heading:after {
+    left: 22px;
+    top: 25px;
+    height: 29px;
+  }
+  .panel-heading > div {
+    padding-left: 11px;
+  }
+  .panel-heading .eyebrow {
+    font-size: 6px;
+    letter-spacing: 1.6px;
+  }
+  .panel-heading h2,
+  .dashboard-columns .panel-heading h2,
+  .members-preview .panel-heading h2 {
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: -0.35px;
+    margin-top: 7px;
+  }
+  .panel-heading .text-button,
+  .dashboard-columns .panel-heading .text-button {
+    font-size: 9px;
+    gap: 4px;
+  }
+  .panel-heading .text-button svg {
+    width: 12px;
+  }
+  .dashboard-poll,
+  .dashboard-columns .dashboard-poll {
+    padding: 23px 22px;
+  }
+  .dashboard-poll h3,
+  .dashboard-columns .dashboard-poll h3 {
+    font-size: 15px;
+    line-height: 1.55;
+    letter-spacing: -0.5px;
+  }
+  .dashboard-columns .dashboard-poll p {
+    font-size: 10px;
+  }
+  .dashboard-columns .poll-label {
+    font-size: 8px;
+  }
+  .dashboard-columns .text-button {
+    font-size: 11px;
+  }
+  .members-preview .panel-heading .text-button {
+    font-size: 7px;
+  }
+  .member-strip {
+    padding: 17px;
+    gap: 13px 6px;
+  }
+  .member-mini {
+    padding: 5px;
+    gap: 8px;
+  }
+  .member-mini .avatar {
+    height: 31px;
+    width: 31px;
+    font-size: 8px;
+    border-radius: 9px;
+  }
+  .member-mini strong {
+    font-size: 9px;
+    line-height: 1.5;
+  }
+  .member-mini span {
+    font-size: 7px;
+  }
+  .values-strip {
+    font-size: 6px;
+    letter-spacing: 1.5px;
+    gap: 10px;
+    padding-inline: 10px;
+  }
+  .poll-card {
+    padding: 24px 22px;
+    border-radius: 18px;
+  }
+  .poll-card:before {
+    left: 22px;
+    right: 22px;
+  }
+  .poll-card > h2 {
+    font-size: 22px;
+    letter-spacing: -0.8px;
+    line-height: 1.43;
+    margin-top: 23px;
+  }
+  .poll-card-top {
+    min-height: 49px;
+    margin-bottom: 22px;
+  }
+  .poll-emblem {
+    height: 49px;
+    width: 49px;
+    border-radius: 14px;
+  }
+  .poll-emblem > svg {
+    height: 24px;
+    width: 24px;
+  }
+  .poll-card-status {
+    gap: 9px;
+  }
+  .poll-card-status .badge {
+    font-size: 8px;
+  }
+  .poll-privacy {
+    font-size: 9px;
+  }
+  .poll-description {
+    font-size: 12px;
+    line-height: 1.95;
+  }
+  .poll-deadline {
+    font-size: 9px;
+    padding: 8px 9px;
+  }
+  .poll-options legend {
+    font-size: 11px;
+  }
+  .poll-options label {
+    padding: 12px;
+    font-size: 11px;
+    min-height: 56px;
+  }
+  .option-label {
+    gap: 9px;
+    font-size: 11px;
+    line-height: 1.8;
+  }
+  .option-label > small {
+    width: 26px;
+    min-width: 26px;
+    height: 28px;
+    font-size: 9px;
+    border-radius: 7px;
+  }
+  .poll-options .choice-check svg {
+    width: 15px;
+    height: 15px;
+  }
+  .poll-card-bottom > span {
+    font-size: 9px;
+  }
+  .poll-card-bottom .button {
+    font-size: 10px;
+  }
+  .participation-summary {
+    font-size: 10px;
+    gap: 10px 16px;
+  }
+  .participation-summary b {
+    font-size: 13px;
+  }
+  .participation-summary small {
+    font-size: 8px;
+  }
+  .privacy-note {
+    font-size: 9px;
+  }
+  .vote-confirmation {
+    font-size: 16px;
+  }
+  .members-grid {
+    grid-template-columns: 1fr;
+    gap: 21px;
+  }
+  .member-card {
+    padding: 0 23px 23px;
+    border-radius: 18px;
+    display: block;
+  }
+  .member-banner {
+    height: 100px;
+    margin: 0 -23px;
+    padding: 22px 24px;
+  }
+  .member-banner > span {
+    font-size: 7px;
+    letter-spacing: 2px;
+    line-height: 1.9;
+  }
+  .member-banner > b {
+    font-size: 31px;
+  }
+  .member-card-top {
+    margin-top: -31px;
+    margin-bottom: 20px;
+  }
+  .member-card-top .avatar.large {
+    height: 67px;
+    width: 67px;
+    border-width: 4px;
+    border-radius: 19px;
+    font-size: 21px;
+  }
+  .member-card-top .badge {
+    font-size: 10px;
+    margin: 0 0 6px;
+    padding: 5px 9px;
+  }
+  .member-card h2 {
+    font-size: 21px;
+    line-height: 1.4;
+    letter-spacing: -0.7px;
+    overflow-wrap: normal;
+  }
+  .member-card .blue-handle {
+    font-size: 12px;
+    margin-top: 3px;
+    gap: 5px;
+  }
+  .member-card > p.member-office {
+    font-size: 12px;
+    margin: 24px 0 14px;
+  }
+  .member-ideology {
+    font-size: 11px;
+    padding: 6px 9px;
+  }
+  .member-card-bottom {
+    margin-top: 26px;
+    padding-top: 20px;
+    flex-wrap: nowrap;
+  }
+  .member-card-bottom > span {
+    font-size: 11px;
+  }
+  .member-card-bottom > .text-button {
+    font-size: 12px;
+  }
+  .form-section {
+    border-radius: 18px;
+    padding: 24px 21px;
+  }
+  .form-section > header h2 {
+    font-size: 13px;
+    line-height: 1.6;
+    letter-spacing: -0.4px;
+  }
+  .form-section > header p {
+    font-size: 10px;
+    line-height: 1.8;
+  }
+  .form-section > header .section-icon {
+    height: 34px;
+    width: 34px;
+  }
+  .degree-grid label {
+    font-size: 11px;
+    padding: 13px 10px;
+  }
+  .privacy-toggle strong {
+    font-size: 11px;
+  }
+  .privacy-toggle small {
+    font-size: 9px;
+  }
+  .form-bottom > p {
+    font-size: 10px;
+  }
+  .party-gallery h2 {
+    font-size: 23px;
+  }
+  .principles-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .principles-grid article {
+    padding: 25px;
+    border-right: 0;
+    border-bottom: 1px solid #fff1;
+  }
+  .principles-grid h3 {
+    font-size: 20px;
+    letter-spacing: -0.6px;
+    margin-top: 20px;
+    max-width: 280px;
+    line-height: 1.4;
+  }
+  .principles-grid p {
+    font-size: 12px;
+    max-width: 290px;
+  }
+  .principles-grid article:last-child {
+    border-bottom: 0;
+  }
+  .member-detail-heading h3 {
+    font-size: 21px;
+  }
+  .member-details dd {
+    font-size: 12px;
+  }
+}
+@media (max-width: 360px) {
+  .meeting-date,
+  .compact .meeting-date {
+    padding-inline: 17px;
+  }
+  .date-figure > strong,
+  .compact .date-figure > strong {
+    font-size: 55px;
+    letter-spacing: -4px;
+  }
+  .date-figure {
+    gap: 9px;
+  }
+  .date-figure b,
+  .compact .date-figure b {
+    font-size: 12px;
+  }
+  .date-hour {
+    min-width: 92px;
+    padding-left: 12px;
+  }
+  .date-hour > strong,
+  .compact .date-hour > strong {
+    font-size: 23px;
+  }
+  .date-perforation {
+    margin-left: 7px;
+  }
+  .date-hour-label,
+  .compact .date-hour-label {
+    font-size: 4px;
+  }
+  .date-weekday,
+  .compact .date-weekday {
+    font-size: 6px;
+  }
+  .attendance-count {
+    font-size: 7px;
+  }
+  .stat-card {
+    padding-inline: 10px;
+  }
+  .metric-action {
+    font-size: 6px;
+    left: 10px;
+    right: 10px;
+  }
+  .metric-action > svg {
+    height: 9px;
+    width: 9px;
+  }
+}
+.meeting-card .date-hour-label {
+  font-size: 8px;
+  letter-spacing: 1.1px;
+}
+.meeting-card .date-timezone {
+  font-size: 6px;
+  letter-spacing: 1.1px;
+}
+.meeting-card .date-online {
+  font-size: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .meetings-grid > .panel:hover {
+    transform: none;
+  }
+  .stat-card:hover .metric-watermark {
+    transform: rotate(-16deg);
+  }
+  .stat-card:hover .stat-icon {
+    transform: rotate(-5deg);
+  }
+}

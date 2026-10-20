@@ -1,0 +1,721 @@
+/* Credenciais, selos e navegação pública da ANADE. */
+.role-insignia {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 15px;
+  padding: 15px 12px;
+  border-top: 1px solid #bbaa4e55;
+  border-bottom: 1px solid #bbaa4e33;
+  background: linear-gradient(110deg, #bcb66013, transparent);
+  text-align: left;
+  position: relative;
+  isolation: isolate;
+}
+.role-insignia:before,
+.role-insignia:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-left: 1px solid #b7a04b;
+}
+.role-insignia:before {
+  top: -1px;
+  border-top: 1px solid #b7a04b;
+}
+.role-insignia:after {
+  bottom: -1px;
+  border-bottom: 1px solid #b7a04b;
+}
+.role-crest {
+  width: 41px;
+  height: 48px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: #b49b43;
+  background: linear-gradient(140deg, #ccbb6a30, #b4a75a08);
+  border: 1px solid #ad995a4a;
+  clip-path: polygon(50% 0, 100% 16%, 100% 76%, 50% 100%, 0 76%, 0 16%);
+}
+.role-crest > svg {
+  stroke-width: 1.4;
+}
+.role-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.role-caption small {
+  font-family: var(--font);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #a28c41;
+}
+.role-caption strong {
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+  color: var(--ink);
+  line-height: 1.6;
+}
+.role-caption > span {
+  font-size: 8px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.role-member {
+  border-top-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--accent) 15%, transparent);
+  background: linear-gradient(110deg, var(--accent-soft), transparent);
+}
+.role-member .role-crest {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.role-member .role-caption small {
+  color: var(--accent);
+}
+.status-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  flex-shrink: 0;
+  vertical-align: middle;
+  max-width: 100%;
+}
+.status-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  width: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: linear-gradient(135deg, var(--accent-soft), var(--card-fill));
+  color: var(--accent);
+  box-shadow: inset 0 1px #ffffff09;
+  position: relative;
+}
+.status-symbol:after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  background: #b6b46b;
+  border: 2px solid var(--card-fill);
+  border-radius: 50%;
+}
+.status-symbol > svg {
+  stroke-width: 1.5;
+}
+.status-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.status-copy > small {
+  font-family: var(--font);
+  font-size: 6px;
+  letter-spacing: 1.6px;
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.status-copy > strong {
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  color: var(--accent);
+  line-height: 1.5;
+}
+.status-label[data-state='open'] .status-symbol {
+  color: #a88d31;
+  border-color: #b39c4938;
+  background: linear-gradient(135deg, var(--gold-soft), var(--card-fill));
+}
+.status-label[data-state='open'] .status-copy > strong {
+  color: #aa8b2d;
+}
+.status-label[data-state='open'] .status-symbol:after {
+  background: #e4c15f;
+  box-shadow: 0 0 0 3px #c6a84f0e;
+}
+.status-label[data-state='completed'] .status-symbol,
+.status-label[data-state='closed'] .status-symbol {
+  background: var(--paper-dark);
+  color: var(--muted);
+  border-color: var(--line);
+}
+.status-label[data-state='completed'] .status-copy > strong,
+.status-label[data-state='closed'] .status-copy > strong {
+  color: var(--soft-text);
+}
+.status-label[data-state='completed'] .status-symbol:after,
+.status-label[data-state='closed'] .status-symbol:after {
+  background: var(--muted);
+}
+.meeting-intro > .status-label {
+  margin-top: 0;
+  margin-bottom: 3px;
+}
+.meeting-intro h3,
+.meetings-grid .meeting-intro h3,
+.dashboard-columns .meeting-intro h3 {
+  margin-top: 18px;
+}
+.poll-card-top {
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 23px;
+}
+.poll-card-top > .poll-privacy {
+  margin-left: auto;
+  line-height: 1.6;
+  font-size: 9px;
+  gap: 5px;
+  white-space: nowrap;
+}
+.poll-card > h2 {
+  margin-top: 25px;
+}
+.badge,
+.badge.green,
+.badge.gray,
+.badge.gold {
+  border: 0;
+  border-radius: 0;
+  display: inline-flex;
+  gap: 7px;
+  padding: 0;
+  background: transparent;
+  color: var(--soft-text);
+  font-family: var(--font);
+  font-size: 10px;
+  line-height: 1.8;
+  font-weight: 600;
+  box-shadow: none;
+}
+.badge-mark {
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  transform: rotate(-7deg);
+  flex-shrink: 0;
+}
+.badge-mark > svg {
+  stroke-width: 1.6;
+  transform: rotate(7deg);
+}
+.badge-label {
+  display: inline-block;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  padding: 1px 0 2px;
+  letter-spacing: 0.15px;
+}
+.badge.gold .badge-mark {
+  background: var(--gold-soft);
+  border-color: #bba04e30;
+  color: #a88f3d;
+}
+.badge.gold .badge-label {
+  border-color: #bba04e30;
+  color: #a88f3d;
+}
+.badge.gray .badge-mark {
+  background: var(--paper-dark);
+  color: var(--muted);
+}
+.badge.gray .badge-label {
+  border-color: var(--line);
+}
+.member-card-top .badge {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 9px;
+  margin-bottom: 3px;
+}
+.member-card-top .badge-mark {
+  height: 19px;
+  width: 19px;
+}
+.member-card-top .badge-label {
+  border: 0;
+}
+.panel-heading .badge {
+  font-size: 9px;
+  gap: 6px;
+}
+.panel-heading .badge-mark {
+  height: 18px;
+  width: 18px;
+}
+.form-section > header .badge {
+  padding: 0;
+  font-size: 9px;
+}
+.meeting-date:before {
+  background:
+    radial-gradient(ellipse at 5% -50%, #d7cb7860, transparent 65%),
+    repeating-radial-gradient(
+      ellipse at 140% 130%,
+      transparent 0px,
+      transparent 19px,
+      #b1c4810d 20px,
+      #b1c4810d 21px
+    );
+}
+.meeting-date:after {
+  border: 1px solid #e5d4791a;
+  inset: 8px;
+}
+.date-figure > strong {
+  font-weight: 600;
+  letter-spacing: -5px;
+}
+.date-hour-label {
+  font-weight: 700;
+}
+.date-figure b {
+  font-size: 15px;
+}
+.date-watermark {
+  opacity: 1;
+}
+.date-weekday > i {
+  border-radius: 1px;
+  transform: rotate(45deg);
+  height: 5px;
+  width: 5px;
+}
+.login-footer .login-party-link {
+  font-size: 11px;
+  font-weight: 700;
+  gap: 7px;
+  color: var(--accent);
+  padding-bottom: 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  white-space: nowrap;
+}
+.login-footer .login-party-link:hover {
+  border-color: var(--accent);
+}
+.public-party {
+  min-height: 100vh;
+  background: var(--paper);
+}
+.public-header {
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px max(32px, calc((100vw - 1160px) / 2));
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: color-mix(in srgb, var(--white) 87%, transparent);
+  backdrop-filter: blur(22px);
+}
+.public-brand {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  flex-shrink: 0;
+}
+.public-brand-image {
+  height: 58px;
+  width: 140px;
+  border-radius: 9px;
+  background: #f5f1e0;
+  border: 1px solid #c1bd7f22;
+  display: block;
+  overflow: hidden;
+}
+.public-brand-image > img {
+  width: 140px;
+  height: 140px;
+  transform: translateY(-43px);
+  mix-blend-mode: multiply;
+}
+.public-brand > span:last-child {
+  font-family: var(--font);
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  line-height: 1.9;
+}
+.public-brand > span:last-child strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+.public-header nav {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+.public-header .public-active {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.public-header .public-active > svg {
+  color: var(--muted);
+}
+.public-header .button {
+  font-size: 11px;
+  padding: 11px 16px;
+}
+.public-party-content {
+  max-width: 1200px;
+  margin: auto;
+  padding: 64px 32px 28px;
+}
+.public-party .page-heading {
+  margin-bottom: 35px;
+  max-width: 900px;
+}
+.public-party .page-heading h1 {
+  font-family: var(--display);
+  font-size: 44px;
+  font-weight: 500;
+  line-height: 1.23;
+  letter-spacing: -1.8px;
+  text-wrap: balance;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.public-party .page-heading p {
+  font-size: 14px;
+  max-width: 650px;
+  line-height: 1.9;
+}
+.public-party .page-heading .eyebrow {
+  font-size: 9px;
+  letter-spacing: 2.7px;
+}
+.public-party .party-banner {
+  border-radius: 22px;
+}
+.public-party .party-statement {
+  padding-block: 64px;
+}
+.public-party .party-gallery header {
+  min-height: 175px;
+}
+.public-invitation {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 56px 15px;
+  text-align: center;
+  margin-top: 60px;
+  background: radial-gradient(ellipse at 50% 0%, #a7b96516, transparent 75%);
+}
+.public-invitation h2 {
+  font-family: var(--display);
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -1.3px;
+  margin: 18px 0;
+}
+.public-invitation p {
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 430px;
+  line-height: 1.9;
+  margin: 0 auto 25px;
+}
+.public-party-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  font-size: 9px;
+  color: var(--muted);
+  padding: 28px 0 5px;
+}
+.public-party-content > .party-gallery {
+  margin-top: 40px;
+}
+html[data-theme='dark'] .role-director .role-crest {
+  background: linear-gradient(135deg, #5c57313a, #333b1a10);
+  color: #d6c47c;
+  border-color: #aa9b4d50;
+}
+html[data-theme='dark'] .role-director .role-caption small {
+  color: #b6a364;
+}
+html[data-theme='dark'] .role-director {
+  border-top-color: #c5b46655;
+  border-bottom-color: #c5b46625;
+}
+html[data-theme='dark'] .status-label[data-state='open'] .status-copy > strong {
+  color: #d8c17c;
+}
+html[data-theme='dark'] .status-label[data-state='open'] .status-symbol {
+  color: #d5c27f;
+  background: linear-gradient(130deg, #393820, #1a2516);
+}
+html[data-theme='dark'] .badge.gold .badge-label {
+  color: #c7b574;
+}
+html[data-theme='dark'] .badge.gold .badge-mark {
+  color: #cbb673;
+}
+html[data-theme='dark'] .public-header {
+  background: color-mix(in srgb, #0d1b13 86%, transparent);
+}
+@media (min-width: 1450px) {
+  .status-symbol {
+    width: 42px;
+    height: 42px;
+  }
+  .status-copy > strong {
+    font-size: 12px;
+  }
+  .status-copy > small {
+    font-size: 7px;
+  }
+  .role-caption strong {
+    font-size: 13px;
+  }
+  .role-caption small {
+    font-size: 8px;
+  }
+}
+@media (max-width: 1000px) {
+  .public-header {
+    padding-inline: 26px;
+    gap: 15px;
+  }
+  .public-header nav {
+    gap: 18px;
+  }
+  .public-brand > span:last-child {
+    display: none;
+  }
+  .public-party-content {
+    padding-top: 45px;
+  }
+  .public-party .page-heading h1 {
+    font-size: 37px;
+  }
+  .poll-card-top > .poll-privacy {
+    font-size: 8px;
+  }
+  .status-copy > strong {
+    font-size: 10px;
+  }
+  .status-copy > small {
+    font-size: 5px;
+    letter-spacing: 1.2px;
+  }
+  .status-symbol {
+    height: 34px;
+    width: 34px;
+    border-radius: 10px;
+  }
+  .status-symbol > svg {
+    height: 18px;
+    width: 18px;
+  }
+  .status-label {
+    gap: 9px;
+  }
+}
+@media (max-width: 700px) {
+  .public-header {
+    height: 81px;
+    padding: 12px 18px;
+    gap: 10px;
+  }
+  .public-brand-image {
+    width: 103px;
+    height: 45px;
+    border-radius: 7px;
+  }
+  .public-brand-image > img {
+    width: 103px;
+    height: 103px;
+    transform: translateY(-30px);
+  }
+  .public-header nav {
+    gap: 12px;
+  }
+  .public-header .public-active {
+    display: none;
+  }
+  .public-header .theme-switcher {
+    padding: 3px;
+  }
+  .public-header .button {
+    font-size: 10px;
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  .public-header .button svg {
+    width: 14px;
+    height: 14px;
+  }
+  .public-header .theme-switcher button {
+    width: 23px;
+    height: 25px;
+  }
+  .public-party-content {
+    padding: 35px 19px 22px;
+  }
+  .public-party .page-heading {
+    margin-bottom: 28px;
+  }
+  .public-party .page-heading h1 {
+    font-size: 31px;
+    letter-spacing: -1.1px;
+    margin-top: 19px;
+    line-height: 1.25;
+    margin-bottom: 18px;
+  }
+  .public-party .page-heading .eyebrow {
+    font-size: 7px;
+    letter-spacing: 2px;
+  }
+  .public-party .page-heading p {
+    font-size: 12px;
+    line-height: 1.9;
+  }
+  .public-party .party-banner {
+    border-radius: 14px;
+  }
+  .public-party .party-statement {
+    padding-block: 43px;
+  }
+  .public-party .party-statement h2 {
+    font-size: 39px;
+  }
+  .public-party .party-gallery header {
+    min-height: 0;
+    margin-bottom: 22px;
+  }
+  .public-invitation {
+    padding: 40px 12px;
+    margin-top: 42px;
+  }
+  .public-invitation h2 {
+    font-size: 26px;
+    letter-spacing: -0.9px;
+  }
+  .public-invitation .eyebrow {
+    font-size: 7px;
+    letter-spacing: 1.7px;
+  }
+  .public-invitation p {
+    font-size: 12px;
+  }
+  .public-party-footer {
+    font-size: 8px;
+    gap: 11px;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-top: 23px;
+  }
+  .status-copy > strong {
+    font-size: 11px;
+  }
+  .status-copy > small {
+    font-size: 6px;
+    letter-spacing: 1.3px;
+  }
+  .status-symbol {
+    width: 36px;
+    height: 36px;
+  }
+  .meeting-intro > .status-label {
+    margin-bottom: 5px;
+  }
+  .meeting-intro h3,
+  .meetings-grid .meeting-intro h3,
+  .dashboard-columns .meeting-intro h3 {
+    margin-top: 20px;
+  }
+  .poll-card-top > .poll-privacy {
+    font-size: 8px;
+    max-width: 96px;
+    white-space: normal;
+  }
+  .poll-card-top {
+    gap: 10px;
+  }
+  .poll-card > .poll-card-top .status-copy > strong {
+    font-size: 10px;
+  }
+  .poll-card > .poll-card-top .status-copy > small {
+    font-size: 5px;
+    letter-spacing: 1px;
+  }
+  .poll-card > .poll-card-top .status-symbol {
+    height: 34px;
+    width: 34px;
+  }
+  .badge {
+    font-size: 10px;
+  }
+  .role-insignia {
+    padding: 16px;
+  }
+  .role-caption strong {
+    font-size: 13px;
+  }
+  .role-caption > span {
+    font-size: 9px;
+  }
+  .login-footer {
+    align-items: center;
+    gap: 12px;
+  }
+  .login-footer > span {
+    max-width: 175px;
+    font-size: 7px;
+  }
+  .login-footer .login-party-link {
+    font-size: 10px;
+  }
+  .member-card-top .badge {
+    font-size: 10px;
+  }
+  .panel-heading .badge {
+    font-size: 8px;
+    gap: 5px;
+  }
+  .panel-heading .badge-mark {
+    height: 16px;
+    width: 16px;
+  }
+  .date-figure b,
+  .compact .date-figure b {
+    font-size: 14px;
+  }
+}

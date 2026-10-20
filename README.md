@@ -7,7 +7,7 @@ Portal da **Aliança Nacional Democrática** no RPG Legado, com a identidade vis
 - **Frontend:** Next.js 16 App Router, React 19, TypeScript, Motion e fontes locais Sora (títulos e números), Manrope (leitura) e Barlow Condensed (marca e chamadas da ANADE). Temas claro, escuro e do sistema com `next-themes`.
 - **Backend:** Node.js 22.14+ e Express 5, separado do servidor Next.
 - **Banco recomendado:** **PostgreSQL hospedado no Supabase**. Driver `pg`, migrações SQL versionadas e sessões persistidas no PostgreSQL.
-- **Autenticação:** OAuth2 do Discord; cargos de filiado e direção consultados a cada chamada autenticada à API.
+- **Autenticação:** OAuth2 do Discord; cargos de filiado e direção reconfirmados com cache compartilhado de até dois minutos no PostgreSQL.
 - Tudo no mesmo repositório, com npm workspaces e um único `package-lock.json`.
 
 ```text
@@ -52,7 +52,9 @@ Faça backup pelo Supabase de acordo com seu plano. O Supabase hospeda o banco; 
 4. Quando a administração for configurada, o dirigente deve ter **ambos** os cargos: filiado e direção. Os IDs são copiados com o modo desenvolvedor do Discord.
 5. Execute `npm run dev`.
 
-O fluxo usa os escopos `identify guilds.members.read`, sem exigir um bot. Os tokens ficam na sessão do servidor e nunca são enviados ao frontend. Há validação de state OAuth, regeneração da sessão após login, cookie HttpOnly/SameSite, proteção de origem/CSRF e limites de requisições. O cargo é consultado novamente em cada requisição; sua remoção bloqueia a próxima operação. Indisponibilidade do Discord também bloqueia a operação até uma nova tentativa.
+O fluxo usa os escopos `identify guilds.members.read`, sem exigir um bot. Os tokens ficam na sessão do servidor e nunca são enviados ao frontend. Há validação de state OAuth, regeneração da sessão após login, cookie HttpOnly/SameSite, proteção de origem/CSRF e limites de requisições. A confirmação dos cargos dura até dois minutos e é compartilhada entre instâncias da API no PostgreSQL. Alterações de cargo podem levar até dois minutos para refletir no portal. Após a expiração, uma falha na reconfirmação bloqueia a operação. Respostas 429 respeitam o prazo informado pelo Discord, persistido no banco, e exibem o tempo de espera ao usuário.
+
+A migração `006_discord_memberships.sql` cria o cache privado de cargos. Um lock transacional por usuário e servidor impede chamadas duplicadas em requisições simultâneas, inclusive entre instâncias da Vercel. Confirmações vencidas não são usadas para liberar acesso durante falhas ou limites do Discord.
 
 A sessão dura até oito horas ou a expiração do token Discord, o que vier primeiro. Não há renovação automática: o usuário entra novamente. Logout destrói a sessão. As sessões reais ficam no PostgreSQL; o modo demonstrativo usa memória.
 

@@ -59,6 +59,8 @@ https://SEU-PROJETO.vercel.app/auth/discord/callback
 
 O endereço precisa coincidir exatamente com a origem publicada. O callback local pode continuar cadastrado. O login usa `identify guilds.members.read` e verifica o cargo no servidor; não precisa de IDs individuais dos filiados nem de token de bot.
 
+A migração `006_discord_memberships.sql` mantém a confirmação dos cargos por até dois minutos no PostgreSQL, compartilhada entre instâncias. Isso evita esgotar o limite do endpoint de filiação do Discord. Execute `npm run db:migrate` antes de publicar essa versão. Se o Discord já tiver retornado 429, o portal respeita o prazo de espera e não libera acesso com uma confirmação vencida. Remoções de cargo refletem em até dois minutos.
+
 ## 4. Conferir a publicação
 
 Para o endereço `https://anade.vercel.app`, use `APP_ORIGIN=https://anade.vercel.app` e cadastre `https://anade.vercel.app/auth/discord/callback` no Discord. Ao alterar as variáveis em Settings → Environment Variables, selecione **Production** e execute **Redeploy** para aplicá-las.

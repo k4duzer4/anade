@@ -3,6 +3,58 @@ export class PgRepository {
   constructor(pool) {
     this.pool = pool;
   }
+  async discordMember(guildId, userId, load, { now = Date.now } = {}) {
+    const result = await this.transaction(async (client) => {
+      // O lock do PostgreSQL também coordena cold starts e instâncias distintas da Vercel.
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
+        guildId,
+        userId,
+      ]);
+      const { rows } = await client.query(
+        'SELECT roles, valid_until, retry_at FROM anade.discord_memberships WHERE guild_id=$1 AND user_id=$2',
+        [guildId, userId],
+      );
+      const cached = rows[0];
+      if (cached && new Date(cached.valid_until).getTime() > now()) return { roles: cached.roles };
+      if (cached?.retry_at && new Date(cached.retry_at).getTime() > now()) {
+        return {
+          limited: Math.max(1, Math.ceil((new Date(cached.retry_at).getTime() - now()) / 1000)),
+        };
+      }
+      try {
+        const member = await load();
+        await client.query(
+          `INSERT INTO anade.discord_memberships(guild_id,user_id,roles,valid_until,retry_at)
+           VALUES($1,$2,$3,$4,NULL) ON CONFLICT(guild_id,user_id) DO UPDATE
+           SET roles=EXCLUDED.roles,valid_until=EXCLUDED.valid_until,retry_at=NULL`,
+          [guildId, userId, JSON.stringify(member.roles), new Date(now() + 120000)],
+        );
+        return { roles: member.roles };
+      } catch (error) {
+        if (error.code !== 'DISCORD_RATE_LIMITED') throw error;
+        await client.query(
+          `INSERT INTO anade.discord_memberships(guild_id,user_id,roles,valid_until,retry_at)
+           VALUES($1,$2,'[]'::jsonb,$3,$4) ON CONFLICT(guild_id,user_id) DO UPDATE
+           SET retry_at=EXCLUDED.retry_at`,
+          [guildId, userId, new Date(now()), new Date(now() + error.retryAfter * 1000)],
+        );
+        return { limited: error.retryAfter };
+      }
+    });
+    if (result.limited) {
+      throw Object.assign(
+        new Error(
+          `O Discord limitou as consultas de filiação. Tente novamente em ${result.limited} segundos.`,
+        ),
+        {
+          status: 503,
+          code: 'DISCORD_RATE_LIMITED',
+          retryAfter: result.limited,
+        },
+      );
+    }
+    return result;
+  }
   async account(id, username) {
     await this.pool.query(
       'INSERT INTO anade.accounts(id, username) VALUES($1,$2) ON CONFLICT(id) DO UPDATE SET username=EXCLUDED.username',

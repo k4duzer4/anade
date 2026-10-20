@@ -38,6 +38,27 @@ export async function discordRequest(path, token) {
     'É necessário estar no servidor da ANADE e ter o cargo de filiado.',
     403,
   );
+  if (r.status === 429) {
+    const body = await r.json().catch(() => ({}));
+    const delays = [
+      r.headers.get('retry-after'),
+      r.headers.get('x-ratelimit-reset-after'),
+      body.retry_after,
+    ]
+      .map(Number)
+      .filter((value) => Number.isFinite(value) && value > 0);
+    const retryAfter = Math.ceil(Math.max(1, ...delays));
+    throw Object.assign(
+      new Error(
+        `O Discord limitou as consultas de filiação. Tente novamente em ${retryAfter} segundos.`,
+      ),
+      {
+        status: 503,
+        code: 'DISCORD_RATE_LIMITED',
+        retryAfter,
+      },
+    );
+  }
   assert(r.ok, 'O Discord está indisponível. Tente novamente em instantes.', 503);
   return r.json();
 }
@@ -106,6 +127,10 @@ export function createApp({
   ].every((key) => env[key]);
   const adminRoleId = (env.DISCORD_ADMIN_ROLE_ID || '').trim();
   const hasAdminRole = (roles) => adminRoleId !== '' && roles.includes(adminRoleId);
+  const getMember = (userId, token) => {
+    const load = () => discord(`/users/@me/guilds/${env.DISCORD_GUILD_ID}/member`, token);
+    return repo.discordMember ? repo.discordMember(env.DISCORD_GUILD_ID, userId, load) : load();
+  };
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
   app.get('/api/config', (_req, res) =>
     res.json({
@@ -162,10 +187,7 @@ export function createApp({
       assert(response.ok, 'Não foi possível concluir o login. Tente novamente.', 401);
       const oauth = await response.json();
       const user = await discord('/users/@me', oauth.access_token);
-      const member = await discord(
-        `/users/@me/guilds/${env.DISCORD_GUILD_ID}/member`,
-        oauth.access_token,
-      );
+      const member = await getMember(user.id, oauth.access_token);
       assert(
         member.roles.includes(env.DISCORD_MEMBER_ROLE_ID),
         'Seu usuário não possui o cargo de filiado da ANADE.',
@@ -209,10 +231,7 @@ export function createApp({
     const user = req.session.user;
     assert(user && user.expires > Date.now(), 'Entre com o Discord para continuar.', 401);
     if (!user.demo) {
-      const member = await discord(
-        `/users/@me/guilds/${env.DISCORD_GUILD_ID}/member`,
-        user.accessToken,
-      );
+      const member = await getMember(user.id, user.accessToken);
       assert(
         member.roles.includes(env.DISCORD_MEMBER_ROLE_ID),
         'Você não possui mais o cargo de filiado da ANADE.',
@@ -328,7 +347,9 @@ export function createApp({
           ? 413
           : error.status || 500;
     if (status >= 500) console.error('API:', error.code || error.name);
+    if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
     res.status(status).json({
+      ...(error.retryAfter ? { retryAfter: error.retryAfter } : {}),
       error:
         status === 500
           ? 'Não foi possível concluir. Tente novamente.'

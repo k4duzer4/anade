@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import express from 'express';
 import { newDb, DataType } from 'pg-mem';
 import { createVercelHandler } from '../src/vercel.js';
+import { membershipFixture } from './helpers/memberships.js';
 
 async function serve(t, handler) {
   const app = express();
@@ -20,6 +21,7 @@ test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e bloqueio de n�
   // pg-mem não converte timestamp/timestamptz implicitamente como PostgreSQL real.
   const migration = await readFile(new URL('../db/001_initial.sql', import.meta.url), 'utf8');
   db.public.none(migration.replace('expire timestamp', 'expire timestamptz'));
+  await membershipFixture(db);
   db.public.registerFunction({
     name: 'to_timestamp',
     args: [DataType.float],
@@ -110,6 +112,9 @@ test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e bloqueio de n�
   assert.equal(access.status, 200);
   assert.deepEqual(await access.json(), { user: { id: 'member', admin: false } });
   roles = [];
+  await pools[0].query('UPDATE anade.discord_memberships SET valid_until=$1', [
+    new Date(Date.now() - 1),
+  ]);
   assert.equal((await call(first, '/api/access', cookie)).status, 403);
   assert.equal(
     (

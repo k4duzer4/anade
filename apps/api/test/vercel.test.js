@@ -123,6 +123,7 @@ test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e bloqueio de n�
 });
 
 test('Vercel: configuração incompleta falha sem expor credenciais ou criar conexões', async (t) => {
+  const logs = t.mock.method(console, 'error', () => {});
   const url = await serve(
     t,
     createVercelHandler({
@@ -136,4 +137,5 @@ test('Vercel: configuração incompleta falha sem expor credenciais ou criar con
   assert.equal(response.status, 503);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.deepEqual(await response.json(), { error: 'O portal está temporariamente indisponível.' });
+  assert.deepEqual(logs.mock.calls.at(-1).arguments, ['API Vercel:', 'CONFIG_SESSION_SECRET']);
 });

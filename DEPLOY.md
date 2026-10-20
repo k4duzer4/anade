@@ -59,6 +59,10 @@ O endereço precisa coincidir exatamente com a origem publicada. O callback loca
 
 ## 4. Conferir a publicação
 
+Para o endereço `https://anade.vercel.app`, use `APP_ORIGIN=https://anade.vercel.app` e cadastre `https://anade.vercel.app/auth/discord/callback` no Discord. Ao alterar as variáveis em Settings → Environment Variables, selecione **Production** e execute **Redeploy** para aplicá-las.
+
+Se a API retornar 503, consulte os Runtime Logs do serviço `api`: `CONFIG_APP_ORIGIN`, `CONFIG_SESSION_SECRET` e `CONFIG_DATABASE_URL` identificam a variável ausente ou inválida, sem registrar seu valor. O segredo de sessão precisa ter pelo menos 32 caracteres. Erros de conexão PostgreSQL ou tabelas ausentes precisam ser corrigidos na conexão ou nas migrações. A página inicial tem uma regra explícita para `/` no roteamento dos Services.
+
 - `/` e `/partido` devem abrir sem login.
 - `/painel`, `/agenda`, `/votacoes`, `/filiados`, `/ficha` e `/direcao` devem redirecionar visitantes para o login.
 - Um usuário com o cargo de filiado deve conseguir entrar e salvar sua ficha; confira a persistência após sair e entrar novamente.

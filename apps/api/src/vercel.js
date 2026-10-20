@@ -6,6 +6,10 @@ import { createPool } from './database.js';
 import { PgRepository } from './repository.js';
 
 const PgStore = connectPgSimple(session);
+const configError = (variable) =>
+  Object.assign(new Error('Configuração de produção ausente ou inválida.'), {
+    code: `CONFIG_${variable}`,
+  });
 
 export function createVercelHandler({
   env = process.env,
@@ -22,9 +26,10 @@ export function createVercelHandler({
   try {
     const origin = env.APP_ORIGIN;
     if (!origin?.startsWith('https://') || new URL(origin).origin !== origin)
-      throw new Error('APP_ORIGIN HTTPS obrigatória, sem caminho ou barra final.');
-    if (!env.SESSION_SECRET || env.SESSION_SECRET.length < 32)
-      throw new Error('SESSION_SECRET deve ter pelo menos 32 caracteres.');
+      throw configError('APP_ORIGIN');
+    if (!env.SESSION_SECRET || env.SESSION_SECRET.length < 32) throw configError('SESSION_SECRET');
+    if (!env.DATABASE_URL || !/^postgres(ql)?:\/\//.test(env.DATABASE_URL))
+      throw configError('DATABASE_URL');
     if (!pool) {
       pool = poolFactory(env.DATABASE_URL, { max: 2, idleTimeoutMillis: 5000 });
       pool.on('error', () => console.error('Conexão PostgreSQL indisponível.'));

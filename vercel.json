@@ -13,8 +13,9 @@
     }
   },
   "rewrites": [
+    { "source": "/", "destination": { "service": "web", "path": "/" } },
     { "source": "/api/:path*", "destination": { "service": "api" } },
     { "source": "/auth/:path*", "destination": { "service": "api" } },
-    { "source": "/:path*", "destination": { "service": "web" } }
+    { "source": "/(.*)", "destination": { "service": "web" } }
   ]
 }

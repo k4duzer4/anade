@@ -19,6 +19,8 @@ As migrações criam as tabelas no schema privado `anade`. Mantenha esse schema 
 
 Para a Vercel, copie também a URI de **Connect → Transaction pooler**, porta **6543**. Essa será a `DATABASE_URL` do ambiente publicado. O aplicativo usa `pg` sem prepared statements nomeados, compatível com esse pooler.
 
+A autoridade certificadora pública oficial do Supabase está incluída em `apps/api/certs/supabase-prod-ca-2021.crt`. O backend a utiliza nos hosts oficiais do Supabase, verificando o certificado e o hostname. Não é preciso desativar a verificação SSL nem cadastrar uma variável extra para o certificado.
+
 ## 2. Importar o GitHub na Vercel
 
 1. Entre em <https://vercel.com/new> com sua conta GitHub e escolha **Hobby**, para este projeto pessoal de RPG.

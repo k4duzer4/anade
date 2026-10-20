@@ -16,6 +16,12 @@
     "build": "npm run build -w @anade/web",
     "start": "concurrently -k -n api,web \"npm start -w @anade/api\" \"npm start -w @anade/web\"",
     "start:render": "node scripts/start-render.mjs",
+    "cf:build": "npm run build:cloudflare -w @anade/web",
+    "cf:check:api": "wrangler deploy --dry-run --config apps/api/wrangler.jsonc --outdir ../../artifacts/cloudflare-api",
+    "cf:preview": "wrangler dev --config apps/web/wrangler.jsonc --config apps/api/wrangler.jsonc",
+    "cf:test": "node scripts/test-cloudflare.mjs",
+    "cf:deploy:api": "wrangler deploy --config apps/api/wrangler.jsonc",
+    "cf:deploy:web": "wrangler deploy --config apps/web/wrangler.jsonc",
     "typecheck": "npm run typecheck -w @anade/web",
     "lint": "npm run lint -w @anade/web",
     "test": "npm test -w @anade/api",
@@ -23,6 +29,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "prettier": "^3.9.10"
+    "prettier": "^3.9.10",
+    "wrangler": "^4.151.3"
   }
 }

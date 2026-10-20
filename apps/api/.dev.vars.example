@@ -1,0 +1,4 @@
+# Somente para testar o Worker local. Copie para .dev.vars (ignorado pelo Git).
+DATABASE_URL=postgresql://postgres.PROJECT_REF:PASSWORD@POOLER-HOST:5432/postgres
+SESSION_SECRET=
+DISCORD_CLIENT_SECRET=

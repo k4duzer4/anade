@@ -100,7 +100,7 @@ A migração `005_directors.sql` cria a tabela privada `anade.directors`, com re
 
 ## Verificação e produção
 
-Para começar em hospedagem gratuita, consulte [o guia de publicação no Render + Supabase](DEPLOY.md). O `render.yaml` prepara um único serviço Free com Next público e Express interno, sem armazenar segredos no repositório. O comando `npm run start:render` gerencia os dois processos e deriva a origem pública da URL fornecida pelo Render.
+O destino escolhido é **Cloudflare Workers + Supabase**, com endereço gratuito `workers.dev`: consulte [o guia de publicação](DEPLOY.md). O frontend Next.js usa OpenNext; o backend Express permanece em um Worker privado, acessado por Service Binding. Cada requisição do Worker recebe sua própria conexão PostgreSQL; as sessões são persistidas no banco. `cf:build` gera o site; `cf:deploy:api` e `cf:deploy:web` publicam os dois Workers. Credenciais ficam nos secrets da API. A configuração Render permanece como alternativa no [guia separado](DEPLOY-RENDER.md).
 
 ```powershell
 npm run typecheck

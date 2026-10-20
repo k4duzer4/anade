@@ -1,60 +1,95 @@
-# Publicar no Render Free + Supabase Free
+# Publicar no Cloudflare Workers + Supabase
 
-O portal pode começar em um único Web Service gratuito no Render. Next.js atende na porta pública; Express roda internamente em `127.0.0.1:3001`. Dados e sessões são persistidos no PostgreSQL do Supabase. Não use o modo demonstrativo em produção.
+Destino escolhido: **Workers Free**, com endereço gratuito `workers.dev`, e PostgreSQL no Supabase. Há dois Workers: `anade` (Next.js público, com OpenNext) e `anade-api` (Express privado). O site encaminha `/api` e `/auth` por um Service Binding. As páginas internas também consultam a sessão pelo binding. A API não recebe um endereço público.
 
-## Limites dos planos gratuitos
+As sessões ficam no PostgreSQL. Cada requisição da API recebe uma conexão própria, encerrada ao concluir, sem reutilizar sockets de outra requisição do Workers. Uma tarefa agendada remove sessões expiradas a cada seis horas. O cadastro administrativo permanece opcional.
 
-- Render suspende o serviço após 15 minutos sem tráfego. A primeira visita seguinte pode levar cerca de um minuto para abrir. Há 750 horas gratuitas mensais por workspace, compartilhadas com outros serviços, além de limites de tráfego e builds. O próprio Render destina esse plano a projetos pessoais e testes, sem garantias de disponibilidade para produção.
-- Supabase Free inclui banco de até 500 MB e pode pausar o projeto após uma semana de inatividade. Planeje cópias de segurança dos dados.
-- Use os subdomínios fornecidos pelas plataformas para começar sem comprar um domínio. Um domínio próprio é opcional e tem custo separado.
+## 1. Supabase
 
-## 1. Preparar o Supabase
+1. Crie um projeto no plano **Free**.
+2. Em **Connect → Session pooler**, copie a conexão PostgreSQL na porta **5432**, substituindo a senha e codificando caracteres especiais para URL.
+3. Preencha `DATABASE_URL` em `apps/api/.env` localmente e execute na raiz:
 
-1. Crie um projeto no plano Free e guarde a senha do banco.
-2. Em **Connect → Session pooler**, copie a URL PostgreSQL na porta **5432**. Substitua a senha e codifique caracteres especiais na URL.
-3. Essa URL será `DATABASE_URL` no Render. Não use a chave pública, a service role ou a URL REST no lugar da conexão PostgreSQL.
-4. Mantenha o schema `anade` fora dos schemas expostos pela Data API. As migrações criam as tabelas com RLS e acesso restrito ao backend.
+```sh
+npm ci
+npm run db:migrate
+```
 
-## 2. Criar o serviço no Render
+As cinco migrações criam o schema privado `anade`. Mantenha esse schema fora da Data API do Supabase. Não use a URL REST nem a chave pública como conexão PostgreSQL. As migrações são executadas antes de publicar, nunca dentro de requisições do Worker.
 
-Depois de enviar esta versão ao GitHub:
+## 2. Conta Cloudflare e endereço público
 
-1. Entre no Render com sua conta GitHub.
-2. Abra **New → Blueprint**, selecione `k4duzer4/anade` e a branch `main`.
-3. O arquivo `render.yaml` configura **um Web Service Free**. Confira o plano antes de criar.
-4. Preencha as variáveis solicitadas:
+1. Entre no Cloudflare e mantenha o plano **Workers Free**.
+2. Em **Workers & Pages**, escolha seu subdomínio `workers.dev`.
+3. A URL do site será `https://anade.SEU-SUBDOMINIO.workers.dev`.
+4. Substitua o exemplo de `APP_ORIGIN` em `apps/api/wrangler.jsonc` pela URL real, sem barra final. Os IDs Discord já estão preenchidos; o cargo administrativo continua vazio.
+5. Autorize o Wrangler pelo terminal:
 
-| Variável                 | Valor                          |
-| ------------------------ | ------------------------------ |
-| `DATABASE_URL`           | Conexão PostgreSQL do Supabase |
-| `DISCORD_CLIENT_ID`      | ID da aplicação Discord        |
-| `DISCORD_CLIENT_SECRET`  | Segredo OAuth2 da aplicação    |
-| `DISCORD_GUILD_ID`       | ID do servidor da ANADE        |
-| `DISCORD_MEMBER_ROLE_ID` | ID do cargo de filiado         |
+```sh
+npx wrangler login
+```
 
-O Render gera `SESSION_SECRET`. `DISCORD_ADMIN_ROLE_ID` começa vazio; todos os usuários reais permanecem sem privilégios administrativos até configurá-lo. Os valores do `.env` local não são enviados automaticamente ao Render. Insira os segredos diretamente no painel.
+Use **Workers**, pois o portal tem sessões e páginas renderizadas no servidor. OpenNext recomenda Linux ou WSL para builds em máquinas Windows. O ambiente de CI do Cloudflare também pode gerar o build.
 
-O build instala as dependências e compila o Next. O início aplica as migrações versionadas e só inicia o portal se elas concluírem com sucesso. Um reinício verifica as versões sem recriar ou apagar dados. Se a migração falhar, consulte os logs e corrija a conexão antes de tentar novamente.
+## 3. Publicar a API privada
 
-## 3. Ajustar o Discord
+```sh
+npm run cf:deploy:api
+npx wrangler secret put DATABASE_URL --config apps/api/wrangler.jsonc
+npx wrangler secret put SESSION_SECRET --config apps/api/wrangler.jsonc
+npx wrangler secret put DISCORD_CLIENT_SECRET --config apps/api/wrangler.jsonc
+```
 
-1. Copie a URL HTTPS gerada pelo Render, por exemplo `https://SEU-SERVICO.onrender.com`.
-2. Na aplicação Discord, em **OAuth2 → Redirects**, adicione **essa URL seguida de `/auth/discord/callback`** e salve.
-3. O inicializador utiliza `RENDER_EXTERNAL_URL` para definir automaticamente a origem e o redirect. Abra o portal pela URL gerada, com HTTPS.
-4. Para domínio próprio, adicione `APP_ORIGIN=https://SEU-DOMINIO` no Render, sem barra final. Atualize também o redirect no Discord. Se definir `DISCORD_REDIRECT_URI` manualmente, ele deve corresponder à mesma origem.
+Os comandos solicitam os valores no terminal. Gere uma chave de produção com pelo menos 32 caracteres para `SESSION_SECRET`, por exemplo `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Use o Client Secret OAuth2 atual. A API só fica operacional após preencher os três secrets. O `.env` local não é enviado automaticamente; não publique nem compartilhe os segredos no chat.
 
-## 4. Conferir antes de convidar os filiados
+`workers_dev: false` e `preview_urls: false` deixam a API acessível apenas por bindings. O frontend não precisa das credenciais PostgreSQL ou Discord.
 
-- Login funciona com a conta real e a ficha fica salva após sair e entrar.
-- Conta sem o cargo de filiado não acessa páginas internas nem a API.
-- Conta filiada entra sem ver controles administrativos enquanto o cargo administrativo estiver vazio.
-- `/api/health` responde `{"ok":true}` e os logs não indicam falhas de conexão ao banco. Esse endpoint verifica a API; o teste de gravação da ficha confirma o banco.
-- As páginas públicas são Login e A ANADE. Nenhum registro demonstrativo é inserido no banco real.
+## 4. Publicar o site e configurar OAuth
 
-## Referências
+```sh
+npm run cf:build
+npm run cf:deploy:web
+```
 
-- [Render Free: limites](https://render.com/docs/free)
-- [Render: Blueprints](https://render.com/docs/blueprint-spec)
-- [Render: variáveis automáticas](https://render.com/docs/environment-variables)
-- [Supabase: conexão PostgreSQL](https://supabase.com/docs/guides/database/connecting-to-postgres)
-- [Supabase: planos](https://supabase.com/pricing)
+Confirme que a URL publicada corresponde a `APP_ORIGIN`. No Discord Developer Portal, em **OAuth2 → Redirects**, cadastre essa URL seguida de `/auth/discord/callback`:
+
+```text
+https://anade.SEU-SUBDOMINIO.workers.dev/auth/discord/callback
+```
+
+O callback é derivado de `APP_ORIGIN`. Quando quiser habilitar a administração, preencha `DISCORD_ADMIN_ROLE_ID` e publique a API novamente. Os administradores precisam dos cargos de filiado e administrador. Nenhum dado demonstrativo é inserido no banco real.
+
+Para publicação pelo GitHub, configure dois projetos Workers Builds no mesmo repositório, ambos executando na raiz. A API publica com `npm run cf:deploy:api`. O site usa build `npm run cf:build` e publicação `npm run cf:deploy:web`. Publique primeiro a API. Configure seus secrets no Worker da API.
+
+## 5. Testes e prévia
+
+```sh
+npm test
+npm run typecheck
+npm run lint
+npm run cf:check:api
+npm run cf:build
+npm run cf:test
+```
+
+`cf:test` inicia Workers descartáveis e um PostgreSQL emulado, sem acessar contas externas. Valida páginas públicas, bloqueio de páginas privadas, binding, persistência da sessão de autorização, cookie seguro e rejeição de state OAuth inválido. A simulação não substitui testes do banco real e do login completo com sua conta Discord.
+
+Para prévia manual, copie `apps/api/.dev.vars.example` para `.dev.vars` (ignorado pelo Git), use credenciais de um banco de teste, gere o build e execute `npm run cf:preview`. A demonstração Node em `localhost:3000` continua disponível com `npm run demo`.
+
+No ambiente publicado, confira login real, filiação, gravação e persistência da ficha. Confirme também o bloqueio de não filiados e a ausência de controles administrativos enquanto o cargo correspondente estiver vazio. `/api/health` verifica a API; salvar a ficha confirma a integração com o banco.
+
+## Limites gratuitos
+
+Workers Free tem limites de requisições, CPU por requisição e memória. SSR e autenticação precisam ser medidos no ambiente publicado; a prévia local não confirma o consumo real. As imagens são servidas como arquivos estáticos, sem depender de Cloudflare Images. R2, KV e Hyperdrive não são obrigatórios nesta configuração.
+
+Supabase Free tem limite de banco e pode pausar após inatividade. Planeje cópias de segurança. Um domínio próprio é opcional; o endereço `workers.dev` permite começar sem comprar um domínio.
+
+A configuração anterior Render está em `render.yaml`, com [guia separado](DEPLOY-RENDER.md), como alternativa. Ela não participa do deploy Cloudflare.
+
+## Documentação
+
+- [OpenNext no Cloudflare Workers](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)
+- [HTTP Node/Express no Workers](https://developers.cloudflare.com/workers/runtime-apis/nodejs/http/)
+- [Service Bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/)
+- [Limites do Workers](https://developers.cloudflare.com/workers/platform/limits/)
+- [Conexão PostgreSQL do Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres)

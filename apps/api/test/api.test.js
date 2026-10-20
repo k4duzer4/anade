@@ -287,3 +287,72 @@ test('modo real não oferece entrada demonstrativa e produção recusa demonstra
   });
   assert.equal(r.status, 404);
 });
+
+test('OAuth permite cargo administrativo ausente e mantém todos os filiados sem administração', async (t) => {
+  for (const adminRole of [undefined, '', '   ']) {
+    await t.test(`cargo administrativo ${JSON.stringify(adminRole)}`, async (t) => {
+      const store = new session.MemoryStore();
+      let roles = ['member-role', 'other-role', ''];
+      const app = createApp({
+        repo: new MemoryRepository(seed()),
+        store,
+        secret: 'test-secret-with-at-least-thirty-two-characters',
+        env: {
+          DISCORD_CLIENT_ID: 'test-client',
+          DISCORD_CLIENT_SECRET: 'test-secret',
+          DISCORD_GUILD_ID: 'test-guild',
+          DISCORD_MEMBER_ROLE_ID: 'member-role',
+          DISCORD_REDIRECT_URI: 'http://localhost:3000/auth/discord/callback',
+          ...(adminRole === undefined ? {} : { DISCORD_ADMIN_ROLE_ID: adminRole }),
+        },
+        discord: async (path) => {
+          assert.equal(path, '/users/@me/guilds/test-guild/member');
+          return { roles };
+        },
+      });
+      const server = app.listen(0, '127.0.0.1');
+      await once(server, 'listening');
+      t.after(() => new Promise((resolve) => server.close(resolve)));
+      const base = `http://127.0.0.1:${server.address().port}`;
+      const config = await (await fetch(`${base}/api/config`)).json();
+      assert.equal(config.configured, true);
+      const login = await fetch(`${base}/auth/discord`, { redirect: 'manual' });
+      assert.equal(login.status, 302);
+      const authorization = new URL(login.headers.get('location'));
+      assert.equal(authorization.origin, 'https://discord.com');
+      assert.equal(authorization.searchParams.get('scope'), 'identify guilds.members.read');
+      const cookie = login.headers.get('set-cookie').split(';')[0];
+      const sid = decodeURIComponent(cookie.split('=')[1]).slice(2).split('.')[0];
+      const sess = await new Promise((resolve, reject) =>
+        store.get(sid, (e, value) => (e ? reject(e) : resolve(value))),
+      );
+      // Sessão OAuth simulada, inclusive com um privilégio antigo que deve ser revogado.
+      sess.user = {
+        id: 'demo-admin',
+        discord: 'filiado',
+        accessToken: 'test-token',
+        admin: true,
+        expires: Date.now() + 60000,
+      };
+      sess.csrf = 'test-csrf';
+      await new Promise((resolve, reject) =>
+        store.set(sid, sess, (e) => (e ? reject(e) : resolve())),
+      );
+      const headers = {
+        Cookie: cookie,
+        Origin: 'http://localhost:3000',
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': sess.csrf,
+      };
+      const state = await fetch(`${base}/api/state`, { headers });
+      assert.equal(state.status, 200);
+      assert.equal((await state.json()).user.admin, false);
+      for (const path of ['/api/directors', '/api/meetings', '/api/polls']) {
+        const denied = await fetch(base + path, { method: 'POST', headers, body: '{}' });
+        assert.equal(denied.status, 403);
+      }
+      roles = ['other-role'];
+      assert.equal((await fetch(`${base}/api/access`, { headers })).status, 403);
+    });
+  }
+});

@@ -102,9 +102,10 @@ export function createApp({
     'DISCORD_CLIENT_SECRET',
     'DISCORD_GUILD_ID',
     'DISCORD_MEMBER_ROLE_ID',
-    'DISCORD_ADMIN_ROLE_ID',
     'DISCORD_REDIRECT_URI',
   ].every((key) => env[key]);
+  const adminRoleId = (env.DISCORD_ADMIN_ROLE_ID || '').trim();
+  const hasAdminRole = (roles) => adminRoleId !== '' && roles.includes(adminRoleId);
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
   app.get('/api/config', (_req, res) =>
     res.json({
@@ -175,7 +176,7 @@ export function createApp({
         id: user.id,
         discord: user.username,
         accessToken: oauth.access_token,
-        admin: member.roles.includes(env.DISCORD_ADMIN_ROLE_ID),
+        admin: hasAdminRole(member.roles),
         expires: Date.now() + Math.min(oauth.expires_in, 28800) * 1000,
       };
       req.session.csrf = random();
@@ -217,7 +218,7 @@ export function createApp({
         'Você não possui mais o cargo de filiado da ANADE.',
         403,
       );
-      user.admin = member.roles.includes(env.DISCORD_ADMIN_ROLE_ID);
+      user.admin = hasAdminRole(member.roles);
     }
     if (!['GET', 'HEAD'].includes(req.method)) {
       assert(req.headers.origin === origin, 'Origem inválida.', 403);

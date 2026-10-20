@@ -15,6 +15,7 @@
     "demo": "concurrently -k -n api,web -c yellow,green \"npm run demo -w @anade/api\" \"npm run dev -w @anade/web\"",
     "build": "npm run build -w @anade/web",
     "start": "concurrently -k -n api,web \"npm start -w @anade/api\" \"npm start -w @anade/web\"",
+    "start:render": "node scripts/start-render.mjs",
     "typecheck": "npm run typecheck -w @anade/web",
     "lint": "npm run lint -w @anade/web",
     "test": "npm test -w @anade/api",

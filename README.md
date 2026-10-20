@@ -48,8 +48,8 @@ Faça backup pelo Supabase de acordo com seu plano. O Supabase hospeda o banco; 
 
 1. Crie a aplicação em https://discord.com/developers/applications.
 2. Em OAuth2, cadastre `http://localhost:3000/auth/discord/callback` para desenvolvimento.
-3. Preencha no `.env` da API: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_GUILD_ID`, `DISCORD_MEMBER_ROLE_ID`, `DISCORD_ADMIN_ROLE_ID` e `DISCORD_REDIRECT_URI`.
-4. O dirigente deve ter **ambos** os cargos: filiado e direção. Os IDs são copiados com o modo desenvolvedor do Discord.
+3. Preencha no `.env` da API: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_GUILD_ID`, `DISCORD_MEMBER_ROLE_ID` e `DISCORD_REDIRECT_URI`. `DISCORD_ADMIN_ROLE_ID` é opcional: sem ele, o login real funciona para filiados e ninguém recebe acesso administrativo.
+4. Quando a administração for configurada, o dirigente deve ter **ambos** os cargos: filiado e direção. Os IDs são copiados com o modo desenvolvedor do Discord.
 5. Execute `npm run dev`.
 
 O fluxo usa os escopos `identify guilds.members.read`, sem exigir um bot. Os tokens ficam na sessão do servidor e nunca são enviados ao frontend. Há validação de state OAuth, regeneração da sessão após login, cookie HttpOnly/SameSite, proteção de origem/CSRF e limites de requisições. O cargo é consultado novamente em cada requisição; sua remoção bloqueia a próxima operação. Indisponibilidade do Discord também bloqueia a operação até uma nova tentativa.
@@ -99,6 +99,8 @@ Para atualizar o banco real, execute `npm run db:migrate`: a migração `004_mee
 A migração `005_directors.sql` cria a tabela privada `anade.directors`, com referência às fichas, RLS e bloqueio da Data API. Execute `npm run db:migrate` antes de iniciar a versão com Direção no banco real. O modo demonstrativo inclui três cargos fictícios; o banco real inicia sem diretores. Os endpoints `POST /api/directors`, `PUT /api/directors/:id` e `DELETE /api/directors/:id` exigem administrador, sessão válida e CSRF. Os filiados consultam a composição em `/api/state`. Cards e banner responsivos estão em `direction.css`.
 
 ## Verificação e produção
+
+Para começar em hospedagem gratuita, consulte [o guia de publicação no Render + Supabase](DEPLOY.md). O `render.yaml` prepara um único serviço Free com Next público e Express interno, sem armazenar segredos no repositório. O comando `npm run start:render` gerencia os dois processos e deriva a origem pública da URL fornecida pelo Render.
 
 ```powershell
 npm run typecheck

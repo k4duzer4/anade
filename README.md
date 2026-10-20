@@ -100,7 +100,7 @@ A migração `005_directors.sql` cria a tabela privada `anade.directors`, com re
 
 ## Verificação e produção
 
-O destino escolhido é **Cloudflare Workers + Supabase**, com endereço gratuito `workers.dev`: consulte [o guia de publicação](DEPLOY.md). O frontend Next.js usa OpenNext; o backend Express permanece em um Worker privado, acessado por Service Binding. Cada requisição do Worker recebe sua própria conexão PostgreSQL; as sessões são persistidas no banco. `cf:build` gera o site; `cf:deploy:api` e `cf:deploy:web` publicam os dois Workers. Credenciais ficam nos secrets da API. A configuração Render permanece como alternativa no [guia separado](DEPLOY-RENDER.md).
+O destino escolhido é **Vercel + Supabase**, com endereço gratuito `vercel.app`: consulte [o guia de publicação](DEPLOY.md). O `vercel.json` na raiz declara Services Next.js e Express no mesmo projeto Vercel. O roteamento mantém páginas, API e autenticação no mesmo domínio; o Next consulta a API por binding interno. Dados e sessões ficam no PostgreSQL do Supabase, com Transaction pooler na produção. A configuração Cloudflare foi removida. A configuração Render permanece como alternativa no [guia separado](DEPLOY-RENDER.md).
 
 ```powershell
 npm run typecheck
@@ -112,7 +112,7 @@ npm start
 
 Os testes SQL usam `pg-mem`: validam migração inicial, consultas e restrições, mas não substituem a execução das migrações nem os testes de concorrência no PostgreSQL real do Supabase. Os testes da API simulam Discord e cobrem perda de cargo, permissões, CSRF, privacidade, voto definitivo e logout. Login real e conexão ao Supabase precisam ser conferidos após preencher suas credenciais.
 
-Para produção, execute migrações, faça build e inicie com `NODE_ENV=production`. Exponha Next por HTTPS, mantendo Express em rede interna. As rotas `/api` e `/auth` são encaminhadas pelo Next à API. Ajuste `APP_ORIGIN` e o redirect Discord para a origem pública. `API_ORIGIN` pode ser configurado em `apps/web/.env.local`; por ser usado em rewrites, exige novo build quando alterado. Configure `TRUST_PROXY` conforme o número real de proxies confiáveis à frente do Express; isso é necessário para cookies seguros e limites por IP funcionarem sob HTTPS. Não use `npm run demo` em produção.
+Na Vercel, importe a raiz do repositório e configure as variáveis do [guia](DEPLOY.md). O binding injeta `API_ORIGIN` em runtime e o adaptador Express configura o proxy HTTPS, sem iniciar um listener próprio. Para hospedagem Node persistente, execute migrações, faça build e inicie com `NODE_ENV=production`; exponha Next por HTTPS e ajuste `API_ORIGIN` e `TRUST_PROXY` conforme a rede. Não use `npm run demo` em produção.
 
 ## Referências
 

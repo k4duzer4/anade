@@ -1,5 +1,5 @@
 import pg from 'pg';
-export function createPool(connectionString, { max = 8 } = {}) {
+export function createPool(connectionString, { max = 8, idleTimeoutMillis = 30000 } = {}) {
   if (!connectionString)
     throw new Error('Defina DATABASE_URL do PostgreSQL/Supabase ou use npm run demo.');
   const url = new URL(connectionString);
@@ -8,7 +8,7 @@ export function createPool(connectionString, { max = 8 } = {}) {
     connectionString,
     max,
     connectionTimeoutMillis: 10000,
-    idleTimeoutMillis: 30000,
+    idleTimeoutMillis,
     ssl: local ? false : { rejectUnauthorized: true },
   });
 }

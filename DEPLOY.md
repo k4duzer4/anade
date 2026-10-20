@@ -1,95 +1,88 @@
-# Publicar no Cloudflare Workers + Supabase
+# Publicar na Vercel + Supabase
 
-Destino escolhido: **Workers Free**, com endereço gratuito `workers.dev`, e PostgreSQL no Supabase. Há dois Workers: `anade` (Next.js público, com OpenNext) e `anade-api` (Express privado). O site encaminha `/api` e `/auth` por um Service Binding. As páginas internas também consultam a sessão pelo binding. A API não recebe um endereço público.
+O portal usa **um projeto Vercel**, com endereço gratuito `vercel.app`, e PostgreSQL no Supabase. O `vercel.json` na raiz declara dois Services: `web` (Next.js) e `api` (Express). `/api/*` e `/auth/*` chegam ao Express; as demais páginas chegam ao Next. As páginas privadas consultam a API por binding interno. Services está em beta e disponível em todos os planos; o Hobby é destinado a projetos pessoais, sem uso comercial, sujeito aos limites da plataforma.
 
-As sessões ficam no PostgreSQL. Cada requisição da API recebe uma conexão própria, encerrada ao concluir, sem reutilizar sockets de outra requisição do Workers. Uma tarefa agendada remove sessões expiradas a cada seis horas. O cadastro administrativo permanece opcional.
+O Cloudflare foi retirado da configuração. Não execute mais os comandos Wrangler. Esta mudança não publicou nem removeu recursos em contas externas.
 
-## 1. Supabase
+## 1. Preparar o Supabase
 
-1. Crie um projeto no plano **Free**.
-2. Em **Connect → Session pooler**, copie a conexão PostgreSQL na porta **5432**, substituindo a senha e codificando caracteres especiais para URL.
-3. Preencha `DATABASE_URL` em `apps/api/.env` localmente e execute na raiz:
+1. Crie um projeto **Free** e anote a senha do banco.
+2. Em **Connect → Session pooler**, copie a URI PostgreSQL na porta **5432**, substituindo a senha (codifique caracteres especiais para URL).
+3. Coloque essa URI em `DATABASE_URL` no arquivo local `apps/api/.env`. Execute na raiz:
 
-```sh
+```powershell
 npm ci
 npm run db:migrate
 ```
 
-As cinco migrações criam o schema privado `anade`. Mantenha esse schema fora da Data API do Supabase. Não use a URL REST nem a chave pública como conexão PostgreSQL. As migrações são executadas antes de publicar, nunca dentro de requisições do Worker.
+As migrações criam as tabelas no schema privado `anade`. Mantenha esse schema fora dos schemas expostos pela Data API. Não há dados demonstrativos no banco real.
 
-## 2. Conta Cloudflare e endereço público
+Para a Vercel, copie também a URI de **Connect → Transaction pooler**, porta **6543**. Essa será a `DATABASE_URL` do ambiente publicado. O aplicativo usa `pg` sem prepared statements nomeados, compatível com esse pooler.
 
-1. Entre no Cloudflare e mantenha o plano **Workers Free**.
-2. Em **Workers & Pages**, escolha seu subdomínio `workers.dev`.
-3. A URL do site será `https://anade.SEU-SUBDOMINIO.workers.dev`.
-4. Substitua o exemplo de `APP_ORIGIN` em `apps/api/wrangler.jsonc` pela URL real, sem barra final. Os IDs Discord já estão preenchidos; o cargo administrativo continua vazio.
-5. Autorize o Wrangler pelo terminal:
+## 2. Importar o GitHub na Vercel
 
-```sh
-npx wrangler login
+1. Entre em <https://vercel.com/new> com sua conta GitHub e escolha **Hobby**, para este projeto pessoal de RPG.
+2. Importe `k4duzer4/anade`.
+3. Mantenha **Root Directory na raiz do repositório** (`./`), sem selecionar `apps/web`. O `vercel.json` declara os dois serviços e seus frameworks. Não substitua as configurações por um único projeto Next.js.
+4. Use **Node.js 24.x**. Deixe Install Command, Build Command e Output Directory sem overrides manuais; os frameworks e npm workspaces são detectados por serviço.
+5. Cadastre as variáveis abaixo antes de publicar. O endereço final em **Settings → Domains** precisa coincidir com `APP_ORIGIN`. Se o nome desejado estiver ocupado, use o endereço realmente atribuído pela Vercel e atualize a variável.
+
+| Variável                 | Valor                                             |
+| ------------------------ | ------------------------------------------------- |
+| `APP_ORIGIN`             | `https://SEU-PROJETO.vercel.app`, sem barra final |
+| `DATABASE_URL`           | URI **Transaction pooler**, porta 6543            |
+| `SESSION_SECRET`         | Segredo aleatório com pelo menos 32 caracteres    |
+| `DISCORD_CLIENT_ID`      | `1562181914998341714`                             |
+| `DISCORD_CLIENT_SECRET`  | Client Secret atual da aplicação Discord          |
+| `DISCORD_GUILD_ID`       | `1559550956322951270`                             |
+| `DISCORD_MEMBER_ROLE_ID` | `1559710512722219069`                             |
+
+Gere o segredo de sessão localmente:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-Use **Workers**, pois o portal tem sessões e páginas renderizadas no servidor. OpenNext recomenda Linux ou WSL para builds em máquinas Windows. O ambiente de CI do Cloudflare também pode gerar o build.
+Não configure `API_ORIGIN`: a Vercel injeta essa variável pelo binding interno. `DISCORD_REDIRECT_URI` é derivada de `APP_ORIGIN`, então também pode ficar ausente. `DISCORD_ADMIN_ROLE_ID` permanece ausente até escolhermos o cargo administrativo. Não prefixe credenciais com `NEXT_PUBLIC_`. O `.env` local não é enviado automaticamente.
 
-## 3. Publicar a API privada
+Salve as variáveis no ambiente **Production** e clique em **Deploy**. Alterações de variáveis exigem novo deploy. Para previews com login, use um banco de teste, uma origem estável e um redirect OAuth correspondente.
 
-```sh
-npm run cf:deploy:api
-npx wrangler secret put DATABASE_URL --config apps/api/wrangler.jsonc
-npx wrangler secret put SESSION_SECRET --config apps/api/wrangler.jsonc
-npx wrangler secret put DISCORD_CLIENT_SECRET --config apps/api/wrangler.jsonc
-```
+## 3. Configurar o Discord
 
-Os comandos solicitam os valores no terminal. Gere uma chave de produção com pelo menos 32 caracteres para `SESSION_SECRET`, por exemplo `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Use o Client Secret OAuth2 atual. A API só fica operacional após preencher os três secrets. O `.env` local não é enviado automaticamente; não publique nem compartilhe os segredos no chat.
-
-`workers_dev: false` e `preview_urls: false` deixam a API acessível apenas por bindings. O frontend não precisa das credenciais PostgreSQL ou Discord.
-
-## 4. Publicar o site e configurar OAuth
-
-```sh
-npm run cf:build
-npm run cf:deploy:web
-```
-
-Confirme que a URL publicada corresponde a `APP_ORIGIN`. No Discord Developer Portal, em **OAuth2 → Redirects**, cadastre essa URL seguida de `/auth/discord/callback`:
+No Discord Developer Portal, abra sua aplicação → **OAuth2 → Redirects**. Adicione e salve:
 
 ```text
-https://anade.SEU-SUBDOMINIO.workers.dev/auth/discord/callback
+https://SEU-PROJETO.vercel.app/auth/discord/callback
 ```
 
-O callback é derivado de `APP_ORIGIN`. Quando quiser habilitar a administração, preencha `DISCORD_ADMIN_ROLE_ID` e publique a API novamente. Os administradores precisam dos cargos de filiado e administrador. Nenhum dado demonstrativo é inserido no banco real.
+O endereço precisa coincidir exatamente com a origem publicada. O callback local pode continuar cadastrado. O login usa `identify guilds.members.read` e verifica o cargo no servidor; não precisa de IDs individuais dos filiados nem de token de bot.
 
-Para publicação pelo GitHub, configure dois projetos Workers Builds no mesmo repositório, ambos executando na raiz. A API publica com `npm run cf:deploy:api`. O site usa build `npm run cf:build` e publicação `npm run cf:deploy:web`. Publique primeiro a API. Configure seus secrets no Worker da API.
+## 4. Conferir a publicação
 
-## 5. Testes e prévia
+- `/` e `/partido` devem abrir sem login.
+- `/painel`, `/agenda`, `/votacoes`, `/filiados`, `/ficha` e `/direcao` devem redirecionar visitantes para o login.
+- Um usuário com o cargo de filiado deve conseguir entrar e salvar sua ficha; confira a persistência após sair e entrar novamente.
+- Um usuário sem o cargo deve ter o acesso negado. Sem cargo administrativo configurado, nenhum usuário real recebe controles de administrador.
 
-```sh
+As sessões ficam no PostgreSQL. A API reutiliza um pool pequeno por instância e usa `attachDatabasePool` para liberar conexões ociosas antes da suspensão. Sessões expiradas são limpas durante requisições, sem cron pago ou timers em segundo plano. O rate limit em memória vale por instância; limites globais adicionais podem ser configurados no firewall da plataforma.
+
+## Verificação local
+
+```powershell
 npm test
-npm run typecheck
 npm run lint
-npm run cf:check:api
-npm run cf:build
-npm run cf:test
+npm run typecheck
+npm run build
 ```
 
-`cf:test` inicia Workers descartáveis e um PostgreSQL emulado, sem acessar contas externas. Valida páginas públicas, bloqueio de páginas privadas, binding, persistência da sessão de autorização, cookie seguro e rejeição de state OAuth inválido. A simulação não substitui testes do banco real e do login completo com sua conta Discord.
+Os testes incluem o adaptador Vercel com PostgreSQL emulado: sessão entre duas instâncias, cookie seguro, OAuth, rejeição de state inválido e bloqueio após perda do cargo. O build local não confirma a publicação nem o login completo com Discord/Supabase reais.
 
-Para prévia manual, copie `apps/api/.dev.vars.example` para `.dev.vars` (ignorado pelo Git), use credenciais de um banco de teste, gere o build e execute `npm run cf:preview`. A demonstração Node em `localhost:3000` continua disponível com `npm run demo`.
-
-No ambiente publicado, confira login real, filiação, gravação e persistência da ficha. Confirme também o bloqueio de não filiados e a ausência de controles administrativos enquanto o cargo correspondente estiver vazio. `/api/health` verifica a API; salvar a ficha confirma a integração com o banco.
-
-## Limites gratuitos
-
-Workers Free tem limites de requisições, CPU por requisição e memória. SSR e autenticação precisam ser medidos no ambiente publicado; a prévia local não confirma o consumo real. As imagens são servidas como arquivos estáticos, sem depender de Cloudflare Images. R2, KV e Hyperdrive não são obrigatórios nesta configuração.
-
-Supabase Free tem limite de banco e pode pausar após inatividade. Planeje cópias de segurança. Um domínio próprio é opcional; o endereço `workers.dev` permite começar sem comprar um domínio.
-
-A configuração anterior Render está em `render.yaml`, com [guia separado](DEPLOY-RENDER.md), como alternativa. Ela não participa do deploy Cloudflare.
+O desenvolvimento continua com `npm run dev` ou `npm run demo`. Para uma instalação Node persistente, `npm start` continua disponível; a alternativa Render está em [DEPLOY-RENDER.md](DEPLOY-RENDER.md).
 
 ## Documentação
 
-- [OpenNext no Cloudflare Workers](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)
-- [HTTP Node/Express no Workers](https://developers.cloudflare.com/workers/runtime-apis/nodejs/http/)
-- [Service Bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/)
-- [Limites do Workers](https://developers.cloudflare.com/workers/platform/limits/)
-- [Conexão PostgreSQL do Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres)
+- [Services na Vercel](https://vercel.com/docs/services)
+- [Express na Vercel](https://vercel.com/docs/frameworks/backend/express)
+- [Bindings internos](https://vercel.com/docs/services/bindings)
+- [Conexões PostgreSQL no Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres)
+- [Plano Hobby](https://vercel.com/docs/plans/hobby)

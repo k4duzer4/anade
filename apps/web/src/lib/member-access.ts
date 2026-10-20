@@ -1,7 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
 export async function requireMember() {
   const session = (await cookies()).get('anade.sid');
   if (!session) redirect('/');
@@ -12,12 +11,10 @@ export async function requireMember() {
       cache: 'no-store',
       signal: AbortSignal.timeout(10000),
     };
-    const response =
-      process.env.ANADE_CLOUDFLARE === '1'
-        ? await (
-            await getCloudflareContext({ async: true })
-          ).env.API.fetch('https://anade-api/api/access', options)
-        : await fetch(`${process.env.API_ORIGIN || 'http://127.0.0.1:3001'}/api/access`, options);
+    // API_ORIGIN é injetada pelo binding da Vercel apenas no servidor, em runtime.
+    const backend = process.env.API_ORIGIN || (process.env.VERCEL ? null : 'http://127.0.0.1:3001');
+    if (!backend) throw new Error('API indisponível.');
+    const response = await fetch(new URL('api/access', `${backend.replace(/\/$/, '')}/`), options);
     allowed = response.ok;
   } catch {
     /* Sem confirmação da API, o conteúdo interno permanece fechado. */

@@ -13,6 +13,7 @@ import {
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, Badge, Empty } from '@/components/ui';
 import { initials } from '@/lib/types';
+import { Select } from '@/components/select';
 export default function Members() {
   const { data, config } = usePortal();
   const [search, setSearch] = useState(''),
@@ -44,16 +45,15 @@ export default function Members() {
         </label>
         <label className="filter-field">
           <MapPin size={16} />
-          <select
-            value={state}
-            onChange={(e) => setState(e.target.value)}
+          <Select
+            value={state || 'all'}
+            onValueChange={(value) => setState(value === 'all' ? '' : value)}
             aria-label="Filtrar por estado"
-          >
-            <option value="">Todos os estados</option>
-            {config?.states.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
+            options={[
+              { value: 'all', label: 'Todos os estados' },
+              ...(config?.states || []).map((state) => ({ value: state, label: state })),
+            ]}
+          />
         </label>
         <span className="toolbar-hint">
           {list.length} resultado{list.length === 1 ? '' : 's'}

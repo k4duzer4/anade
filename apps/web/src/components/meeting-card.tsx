@@ -18,6 +18,7 @@ import { StatusLabel, Modal, ErrorNotice } from './ui';
 import { MeetingForm } from './meeting-form';
 import { initials, type Meeting } from '@/lib/types';
 import { MeetingDate } from './meeting-date';
+import { Tooltip } from './floating-ui';
 export function MeetingCard({
   meeting: m,
   compact = false,
@@ -150,11 +151,19 @@ export function MeetingCard({
         )}
         <span className="attendance-count">
           {m.attendance.length > 0 ? (
-            <span className="attendee-stack" aria-hidden="true">
+            <span className="attendee-stack">
               {m.attendance.slice(0, 3).map((id) => (
-                <span key={id} title={data.members.find((member) => member.id === id)?.name}>
-                  {initials(data.members.find((member) => member.id === id)?.name || 'Filiado')}
-                </span>
+                <Tooltip
+                  key={id}
+                  content={data.members.find((member) => member.id === id)?.name || 'Filiado'}
+                >
+                  <span
+                    tabIndex={0}
+                    aria-label={data.members.find((member) => member.id === id)?.name || 'Filiado'}
+                  >
+                    {initials(data.members.find((member) => member.id === id)?.name || 'Filiado')}
+                  </span>
+                </Tooltip>
               ))}
             </span>
           ) : (

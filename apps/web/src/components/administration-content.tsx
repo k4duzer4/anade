@@ -19,6 +19,7 @@ import {
 import { usePortal } from './portal-provider';
 import { Badge, Empty, ErrorNotice, PageHeading, SubmitButton } from './ui';
 import { initials } from '@/lib/types';
+import { Form } from './form';
 
 type Account = { id: string; discord: string; name: string; isAdmin: boolean };
 
@@ -183,12 +184,13 @@ export default function AdministrationContent() {
           <p className="admin-description">
             Informe o ID do usuário no Discord e confira a conta antes de conceder a permissão.
           </p>
-          <form onSubmit={locate} className="admin-lookup-form">
+          <Form onSubmit={locate} className="admin-lookup-form">
             <label className="field">
               ID do usuário Discord
               <div className="admin-id-input">
                 <Hash size={17} />
                 <input
+                  name="discordId"
                   value={discordId}
                   onChange={(event) => {
                     setDiscordId(event.target.value);
@@ -215,7 +217,7 @@ export default function AdministrationContent() {
               {loading ? <LoaderCircle size={16} className="spin" /> : <Search size={16} />}{' '}
               Localizar conta
             </button>
-          </form>
+          </Form>
           {selected && (
             <div className="admin-account-preview">
               <div className="admin-account-identity">
@@ -236,7 +238,7 @@ export default function AdministrationContent() {
                     Essa pessoa poderá gerenciar reuniões, votações, direção e conceder
                     administração a outras contas.
                   </p>
-                  <form
+                  <Form
                     onSubmit={(event) => {
                       event.preventDefault();
                       void grant();
@@ -245,7 +247,7 @@ export default function AdministrationContent() {
                     <SubmitButton busy={busy}>
                       <ShieldCheck size={16} /> Conceder administração
                     </SubmitButton>
-                  </form>
+                  </Form>
                 </>
               )}
             </div>

@@ -4,6 +4,9 @@ import { ShieldCheck } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { ErrorNotice, SubmitButton } from './ui';
 import type { Director } from '@/lib/types';
+import { Select } from './select';
+import { Form } from './form';
+import { NumberInput } from './number-input';
 export function DirectorForm({ director, onClose }: { director?: Director; onClose: () => void }) {
   const { data, mutate, notify } = usePortal();
   const [busy, setBusy] = useState(false),
@@ -30,7 +33,7 @@ export function DirectorForm({ director, onClose }: { director?: Director; onClo
     }
   }
   return (
-    <form onSubmit={save}>
+    <Form onSubmit={save}>
       <p className="form-description">
         Vincule um filiado e apresente seu papel na organização da ANADE.
       </p>
@@ -38,16 +41,17 @@ export function DirectorForm({ director, onClose }: { director?: Director; onClo
         <div className="form-grid">
           <label className="field full">
             Filiado
-            <select name="memberId" required defaultValue={director?.memberId || ''}>
-              <option value="" disabled>
-                Selecione uma ficha cadastrada
-              </option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name} · {member.blue || member.discord}
-                </option>
-              ))}
-            </select>
+            <Select
+              name="memberId"
+              aria-label="Filiado"
+              required
+              defaultValue={director?.memberId || ''}
+              placeholder="Selecione uma ficha cadastrada"
+              options={members.map((member) => ({
+                value: member.id,
+                label: `${member.name} · ${member.blue || member.discord}`,
+              }))}
+            />
             <small>O filiado precisa ter preenchido a ficha no portal.</small>
           </label>
           <label className="field full">
@@ -72,13 +76,12 @@ export function DirectorForm({ director, onClose }: { director?: Director; onClo
           </label>
           <label className="field full">
             Ordem de exibição
-            <input
+            <NumberInput
               name="position"
-              type="number"
+              label="Ordem de exibição"
               required
               min={1}
               max={99}
-              step={1}
               defaultValue={director?.position || 1}
             />
             <small>
@@ -89,7 +92,8 @@ export function DirectorForm({ director, onClose }: { director?: Director; onClo
       </fieldset>
       <p className="detail-note">
         <ShieldCheck size={17} /> Este cadastro apresenta a composição do partido. O acesso de
-        administrador é definido pelos cargos do Discord.
+        administrador é gerenciado separadamente no painel Administração ou pelo cargo configurado
+        no Discord.
       </p>
       <ErrorNotice message={error} />
       <div className="form-actions">
@@ -98,6 +102,6 @@ export function DirectorForm({ director, onClose }: { director?: Director; onClo
         </button>
         <SubmitButton busy={busy}>Salvar diretor</SubmitButton>
       </div>
-    </form>
+    </Form>
   );
 }

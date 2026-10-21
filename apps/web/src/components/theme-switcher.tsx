@@ -3,6 +3,7 @@ import { useId, useSyncExternalStore } from 'react';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { m } from 'motion/react';
+import { Tooltip } from './floating-ui';
 const subscribe = () => () => {};
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
@@ -19,23 +20,23 @@ export function ThemeSwitcher() {
         { value: 'dark', label: 'Modo escuro', Icon: Moon },
         { value: 'system', label: 'Tema do sistema', Icon: Monitor },
       ].map(({ value, label, Icon }) => (
-        <button
-          type="button"
-          key={value}
-          aria-label={label}
-          title={label}
-          aria-pressed={mounted && theme === value}
-          onClick={() => setTheme(value)}
-        >
-          {mounted && theme === value && (
-            <m.span
-              className="theme-pill"
-              layoutId={`theme-${id}`}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            />
-          )}
-          <Icon size={15} />
-        </button>
+        <Tooltip key={value} content={label}>
+          <button
+            type="button"
+            aria-label={label}
+            aria-pressed={mounted && theme === value}
+            onClick={() => setTheme(value)}
+          >
+            {mounted && theme === value && (
+              <m.span
+                className="theme-pill"
+                layoutId={`theme-${id}`}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+            <Icon size={15} />
+          </button>
+        </Tooltip>
       ))}
     </div>
   );

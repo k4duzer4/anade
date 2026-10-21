@@ -4,6 +4,8 @@ import { Video, FileText, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { ErrorNotice, SubmitButton } from './ui';
 import type { Meeting } from '@/lib/types';
+import { DateTimePicker } from './date-time-picker';
+import { Form } from './form';
 function localDateTime(value: string) {
   const d = new Date(value);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -49,7 +51,7 @@ export function MeetingForm({
     }
   }
   return (
-    <form onSubmit={save}>
+    <Form onSubmit={save}>
       <p className="form-description">
         Organize a reunião, vincule a chamada e deixe a ata no mesmo lugar.
       </p>
@@ -66,9 +68,9 @@ export function MeetingForm({
         </label>
         <label className="field full">
           Data e horário
-          <input
+          <DateTimePicker
             name="date"
-            type="datetime-local"
+            label="Data e horário da reunião"
             defaultValue={meeting ? localDateTime(meeting.date) : ''}
             required
           />
@@ -164,6 +166,6 @@ export function MeetingForm({
         </button>
         <SubmitButton busy={busy}>{meeting ? 'Salvar reunião' : 'Agendar encontro'}</SubmitButton>
       </div>
-    </form>
+    </Form>
   );
 }

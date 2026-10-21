@@ -18,7 +18,7 @@
     "start:render": "node scripts/start-render.mjs",
     "typecheck": "npm run typecheck -w @anade/web",
     "lint": "npm run lint -w @anade/web",
-    "test": "npm test -w @anade/api",
+    "test": "npm test -w @anade/api && npm test -w @anade/web",
     "db:migrate": "npm run db:migrate -w @anade/api"
   },
   "devDependencies": {

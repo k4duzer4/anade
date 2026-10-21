@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { FloatingLayerContext, Tooltip } from './floating-ui';
 import {
   X,
   ArrowUpRight,
@@ -98,6 +99,12 @@ export function Modal({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [container, setContainer] = useState<HTMLDialogElement | null>(null);
+  const attachDialog = useCallback((node: HTMLDialogElement | null) => {
+    ref.current = node;
+    setContainer(node);
+  }, []);
+  const titleId = useId();
   const reduced = useReducedMotion();
   useEffect(() => {
     ref.current?.showModal();
@@ -105,20 +112,24 @@ export function Modal({
   return (
     <m.dialog
       className="modal"
-      ref={ref}
+      ref={attachDialog}
       onCancel={onClose}
-      aria-labelledby="dialog-title"
+      aria-labelledby={titleId}
       initial={reduced ? false : { opacity: 0, scale: 0.96, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
     >
-      <header>
-        <h2 id="dialog-title">{title}</h2>
-        <button className="icon-button" aria-label="Fechar" onClick={onClose}>
-          <X size={20} />
-        </button>
-      </header>
-      <div className="modal-content">{children}</div>
+      <FloatingLayerContext.Provider value={container}>
+        <header>
+          <h2 id={titleId}>{title}</h2>
+          <Tooltip content="Fechar janela">
+            <button type="button" className="icon-button" aria-label="Fechar" onClick={onClose}>
+              <X size={20} />
+            </button>
+          </Tooltip>
+        </header>
+        <div className="modal-content">{children}</div>
+      </FloatingLayerContext.Provider>
     </m.dialog>
   );
 }

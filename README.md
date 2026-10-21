@@ -95,6 +95,14 @@ Cargo e situação usam componentes próprios (`RoleInsignia` e `StatusLabel`), 
 
 A migração `003_abstention.sql` amplia o limite de alternativas e acrescenta Abstenção às votações existentes que ainda estão abertas e dentro do prazo, preservando as encerradas e as de prazo expirado. Execute `npm run db:migrate` após atualizar uma instalação real. Os testes locais verificam a restrição ampliada, a preservação das votações encerradas e a ausência de duplicação da opção.
 
+## Controles e elementos flutuantes
+
+Selects da ficha, direção, modalidade de voto e filtro de estados usam o mesmo componente ANADE, com busca por digitação, navegação por teclado e indicação da opção selecionada. Os calendários de reuniões e votações têm meses em português, navegação por mês/ano, horário com precisão de minutos e ações Hoje, Limpar e Aplicar. Fechar o calendário sem aplicar descarta o rascunho. A data continua usando o horário local do dispositivo e é convertida para ISO no envio à API, como antes.
+
+Tooltips de aparência, participantes e fechamento de janelas, avisos de validação, checkboxes, radios e campos numéricos seguem os tokens claro/escuro do portal. Os popups respeitam as bordas da tela e os diálogos nativos; campos inválidos recebem foco e uma mensagem acessível antes do envio. As animações respeitam a preferência de movimento reduzido. Componentes compartilhados estão em `apps/web/src/components` e os estilos em `controls.css`.
+
+`npm test` executa os testes da API e as interações dos controles em JSDOM. A suíte de interface verifica seleção por teclado, filtros, valores enviados por FormData, validação, limites numéricos, descarte de rascunho, minutos exatos, conversão de fuso e popups dentro dos diálogos. JSDOM não verifica posicionamento visual nem a camada nativa de foco do navegador.
+
 ## Reuniões no Google Meet e atas no Google Docs
 
 A administração agenda a reunião no portal e usa o atalho **Criar chamada no Google** para abrir o Meet em outra aba, criar uma reunião para mais tarde e copiar o link. O campo da chamada é obrigatório em novas reuniões. O Google Docs da ata é opcional no agendamento e pode ser adicionado ou atualizado em **Gerenciar reunião**, inclusive depois do encontro. O atalho **Criar documento** abre um novo Google Docs na conta do administrador.

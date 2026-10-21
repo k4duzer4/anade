@@ -4,6 +4,9 @@ import { Plus, ShieldCheck } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, Modal, SubmitButton, ErrorNotice, Empty } from '@/components/ui';
 import { PollCard } from '@/components/poll-card';
+import { Select } from '@/components/select';
+import { DateTimePicker } from '@/components/date-time-picker';
+import { Form } from '@/components/form';
 export default function Polls() {
   const { data, mutate, notify } = usePortal();
   const [filter, setFilter] = useState('open'),
@@ -89,7 +92,7 @@ export default function Polls() {
       </p>
       {open && (
         <Modal title="ABRIR VOTAÇÃO" onClose={() => setOpen(false)}>
-          <form onSubmit={create}>
+          <Form onSubmit={create}>
             <p className="form-description">
               Apresente o tema, as alternativas e o prazo para decidir.
             </p>
@@ -127,15 +130,20 @@ export default function Polls() {
               </label>
               <label className="field">
                 Prazo de encerramento
-                <input name="deadline" type="datetime-local" required />
+                <DateTimePicker name="deadline" label="Prazo de encerramento" required />
                 <small>Horário local do dispositivo.</small>
               </label>
               <label className="field">
                 Modalidade
-                <select name="secret">
-                  <option value="true">Voto secreto</option>
-                  <option value="false">Voto nominal (aberto)</option>
-                </select>
+                <Select
+                  name="secret"
+                  aria-label="Modalidade"
+                  defaultValue="true"
+                  options={[
+                    { value: 'true', label: 'Voto secreto' },
+                    { value: 'false', label: 'Voto nominal (aberto)' },
+                  ]}
+                />
               </label>
             </div>
             <ErrorNotice message={error} />
@@ -145,7 +153,7 @@ export default function Polls() {
               </button>
               <SubmitButton busy={busy}>Publicar votação</SubmitButton>
             </div>
-          </form>
+          </Form>
         </Modal>
       )}
     </>

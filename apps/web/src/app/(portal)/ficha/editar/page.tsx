@@ -1,4 +1,7 @@
 'use client';
+import { Select } from '@/components/select';
+import { Form } from '@/components/form';
+import { NumberInput } from '@/components/number-input';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -89,7 +92,7 @@ export default function EditProfile() {
             <ArrowUpRight size={14} />
           </a>
         </aside>
-        <form className="profile-form" onSubmit={save}>
+        <Form className="profile-form" onSubmit={save}>
           <section className="panel form-section">
             <header>
               <span className="section-icon">
@@ -124,9 +127,9 @@ export default function EditProfile() {
               </label>
               <label className="field">
                 Idade do personagem
-                <input
+                <NumberInput
                   name="age"
-                  type="number"
+                  label="Idade do personagem"
                   min={18}
                   max={120}
                   defaultValue={me?.age}
@@ -136,21 +139,28 @@ export default function EditProfile() {
               </label>
               <label className="field">
                 Domicílio eleitoral
-                <select name="state" defaultValue={me?.state || ''} required>
-                  <option value="">Selecione o estado</option>
-                  {config.states.map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
+                <Select
+                  name="state"
+                  aria-label="Estado"
+                  defaultValue={me?.state || ''}
+                  required
+                  placeholder="Selecione o estado"
+                  options={config.states.map((state) => ({ value: state, label: state }))}
+                />
               </label>
               <label className="field full">
                 Ideologia declarada
-                <select name="ideology" defaultValue={me?.ideology || ''} required>
-                  <option value="">Selecione a ideologia do personagem</option>
-                  {config.ideologies.map((i) => (
-                    <option key={i}>{i}</option>
-                  ))}
-                </select>
+                <Select
+                  name="ideology"
+                  aria-label="Ideologia declarada"
+                  defaultValue={me?.ideology || ''}
+                  required
+                  placeholder="Selecione a ideologia do personagem"
+                  options={config.ideologies.map((ideology) => ({
+                    value: ideology,
+                    label: ideology,
+                  }))}
+                />
                 <small>
                   As oito ideologias do Legado. A ideologia percebida depende das ações no jogo.
                 </small>
@@ -280,7 +290,7 @@ export default function EditProfile() {
             </SubmitButton>
           </div>
           <ErrorNotice message={error} />
-        </form>
+        </Form>
       </div>
     </>
   );

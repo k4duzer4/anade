@@ -62,6 +62,10 @@ export class PgRepository {
       [id, username],
     );
   }
+  async isAdmin(id) {
+    const { rows } = await this.pool.query('SELECT is_admin FROM anade.accounts WHERE id=$1', [id]);
+    return rows[0]?.is_admin === true;
+  }
   async saveProfile(id, data) {
     await this.pool.query(
       'INSERT INTO anade.profiles(account_id,data) VALUES($1,$2) ON CONFLICT(account_id) DO UPDATE SET data=EXCLUDED.data, updated_at=now()',
@@ -264,9 +268,13 @@ export class MemoryRepository {
     this.data = structuredClone(seed);
     this.data.directors ??= [];
     this.accounts = new Map();
+    this.admins = new Set();
   }
   async account(id, username) {
     this.accounts.set(id, username);
+  }
+  async isAdmin(id) {
+    return this.admins.has(id);
   }
   async snapshot() {
     return structuredClone(this.data);

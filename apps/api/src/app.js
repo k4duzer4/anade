@@ -198,16 +198,18 @@ export function createApp({
         'Seu usuário não possui o cargo de filiado da ANADE.',
         403,
       );
+      await repo.account(user.id, user.username);
+      const discordAdmin = hasAdminRole(member.roles);
       await regenerate(req);
       req.session.user = {
         id: user.id,
         discord: user.username,
         member: true,
-        admin: hasAdminRole(member.roles),
+        discordAdmin,
+        admin: discordAdmin || (await repo.isAdmin(user.id)),
         expires: Date.now() + Math.min(oauth.expires_in, 28800) * 1000,
       };
       req.session.csrf = random();
-      await repo.account(user.id, user.username);
       await saveSession(req);
       res.redirect(`${origin}/painel`);
     } catch (e) {
@@ -241,8 +243,9 @@ export function createApp({
         'Sua sessão não possui filiação ativa. Entre novamente com o Discord.',
         403,
       );
-      // Cargos foram confirmados ao criar a sessão; não há consulta externa durante a navegação.
-      user.admin = adminRoleId !== '' && user.admin === true;
+      // A permissão local é lida do banco, sem consultas ao Discord durante a navegação.
+      user.admin =
+        (await repo.isAdmin(user.id)) || (adminRoleId !== '' && user.discordAdmin === true);
     }
     if (!['GET', 'HEAD'].includes(req.method)) {
       assert(req.headers.origin === origin, 'Origem inválida.', 403);

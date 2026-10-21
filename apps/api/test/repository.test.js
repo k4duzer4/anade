@@ -19,6 +19,7 @@ async function directorsTable(db) {
 test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do voto', async () => {
   const db = newDb();
   db.public.none(await readFile(new URL('../db/001_initial.sql', import.meta.url), 'utf8'));
+  db.public.none(await readFile(new URL('../db/007_account_admin.sql', import.meta.url), 'utf8'));
   const abstentionMigration = await readFile(
     new URL('../db/003_abstention.sql', import.meta.url),
     'utf8',
@@ -32,6 +33,11 @@ test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do vot
   try {
     await repo.account('a', 'direcao');
     await repo.account('b', 'filiado');
+    assert.equal(await repo.isAdmin('b'), false);
+    await pool.query('UPDATE anade.accounts SET is_admin=true WHERE id=$1', ['b']);
+    assert.equal(await repo.isAdmin('b'), true);
+    await repo.account('b', 'filiado');
+    assert.equal(await repo.isAdmin('b'), true);
     const person = profile({
       name: 'Maria Silva',
       state: 'BA',

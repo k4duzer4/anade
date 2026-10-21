@@ -46,6 +46,8 @@ Faça backup pelo Supabase de acordo com seu plano. O Supabase hospeda o banco; 
 
 ## Configurar Discord
 
+Também é possível conceder administração pelo banco, sem cargo ou ID de cargo Discord: após a migração `007_account_admin.sql`, abra **Supabase → Table Editor → schema anade → accounts**, localize a conta pela coluna `username` e altere `is_admin` para `true`. Atualize o portal para carregar a permissão. Para remover, volte a `false`. Ninguém é promovido automaticamente; contas novas iniciam com `false`. O usuário ainda precisa ser filiado e ter uma sessão válida. O formulário de perfil não altera essa permissão.
+
 1. Crie a aplicação em https://discord.com/developers/applications.
 2. Em OAuth2, cadastre `http://localhost:3000/auth/discord/callback` para desenvolvimento.
 3. Preencha no `.env` da API: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_GUILD_ID`, `DISCORD_MEMBER_ROLE_ID` e `DISCORD_REDIRECT_URI`. `DISCORD_ADMIN_ROLE_ID` é opcional: sem ele, o login real funciona para filiados e ninguém recebe acesso administrativo.

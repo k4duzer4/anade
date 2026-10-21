@@ -21,6 +21,7 @@ test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e autorização 
   // pg-mem não converte timestamp/timestamptz implicitamente como PostgreSQL real.
   const migration = await readFile(new URL('../db/001_initial.sql', import.meta.url), 'utf8');
   db.public.none(migration.replace('expire timestamp', 'expire timestamptz'));
+  db.public.none(await readFile(new URL('../db/007_account_admin.sql', import.meta.url), 'utf8'));
   await membershipFixture(db);
   db.public.registerFunction({
     name: 'to_timestamp',

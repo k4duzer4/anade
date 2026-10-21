@@ -45,7 +45,7 @@ Gere o segredo de sessão localmente:
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-Não configure `API_ORIGIN`: a Vercel injeta essa variável pelo binding interno. `DISCORD_REDIRECT_URI` é derivada de `APP_ORIGIN`, então também pode ficar ausente. `DISCORD_ADMIN_ROLE_ID` permanece ausente até escolhermos o cargo administrativo. Não prefixe credenciais com `NEXT_PUBLIC_`. O `.env` local não é enviado automaticamente.
+Não configure `API_ORIGIN`: a Vercel injeta essa variável pelo binding interno. `DISCORD_REDIRECT_URI` é derivada de `APP_ORIGIN`, então também pode ficar ausente. `DISCORD_ADMIN_ROLE_ID` é opcional; administradores locais podem ser definidos por `anade.accounts.is_admin`, sem cargo Discord. Não prefixe credenciais com `NEXT_PUBLIC_`. O `.env` local não é enviado automaticamente.
 
 Salve as variáveis no ambiente **Production** e clique em **Deploy**. Alterações de variáveis exigem novo deploy. Para previews com login, use um banco de teste, uma origem estável e um redirect OAuth correspondente.
 
@@ -70,7 +70,9 @@ Se a API retornar 503, consulte os Runtime Logs do serviço `api`: `CONFIG_APP_O
 - `/` e `/partido` devem abrir sem login.
 - `/painel`, `/agenda`, `/votacoes`, `/filiados`, `/ficha` e `/direcao` devem redirecionar visitantes para o login.
 - Um usuário com o cargo de filiado deve conseguir entrar e salvar sua ficha; confira a persistência após sair e entrar novamente.
-- Um usuário sem o cargo deve ter o acesso negado. Sem cargo administrativo configurado, nenhum usuário real recebe controles de administrador.
+- Um usuário sem o cargo de filiado deve ter o login negado. Administradores precisam ter o cargo administrativo configurado ou `is_admin=true` no banco.
+
+Para conceder administração local, aplique `007_account_admin.sql` com `npm run db:migrate`. No **Table Editor** do Supabase, selecione o schema **anade**, abra **accounts**, encontre a pessoa por **username** e mude **is_admin** para **true**. A pessoa deve ter entrado no portal pelo menos uma vez para aparecer nessa tabela. Alterações desse campo valem após atualizar a página, inclusive a remoção com `false`. O backend consulta esse booleano no banco; não faz chamadas adicionais ao Discord.
 
 As sessões ficam no PostgreSQL. A API reutiliza um pool pequeno por instância e usa `attachDatabasePool` para liberar conexões ociosas antes da suspensão. Sessões expiradas são limpas durante requisições, sem cron pago ou timers em segundo plano. O rate limit em memória vale por instância; limites globais adicionais podem ser configurados no firewall da plataforma.
 

@@ -5,7 +5,7 @@ import { once } from 'node:events';
 import { createApp } from '../src/app.js';
 import { MemoryRepository } from '../src/repository.js';
 import { seed } from '../src/seed.js';
-test('Express: acesso, CSRF, papéis, fichas, votação e revogação de cargos', async (t) => {
+test('Express: acesso, CSRF, papéis da sessão, fichas, votação e logout', async (t) => {
   const repo = new MemoryRepository(seed()),
     store = new session.MemoryStore();
   let roles = ['member-role', 'admin-role'];
@@ -253,15 +253,16 @@ test('Express: acesso, CSRF, papéis, fichas, votação e revogação de cargos'
     store.get(sid, (e, s) => (e ? reject(e) : resolve(s))),
   );
   sess.user.demo = false;
+  sess.user.admin = false;
   sess.user.accessToken = 'test-token';
   await new Promise((resolve, reject) => store.set(sid, sess, (e) => (e ? reject(e) : resolve())));
   roles = ['member-role'];
   assert.equal((await call('/api/meetings', 'POST', {}, admin)).status, 403);
-  assert.equal(checks, 1);
+  assert.equal(checks, 0);
   roles = [];
-  assert.equal((await call('/api/state', 'GET', undefined, admin)).status, 403);
-  assert.equal(checks, 2);
-  assert.equal((await call('/api/access', 'GET', undefined, admin)).status, 403);
+  assert.equal((await call('/api/state', 'GET', undefined, admin)).status, 200);
+  assert.equal(checks, 0);
+  assert.equal((await call('/api/access', 'GET', undefined, admin)).status, 200);
   assert.equal((await call('/api/logout', 'POST', {}, member)).status, 200);
   assert.equal((await call('/api/state', 'GET', undefined, member)).status, 401);
 });
@@ -352,7 +353,7 @@ test('OAuth permite cargo administrativo ausente e mantém todos os filiados sem
         assert.equal(denied.status, 403);
       }
       roles = ['other-role'];
-      assert.equal((await fetch(`${base}/api/access`, { headers })).status, 403);
+      assert.equal((await fetch(`${base}/api/access`, { headers })).status, 200);
     });
   }
 });

@@ -59,7 +59,7 @@ https://SEU-PROJETO.vercel.app/auth/discord/callback
 
 O endereço precisa coincidir exatamente com a origem publicada. O callback local pode continuar cadastrado. O login usa `identify guilds.members.read` e verifica o cargo no servidor; não precisa de IDs individuais dos filiados nem de token de bot.
 
-A migração `006_discord_memberships.sql` mantém a confirmação dos cargos por até dois minutos no PostgreSQL, compartilhada entre instâncias. Isso evita esgotar o limite do endpoint de filiação do Discord. Execute `npm run db:migrate` antes de publicar essa versão. Se o Discord já tiver retornado 429, o portal respeita o prazo de espera e não libera acesso com uma confirmação vencida. Remoções de cargo refletem em até dois minutos.
+A migração `006_discord_memberships.sql` mantém o prazo de espera das consultas do Discord no PostgreSQL, compartilhado entre instâncias. Execute `npm run db:migrate` antes de publicar essa versão. O cargo é consultado em cada login e o resultado fica salvo na sessão do banco. Não há novas consultas ao Discord durante a navegação ou ao editar a ficha. Remoções de cargo passam a valer no próximo login; a sessão atual continua até sair ou expirar. Se um novo login receber 429, ele respeita o prazo de espera e não concede acesso com a confirmação anterior.
 
 ## 4. Conferir a publicação
 
@@ -83,7 +83,7 @@ npm run typecheck
 npm run build
 ```
 
-Os testes incluem o adaptador Vercel com PostgreSQL emulado: sessão entre duas instâncias, cookie seguro, OAuth, rejeição de state inválido e bloqueio após perda do cargo. O build local não confirma a publicação nem o login completo com Discord/Supabase reais.
+Os testes incluem o adaptador Vercel com PostgreSQL emulado: sessão entre duas instâncias, cookie seguro, OAuth, rejeição de state inválido e uso da autorização salva na sessão. Um teste de login completo simulado confirma a consulta do cargo somente no login, a edição de ficha durante indisponibilidade do Discord e a negação do próximo login quando o cargo é removido. O build local não confirma a publicação nem o login completo com Discord/Supabase reais.
 
 O desenvolvimento continua com `npm run dev` ou `npm run demo`. Para uma instalação Node persistente, `npm start` continua disponível; a alternativa Render está em [DEPLOY-RENDER.md](DEPLOY-RENDER.md).
 

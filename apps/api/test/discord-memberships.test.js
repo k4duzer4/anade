@@ -52,8 +52,14 @@ test('filiação: cache compartilhado, expiração, revogação e cooldown sem u
       roles: ['member'],
     });
     assert.equal(calls, 4);
-    await first.discordMember('other-guild', 'user', load, options);
+    roles = [];
+    assert.deepEqual(
+      await second.discordMember('guild', 'user', load, { ...options, refresh: true }),
+      { roles: [] },
+    );
     assert.equal(calls, 5);
+    await first.discordMember('other-guild', 'user', load, options);
+    assert.equal(calls, 6);
   } finally {
     await pool.end();
   }

@@ -16,7 +16,7 @@ async function serve(t, handler) {
   return `http://127.0.0.1:${server.address().port}`;
 }
 
-test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e bloqueio de não filiados', async (t) => {
+test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e autorização da sessão', async (t) => {
   const db = newDb();
   // pg-mem não converte timestamp/timestamptz implicitamente como PostgreSQL real.
   const migration = await readFile(new URL('../db/001_initial.sql', import.meta.url), 'utf8');
@@ -115,7 +115,7 @@ test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e bloqueio de n�
   await pools[0].query('UPDATE anade.discord_memberships SET valid_until=$1', [
     new Date(Date.now() - 1),
   ]);
-  assert.equal((await call(first, '/api/access', cookie)).status, 403);
+  assert.equal((await call(first, '/api/access', cookie)).status, 200);
   assert.equal(
     (
       await call(first, '/api/demo-login', undefined, {

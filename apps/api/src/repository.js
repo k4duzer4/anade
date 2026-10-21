@@ -3,7 +3,7 @@ export class PgRepository {
   constructor(pool) {
     this.pool = pool;
   }
-  async discordMember(guildId, userId, load, { now = Date.now } = {}) {
+  async discordMember(guildId, userId, load, { now = Date.now, refresh = false } = {}) {
     const result = await this.transaction(async (client) => {
       // O lock do PostgreSQL também coordena cold starts e instâncias distintas da Vercel.
       await client.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
@@ -15,7 +15,8 @@ export class PgRepository {
         [guildId, userId],
       );
       const cached = rows[0];
-      if (cached && new Date(cached.valid_until).getTime() > now()) return { roles: cached.roles };
+      if (!refresh && cached && new Date(cached.valid_until).getTime() > now())
+        return { roles: cached.roles };
       if (cached?.retry_at && new Date(cached.retry_at).getTime() > now()) {
         return {
           limited: Math.max(1, Math.ceil((new Date(cached.retry_at).getTime() - now()) / 1000)),

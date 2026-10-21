@@ -7,7 +7,7 @@ Portal da **Aliança Nacional Democrática** no RPG Legado, com a identidade vis
 - **Frontend:** Next.js 16 App Router, React 19, TypeScript, Motion e fontes locais Sora (títulos e números), Manrope (leitura) e Barlow Condensed (marca e chamadas da ANADE). Temas claro, escuro e do sistema com `next-themes`.
 - **Backend:** Node.js 22.14+ e Express 5, separado do servidor Next.
 - **Banco recomendado:** **PostgreSQL hospedado no Supabase**. Driver `pg`, migrações SQL versionadas e sessões persistidas no PostgreSQL.
-- **Autenticação:** OAuth2 do Discord; cargos de filiado e direção reconfirmados com cache compartilhado de até dois minutos no PostgreSQL.
+- **Autenticação:** OAuth2 do Discord; cargos de filiado e direção conferidos em cada login e salvos na sessão persistida no PostgreSQL.
 - Tudo no mesmo repositório, com npm workspaces e um único `package-lock.json`.
 
 ```text
@@ -52,9 +52,9 @@ Faça backup pelo Supabase de acordo com seu plano. O Supabase hospeda o banco; 
 4. Quando a administração for configurada, o dirigente deve ter **ambos** os cargos: filiado e direção. Os IDs são copiados com o modo desenvolvedor do Discord.
 5. Execute `npm run dev`.
 
-O fluxo usa os escopos `identify guilds.members.read`, sem exigir um bot. Os tokens ficam na sessão do servidor e nunca são enviados ao frontend. Há validação de state OAuth, regeneração da sessão após login, cookie HttpOnly/SameSite, proteção de origem/CSRF e limites de requisições. A confirmação dos cargos dura até dois minutos e é compartilhada entre instâncias da API no PostgreSQL. Alterações de cargo podem levar até dois minutos para refletir no portal. Após a expiração, uma falha na reconfirmação bloqueia a operação. Respostas 429 respeitam o prazo informado pelo Discord, persistido no banco, e exibem o tempo de espera ao usuário.
+O fluxo usa os escopos `identify guilds.members.read`, sem exigir um bot. O token é usado no backend durante o login e não é enviado ao frontend nem armazenado nas novas sessões. Há validação de state OAuth, regeneração da sessão, cookie HttpOnly/SameSite, proteção de origem/CSRF e limites de requisições. Cada login consulta o cargo uma vez e salva `member: true` e o papel administrativo na sessão do PostgreSQL. Consultas, edição de ficha, votações e navegação usam essa sessão sem chamar o Discord. Mudanças de cargo passam a valer no próximo login; a sessão atual permanece válida até sair ou expirar.
 
-A migração `006_discord_memberships.sql` cria o cache privado de cargos. Um lock transacional por usuário e servidor impede chamadas duplicadas em requisições simultâneas, inclusive entre instâncias da Vercel. Confirmações vencidas não são usadas para liberar acesso durante falhas ou limites do Discord.
+A migração `006_discord_memberships.sql` armazena a última consulta e o prazo de espera imposto pelo Discord. Um novo login força uma consulta atualizada, respeitando o cooldown compartilhado entre instâncias. Se o cargo estiver ausente, o login é negado e a sessão anterior já foi invalidada. Respostas 429 exibem o tempo de espera; não se concede uma nova sessão usando uma confirmação antiga.
 
 A sessão dura até oito horas ou a expiração do token Discord, o que vier primeiro. Não há renovação automática: o usuário entra novamente. Logout destrói a sessão. As sessões reais ficam no PostgreSQL; o modo demonstrativo usa memória.
 
@@ -70,7 +70,7 @@ A sessão dura até oito horas ou a expiração do token Discord, o que vier pri
 - `/partido`: página pública **A ANADE**, com valores, correntes e programa do partido. Tem navegação própria, sem os menus internos, e pode ser aberta sem login.
 - `/sobre`: endereço antigo que redireciona para `/partido`.
 
-Somente o login e A ANADE são páginas públicas de conteúdo. Painel, agenda, votações, filiados e ficha ficam sob um layout de servidor do Next.js: ele verifica a sessão com `/api/access` antes de renderizar e redireciona para o login se a filiação não for confirmada. A API mantém sua verificação de cargo em todas as chamadas autenticadas. A navegação interna também tem uma verificação no cliente para expiração de sessão e perda de acesso. `/api/access` devolve apenas a identificação e o papel do usuário autorizado, sem carregar cadastros ou votações.
+Somente o login e A ANADE são páginas públicas de conteúdo. Painel, agenda, votações, filiados e ficha ficam sob um layout de servidor do Next.js: ele verifica a sessão com `/api/access` antes de renderizar e redireciona para o login se não houver autorização. A API verifica a sessão e as permissões salvas em todas as chamadas autenticadas, sem consultar o Discord novamente. A navegação interna também verifica a expiração da sessão. `/api/access` devolve apenas a identificação e o papel do usuário autorizado, sem carregar cadastros ou votações.
 
 As correntes internas da ANADE aparecem na área institucional; não substituem as oito ideologias oficiais do Legado no cadastro. A lista de filiados mostra fichas registradas, não uma importação automática de todos os membros do Discord. Dados do personagem são autodeclarados e não são sincronizados com o jogo. Há uma ficha atual por conta; histórico de temporadas não está implementado.
 
@@ -112,7 +112,7 @@ npm run build
 npm start
 ```
 
-Os testes SQL usam `pg-mem`: validam migração inicial, consultas e restrições, mas não substituem a execução das migrações nem os testes de concorrência no PostgreSQL real do Supabase. Os testes da API simulam Discord e cobrem perda de cargo, permissões, CSRF, privacidade, voto definitivo e logout. Login real e conexão ao Supabase precisam ser conferidos após preencher suas credenciais.
+Os testes SQL usam `pg-mem`: validam migração inicial, consultas e restrições, mas não substituem a execução das migrações nem os testes de concorrência no PostgreSQL real do Supabase. Os testes da API simulam Discord e cobrem reconfirmação do cargo no novo login, navegação e edição de ficha sem novas consultas, permissões, CSRF, privacidade, voto definitivo e logout. Login real e conexão ao Supabase precisam ser conferidos após preencher suas credenciais.
 
 Na Vercel, importe a raiz do repositório e configure as variáveis do [guia](DEPLOY.md). O binding injeta `API_ORIGIN` em runtime e o adaptador Express configura o proxy HTTPS, sem iniciar um listener próprio. Para hospedagem Node persistente, execute migrações, faça build e inicie com `NODE_ENV=production`; exponha Next por HTTPS e ajuste `API_ORIGIN` e `TRUST_PROXY` conforme a rede. Não use `npm run demo` em produção.
 

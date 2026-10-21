@@ -129,7 +129,10 @@ export function createApp({
   const hasAdminRole = (roles) => adminRoleId !== '' && roles.includes(adminRoleId);
   const getMember = (userId, token) => {
     const load = () => discord(`/users/@me/guilds/${env.DISCORD_GUILD_ID}/member`, token);
-    return repo.discordMember ? repo.discordMember(env.DISCORD_GUILD_ID, userId, load) : load();
+    // Cada novo login consulta o Discord; somente o cooldown é reaproveitado.
+    return repo.discordMember
+      ? repo.discordMember(env.DISCORD_GUILD_ID, userId, load, { refresh: true })
+      : load();
   };
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
   app.get('/api/config', (_req, res) =>
@@ -150,6 +153,8 @@ export function createApp({
   };
   app.get('/auth/discord', async (req, res) => {
     assert(configured, 'O login Discord ainda não foi configurado.', 503);
+    // Um novo login invalida a autorização anterior, inclusive se a filiação for negada.
+    await regenerate(req);
     const state = random();
     req.session.oauth = { state, expires: Date.now() + 300000 };
     await saveSession(req);
@@ -197,7 +202,7 @@ export function createApp({
       req.session.user = {
         id: user.id,
         discord: user.username,
-        accessToken: oauth.access_token,
+        member: true,
         admin: hasAdminRole(member.roles),
         expires: Date.now() + Math.min(oauth.expires_in, 28800) * 1000,
       };
@@ -231,13 +236,13 @@ export function createApp({
     const user = req.session.user;
     assert(user && user.expires > Date.now(), 'Entre com o Discord para continuar.', 401);
     if (!user.demo) {
-      const member = await getMember(user.id, user.accessToken);
       assert(
-        member.roles.includes(env.DISCORD_MEMBER_ROLE_ID),
-        'Você não possui mais o cargo de filiado da ANADE.',
+        user.member !== false,
+        'Sua sessão não possui filiação ativa. Entre novamente com o Discord.',
         403,
       );
-      user.admin = hasAdminRole(member.roles);
+      // Cargos foram confirmados ao criar a sessão; não há consulta externa durante a navegação.
+      user.admin = adminRoleId !== '' && user.admin === true;
     }
     if (!['GET', 'HEAD'].includes(req.method)) {
       assert(req.headers.origin === origin, 'Origem inválida.', 403);
@@ -265,7 +270,7 @@ export function createApp({
     const user = res.locals.user;
     res.json({
       serverTime: new Date().toISOString(),
-      user: { id: user.id, discord: user.discord, admin: user.admin },
+      user: { id: user.id, discord: user.discord, admin: user.admin, member: true },
       csrf: req.session.csrf,
       members: data.members.map((m) => publicMember(m, user.id)),
       meetings: data.meetings,

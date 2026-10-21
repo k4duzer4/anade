@@ -131,7 +131,7 @@ export default function Dashboard() {
             <strong>Vamos conhecer seu personagem?</strong>
             <p>Complete sua ficha com Blue, LegApp e sua trajetória no Legado.</p>
           </div>
-          <Link className="button primary small-button" href="/ficha">
+          <Link className="button primary small-button" href="/ficha/editar">
             Preencher ficha
             <ArrowRight size={15} />
           </Link>
@@ -208,7 +208,7 @@ export default function Dashboard() {
         </header>
         <div className="member-strip">
           {data.members.slice(0, 4).map((m) => (
-            <Link href="/filiados" className="member-mini" key={m.id}>
+            <Link href={`/filiados/${encodeURIComponent(m.id)}`} className="member-mini" key={m.id}>
               <div className="avatar">{initials(m.name)}</div>
               <div>
                 <strong>{m.name}</strong>

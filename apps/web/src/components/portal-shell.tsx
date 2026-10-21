@@ -29,7 +29,7 @@ const nav = [
   { path: '/votacoes', title: 'Votações internas', icon: Vote },
   { path: '/filiados', title: 'Nossos filiados', icon: Users },
   { path: '/direcao', title: 'Direção', icon: Landmark },
-  { path: '/ficha', title: 'Minha ficha', icon: ContactRound },
+  { path: '/ficha', title: 'Meu perfil', icon: ContactRound },
 ];
 export default function PortalLayout({ children }: { children: ReactNode }) {
   const { data, config, loading, error, logout, refresh } = usePortal();
@@ -50,7 +50,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     );
   const member = data.members.find((m) => m.id === data.user.id),
     name = member?.name || data.user.discord;
-  const active = nav.find((n) => n.path === path);
+  const active = nav.find((n) => n.path === path || path.startsWith(`${n.path}/`));
   async function exit() {
     try {
       await logout();
@@ -86,10 +86,10 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
               key={item.path}
               href={item.path}
               onClick={() => setMenu(false)}
-              className={path === item.path ? 'active' : ''}
-              aria-current={path === item.path ? 'page' : undefined}
+              className={active?.path === item.path ? 'active' : ''}
+              aria-current={active?.path === item.path ? 'page' : undefined}
             >
-              {path === item.path && (
+              {active?.path === item.path && (
                 <m.span
                   className="nav-active-pill"
                   layoutId="sidebar-active"
@@ -159,7 +159,13 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             </button>
             <span>Diretório digital</span>
             <ChevronRight size={13} />
-            <b>{active?.title || 'A ANADE'}</b>
+            <b>
+              {path === '/ficha/editar'
+                ? 'Editar meu perfil'
+                : path.startsWith('/filiados/')
+                  ? 'Perfil do filiado'
+                  : active?.title || 'A ANADE'}
+            </b>
           </div>
           <div className="topbar-right">
             <ThemeSwitcher />
@@ -167,7 +173,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
               <ShieldCheck size={14} />
               {config?.demo ? 'Acesso demonstrativo' : 'Filiado verificado'}
             </span>
-            <Link href="/ficha" className="avatar small" aria-label="Abrir minha ficha">
+            <Link href="/ficha" className="avatar small" aria-label="Abrir meu perfil">
               {initials(name)}
             </Link>
           </div>

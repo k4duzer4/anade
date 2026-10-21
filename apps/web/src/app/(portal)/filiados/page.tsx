@@ -1,24 +1,22 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   Search,
   ArrowUpRight,
   MapPin,
   AtSign,
   Users,
-  ContactRound,
-  Phone,
   ShieldCheck,
   BriefcaseBusiness,
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
-import { PageHeading, Badge, Modal, Empty } from '@/components/ui';
-import { initials, type Member } from '@/lib/types';
+import { PageHeading, Badge, Empty } from '@/components/ui';
+import { initials } from '@/lib/types';
 export default function Members() {
   const { data, config } = usePortal();
   const [search, setSearch] = useState(''),
-    [state, setState] = useState(''),
-    [selected, setSelected] = useState<Member | null>(null);
+    [state, setState] = useState('');
   if (!data) return null;
   const list = data.members.filter(
     (m) =>
@@ -64,7 +62,12 @@ export default function Members() {
       <div className="members-grid">
         {list.length ? (
           list.map((m) => (
-            <article className="member-card" key={m.id}>
+            <Link
+              href={`/filiados/${encodeURIComponent(m.id)}`}
+              className="member-card"
+              key={m.id}
+              aria-label={`Ver perfil de ${m.name}`}
+            >
               <div className="member-banner" aria-hidden="true">
                 <span>
                   ALIANÇA NACIONAL
@@ -91,12 +94,12 @@ export default function Members() {
               <div className="member-ideology">{m.ideology}</div>
               <div className="member-card-bottom">
                 <span>{m.season}</span>
-                <button className="text-button" onClick={() => setSelected(m)}>
-                  Ver ficha
+                <span className="text-button">
+                  Ver perfil
                   <ArrowUpRight size={14} />
-                </button>
+                </span>
               </div>
-            </article>
+            </Link>
           ))
         ) : (
           <section className="panel full">
@@ -109,50 +112,8 @@ export default function Members() {
       </div>
       <p className="page-note">
         <ShieldCheck size={14} /> As fichas são declaradas pelos jogadores. A lista reúne os
-        cadastros do portal; o cargo no Discord é verificado ao acessar.
+        cadastros do portal; o cargo no Discord é verificado no login.
       </p>
-      {selected && (
-        <Modal title="FICHA DO FILIADO" onClose={() => setSelected(null)}>
-          <div className="member-detail-heading">
-            <div className="avatar large">{initials(selected.name)}</div>
-            <div>
-              <h3>{selected.name}</h3>
-              <span>{selected.blue || 'Blue não informado'}</span>
-            </div>
-          </div>
-          <p className="member-bio">
-            {selected.bio || 'Este personagem ainda não compartilhou sua biografia.'}
-          </p>
-          <dl className="member-details">
-            {Object.entries({
-              Discord: selected.discord,
-              'Número do LegApp': selected.legapp || 'Não compartilhado',
-              Temporada: selected.season,
-              Idade: `${selected.age} anos`,
-              'Domicílio eleitoral': selected.state,
-              Cidade: selected.city,
-              'Ideologia declarada': selected.ideology,
-              'Cargo no RPG': selected.office,
-              Profissão: selected.profession,
-              Faculdades: selected.degrees?.join(', '),
-              'OAB no RPG': selected.oab,
-            }).map(([k, v]) => (
-              <div key={k}>
-                <dt>{k}</dt>
-                <dd>{v || 'Não informado'}</dd>
-              </div>
-            ))}
-          </dl>
-          <div className="detail-note">
-            <ContactRound size={15} /> Dados do personagem no RPG Legado.{' '}
-            {selected.legapp && (
-              <>
-                <Phone size={13} /> Número fictício.
-              </>
-            )}
-          </div>
-        </Modal>
-      )}
     </>
   );
 }

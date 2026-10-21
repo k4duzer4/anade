@@ -132,8 +132,8 @@ export default function DirectionContent() {
                     <MapPin size={13} /> {member?.state || '—'} <i /> {member?.season || 'ANADE'}
                   </span>
                   <Link
-                    href="/filiados"
-                    aria-label={`Ver filiados, incluindo ${member?.name || 'este diretor'}`}
+                    href={`/filiados/${encodeURIComponent(director.memberId)}`}
+                    aria-label={`Ver perfil de ${member?.name || 'este diretor'}`}
                   >
                     <ArrowUpRight size={17} />
                   </Link>

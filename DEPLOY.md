@@ -74,6 +74,8 @@ Se a API retornar 503, consulte os Runtime Logs do serviço `api`: `CONFIG_APP_O
 
 Para conceder administração local, aplique `007_account_admin.sql` com `npm run db:migrate`. No **Table Editor** do Supabase, selecione o schema **anade**, abra **accounts**, encontre a pessoa por **username** e mude **is_admin** para **true**. A pessoa deve ter entrado no portal pelo menos uma vez para aparecer nessa tabela. Alterações desse campo valem após atualizar a página, inclusive a remoção com `false`. O backend consulta esse booleano no banco; não faz chamadas adicionais ao Discord.
 
+Depois de configurar o primeiro administrador, use **Administração → Adicionar administrador** no portal: informe o ID do usuário Discord, confira a conta localizada e confirme a concessão. Execute `npm run db:migrate` antes de publicar essa funcionalidade: `008_admin_grants.sql` cria o histórico privado das concessões. A página `/administracao` redireciona filiados sem permissão para `/painel`; os endpoints `/api/admin/accounts` e `/api/admin/admins` também exigem administrador. A pessoa adicionada precisa ter feito login antes e continua sujeita à verificação de filiação em cada novo login.
+
 As sessões ficam no PostgreSQL. A API reutiliza um pool pequeno por instância e usa `attachDatabasePool` para liberar conexões ociosas antes da suspensão. Sessões expiradas são limpas durante requisições, sem cron pago ou timers em segundo plano. O rate limit em memória vale por instância; limites globais adicionais podem ser configurados no firewall da plataforma.
 
 ## Verificação local

@@ -1,4 +1,5 @@
 import { assert, castVote } from './domain.js';
+import { randomUUID } from 'node:crypto';
 export class PgRepository {
   constructor(pool) {
     this.pool = pool;
@@ -65,6 +66,40 @@ export class PgRepository {
   async isAdmin(id) {
     const { rows } = await this.pool.query('SELECT is_admin FROM anade.accounts WHERE id=$1', [id]);
     return rows[0]?.is_admin === true;
+  }
+  async adminAccounts() {
+    const { rows } = await this.pool.query(
+      `SELECT a.id,a.username,a.is_admin,p.data->>'name' AS name
+       FROM anade.accounts a LEFT JOIN anade.profiles p ON p.account_id=a.id
+       ORDER BY a.is_admin DESC,a.username`,
+    );
+    return rows.map((account) => ({
+      id: account.id,
+      discord: account.username,
+      name: account.name || '',
+      isAdmin: account.is_admin,
+    }));
+  }
+  async grantAdmin(id, actorId) {
+    return this.transaction(async (client) => {
+      const { rows } = await client.query(
+        'SELECT id,is_admin FROM anade.accounts WHERE id=$1 FOR UPDATE',
+        [id],
+      );
+      assert(
+        rows[0],
+        'Usuário não encontrado. Ele precisa entrar no portal com o Discord pelo menos uma vez.',
+        404,
+      );
+      if (rows[0].is_admin) return false;
+      await client.query('UPDATE anade.accounts SET is_admin=true WHERE id=$1', [id]);
+      await client.query('INSERT INTO anade.admin_grants(id,actor_id,target_id) VALUES($1,$2,$3)', [
+        randomUUID(),
+        actorId,
+        id,
+      ]);
+      return true;
+    });
   }
   async saveProfile(id, data) {
     await this.pool.query(
@@ -269,12 +304,32 @@ export class MemoryRepository {
     this.data.directors ??= [];
     this.accounts = new Map();
     this.admins = new Set();
+    this.adminGrants = [];
   }
   async account(id, username) {
     this.accounts.set(id, username);
   }
   async isAdmin(id) {
     return this.admins.has(id);
+  }
+  async adminAccounts() {
+    return Array.from(this.accounts, ([id, discord]) => ({
+      id,
+      discord,
+      name: this.data.members.find((member) => member.id === id)?.name || '',
+      isAdmin: this.admins.has(id),
+    }));
+  }
+  async grantAdmin(id, actorId) {
+    assert(
+      this.accounts.has(id),
+      'Usuário não encontrado. Ele precisa entrar no portal com o Discord pelo menos uma vez.',
+      404,
+    );
+    if (this.admins.has(id)) return false;
+    this.admins.add(id);
+    this.adminGrants.push({ id: randomUUID(), actorId, targetId: id });
+    return true;
   }
   async snapshot() {
     return structuredClone(this.data);

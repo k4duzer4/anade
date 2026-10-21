@@ -20,6 +20,11 @@ test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do vot
   const db = newDb();
   db.public.none(await readFile(new URL('../db/001_initial.sql', import.meta.url), 'utf8'));
   db.public.none(await readFile(new URL('../db/007_account_admin.sql', import.meta.url), 'utf8'));
+  const adminGrantsMigration = await readFile(
+    new URL('../db/008_admin_grants.sql', import.meta.url),
+    'utf8',
+  );
+  db.public.none(adminGrantsMigration.split('ALTER TABLE')[0]);
   const abstentionMigration = await readFile(
     new URL('../db/003_abstention.sql', import.meta.url),
     'utf8',
@@ -38,6 +43,11 @@ test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do vot
     assert.equal(await repo.isAdmin('b'), true);
     await repo.account('b', 'filiado');
     assert.equal(await repo.isAdmin('b'), true);
+    await pool.query('UPDATE anade.accounts SET is_admin=false WHERE id=$1', ['b']);
+    assert.equal(await repo.grantAdmin('b', 'a'), true);
+    assert.equal(await repo.grantAdmin('b', 'a'), false);
+    assert.equal((await pool.query('SELECT * FROM anade.admin_grants')).rowCount, 1);
+    await assert.rejects(repo.grantAdmin('missing', 'a'), /não encontrado/);
     const person = profile({
       name: 'Maria Silva',
       state: 'BA',

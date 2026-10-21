@@ -268,6 +268,18 @@ export function createApp({
     const user = res.locals.user;
     res.json({ user: { id: user.id, admin: user.admin } });
   });
+  app.get('/api/admin/accounts', admin, async (_req, res) => {
+    res.json({ accounts: await repo.adminAccounts() });
+  });
+  app.post('/api/admin/admins', admin, async (req, res) => {
+    const discordId = typeof req.body?.discordId === 'string' ? req.body.discordId.trim() : '';
+    assert(
+      /^[0-9]{17,20}$/.test(discordId),
+      'Informe o ID numérico do usuário Discord, com 17 a 20 dígitos.',
+    );
+    const changed = await repo.grantAdmin(discordId, res.locals.user.id);
+    res.json({ ok: true, changed });
+  });
   app.get('/api/state', async (req, res) => {
     const data = await repo.snapshot();
     const user = res.locals.user;

@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   RefreshCw,
   Landmark,
+  Settings2,
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { initials } from '@/lib/types';
@@ -30,6 +31,7 @@ const nav = [
   { path: '/filiados', title: 'Nossos filiados', icon: Users },
   { path: '/direcao', title: 'Direção', icon: Landmark },
   { path: '/ficha', title: 'Meu perfil', icon: ContactRound },
+  { path: '/administracao', title: 'Administração', icon: Settings2 },
 ];
 export default function PortalLayout({ children }: { children: ReactNode }) {
   const { data, config, loading, error, logout, refresh } = usePortal();
@@ -50,7 +52,8 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     );
   const member = data.members.find((m) => m.id === data.user.id),
     name = member?.name || data.user.discord;
-  const active = nav.find((n) => n.path === path || path.startsWith(`${n.path}/`));
+  const visibleNav = nav.filter((item) => item.path !== '/administracao' || data.user.admin);
+  const active = visibleNav.find((n) => n.path === path || path.startsWith(`${n.path}/`));
   async function exit() {
     try {
       await logout();
@@ -81,7 +84,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
           <i />
         </div>
         <nav aria-label="Menu principal">
-          {nav.map((item) => (
+          {visibleNav.map((item) => (
             <Link
               key={item.path}
               href={item.path}

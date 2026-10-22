@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { Badge, Empty, PageHeading } from './ui';
-import { initials } from '@/lib/types';
+import { MemberAvatar } from './member-avatar';
 
 export default function MemberProfile({ memberId }: { memberId?: string }) {
   const { data } = usePortal();
@@ -91,24 +91,36 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
         }
       />
       <section className="member-profile-hero" aria-labelledby="member-profile-name">
-        <div className="member-profile-cover">
-          <Image src="/brand/filie-se.png" alt="" fill sizes="(max-width: 800px) 100vw, 75vw" />
-          <div className="member-profile-cover-copy">
-            <span>ALIANÇA NACIONAL DEMOCRÁTICA</span>
-            <strong>
-              Diferentes histórias.
-              <br />
-              Um projeto comum.
-            </strong>
-          </div>
-          <span className="member-profile-number" aria-hidden="true">
-            10
-          </span>
+        <div className={`member-profile-cover ${member.bannerUrl ? 'has-custom-banner' : ''}`}>
+          <Image
+            src={member.bannerUrl || '/brand/filie-se.png'}
+            alt={member.bannerUrl ? `Banner de ${member.name}` : ''}
+            fill
+            sizes="(max-width: 800px) 100vw, 75vw"
+            unoptimized={!!member.bannerUrl}
+          />
+          {!member.bannerUrl && (
+            <>
+              <div className="member-profile-cover-copy">
+                <span>ALIANÇA NACIONAL DEMOCRÁTICA</span>
+                <strong>
+                  Diferentes histórias.
+                  <br />
+                  Um projeto comum.
+                </strong>
+              </div>
+              <span className="member-profile-number" aria-hidden="true">
+                10
+              </span>
+            </>
+          )}
         </div>
         <div className="member-profile-identity">
-          <div className="member-profile-avatar" aria-hidden="true">
-            {initials(member.name)}
-          </div>
+          <MemberAvatar
+            className="member-profile-avatar"
+            name={member.name}
+            src={member.avatarUrl}
+          />
           <div className="member-profile-name">
             <span className="eyebrow">
               {own ? 'SEU PERSONAGEM NO LEGADO' : 'NOSSA ALIANÇA, NOSSA GENTE'}

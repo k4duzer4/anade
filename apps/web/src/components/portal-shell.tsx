@@ -22,7 +22,7 @@ import {
   Clock3,
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
-import { initials } from '@/lib/types';
+import { MemberAvatar } from './member-avatar';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { m } from 'motion/react';
 const nav = [
@@ -138,7 +138,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             <ArrowUpRight size={15} />
           </a>
           <div className="user-block">
-            <div className="avatar">{initials(name)}</div>
+            <MemberAvatar name={name} src={member?.avatarUrl} />
             <div>
               <strong>{name.split(' ').slice(0, 2).join(' ')}</strong>
               <small>{data.user.admin ? 'Direção nacional' : 'Filiado ANADE'}</small>
@@ -178,8 +178,8 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
               <ShieldCheck size={14} />
               {config?.demo ? 'Acesso demonstrativo' : 'Filiado verificado'}
             </span>
-            <Link href="/ficha" className="avatar small" aria-label="Abrir meu perfil">
-              {initials(name)}
+            <Link href="/ficha" aria-label="Abrir meu perfil">
+              <MemberAvatar className="avatar small" name={name} src={member?.avatarUrl} />
             </Link>
           </div>
         </header>

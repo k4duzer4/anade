@@ -16,6 +16,8 @@ export type Member = {
   bio: string;
   degrees: string[];
   joinedAt: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
 };
 export type Meeting = {
   id: string;

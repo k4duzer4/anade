@@ -16,7 +16,8 @@ import Link from 'next/link';
 import { usePortal } from './portal-provider';
 import { PageHeading, Modal, Empty, ErrorNotice, SubmitButton } from './ui';
 import { DirectorForm } from './director-form';
-import { initials, type Director } from '@/lib/types';
+import { type Director } from '@/lib/types';
+import { MemberAvatar } from './member-avatar';
 export default function DirectionContent() {
   const { data, mutate, notify } = usePortal();
   const [editing, setEditing] = useState<Director | 'new' | null>(null);
@@ -110,7 +111,11 @@ export default function DirectionContent() {
                   </span>
                 </div>
                 <div className="director-identity">
-                  <div className="director-avatar">{initials(member?.name || 'ANADE')}</div>
+                  <MemberAvatar
+                    className="director-avatar"
+                    name={member?.name || 'ANADE'}
+                    src={member?.avatarUrl}
+                  />
                   <div>
                     <span className="director-title">{director.title}</span>
                     <h3>{member?.name || 'Ficha indisponível'}</h3>

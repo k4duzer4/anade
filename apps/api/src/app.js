@@ -13,6 +13,7 @@ import {
   optimizeProof,
 } from './checkins.js';
 import { MemoryProofStorage, SupabaseProofStorage } from './proof-storage.js';
+import { MAX_PROFILE_IMAGE_BYTES, PROFILE_BUCKET, profileMediaRoutes } from './profile-media.js';
 import {
   assert,
   text,
@@ -81,6 +82,7 @@ export function createApp({
   env = process.env,
   discord = discordRequest,
   proofStorage,
+  profileStorage,
   now = () => new Date(),
 }) {
   assert(!demo || env.NODE_ENV !== 'production', 'Modo demonstração indisponível em produção.');
@@ -88,6 +90,14 @@ export function createApp({
   assert(secret && secret.length >= 32, 'SESSION_SECRET deve ter pelo menos 32 caracteres.');
   const app = express();
   const storage = proofStorage || (demo ? new MemoryProofStorage() : new SupabaseProofStorage(env));
+  const mediaStorage =
+    profileStorage ||
+    (demo
+      ? new MemoryProofStorage()
+      : new SupabaseProofStorage(env, fetch, {
+          bucket: PROFILE_BUCKET,
+          maxBytes: MAX_PROFILE_IMAGE_BYTES,
+        }));
   app.disable('x-powered-by');
   if (Number(env.TRUST_PROXY) > 0) app.set('trust proxy', Number(env.TRUST_PROXY));
   app.use(helmet());
@@ -437,6 +447,7 @@ export function createApp({
     await repo.saveProfile(res.locals.user.id, profile(req.body));
     res.json({ ok: true });
   });
+  profileMediaRoutes(app, repo, mediaStorage);
   app.post('/api/directors', admin, async (req, res) => {
     await repo.saveDirector({ id: randomUUID(), ...directorDetails(req.body) });
     res.status(201).json({ ok: true });

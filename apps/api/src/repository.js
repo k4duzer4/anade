@@ -1,6 +1,7 @@
 import { assert, castVote } from './domain.js';
 import { randomUUID } from 'node:crypto';
 import { CHECKIN_PAGE_SIZE, presentCheckin } from './checkins.js';
+import { profileMediaUrl } from './profile-media.js';
 export class PgRepository {
   constructor(pool) {
     this.pool = pool;
@@ -108,6 +109,37 @@ export class PgRepository {
       [id, JSON.stringify(data)],
     );
   }
+  async profileMedia(id, kind) {
+    const { rows } = await this.pool.query(
+      'SELECT path FROM anade.profile_media WHERE account_id=$1 AND kind=$2',
+      [id, kind],
+    );
+    return rows[0]?.path || null;
+  }
+  async replaceProfileMedia(id, kind, path, save) {
+    return this.transaction(async (client) => {
+      const account = await client.query('SELECT id FROM anade.accounts WHERE id=$1 FOR UPDATE', [
+        id,
+      ]);
+      assert(account.rowCount, 'Conta não encontrada.', 404);
+      const { rows } = await client.query(
+        'SELECT path FROM anade.profile_media WHERE account_id=$1 AND kind=$2',
+        [id, kind],
+      );
+      await save();
+      if (path)
+        await client.query(
+          'INSERT INTO anade.profile_media(account_id,kind,path) VALUES($1,$2,$3) ON CONFLICT(account_id,kind) DO UPDATE SET path=EXCLUDED.path',
+          [id, kind, path],
+        );
+      else
+        await client.query('DELETE FROM anade.profile_media WHERE account_id=$1 AND kind=$2', [
+          id,
+          kind,
+        ]);
+      return rows[0]?.path || null;
+    });
+  }
   async createCheckin(entry, saveProofs) {
     try {
       return await this.transaction(async (client) => {
@@ -188,7 +220,7 @@ export class PgRepository {
   async snapshot() {
     const [profiles, meetings, attendance, polls, options, votes, directors] = await Promise.all([
       this.pool.query(
-        'SELECT p.account_id, p.data, p.created_at, a.username FROM anade.profiles p JOIN anade.accounts a ON a.id=p.account_id ORDER BY p.created_at',
+        "SELECT p.account_id, p.data, p.created_at, a.username, avatar.path AS avatar_path, banner.path AS banner_path FROM anade.profiles p JOIN anade.accounts a ON a.id=p.account_id LEFT JOIN anade.profile_media avatar ON avatar.account_id=a.id AND avatar.kind='avatar' LEFT JOIN anade.profile_media banner ON banner.account_id=a.id AND banner.kind='banner' ORDER BY p.created_at",
       ),
       this.pool.query('SELECT * FROM anade.meetings ORDER BY starts_at'),
       this.pool.query('SELECT * FROM anade.attendance'),
@@ -207,6 +239,8 @@ export class PgRepository {
       })),
       members: profiles.rows.map((p) => ({
         ...p.data,
+        avatarUrl: profileMediaUrl(p.account_id, 'avatar', p.avatar_path),
+        bannerUrl: profileMediaUrl(p.account_id, 'banner', p.banner_path),
         id: p.account_id,
         discord: p.username,
         joinedAt: new Date(p.created_at).toISOString(),
@@ -385,6 +419,8 @@ export class MemoryRepository {
     this.adminGrants = [];
     this.checkins = [];
     this.checkinLocks = new Set();
+    this.media = new Map();
+    this.mediaLocks = new Map();
   }
   async account(id, username) {
     this.accounts.set(id, username);
@@ -412,7 +448,37 @@ export class MemoryRepository {
     return true;
   }
   async snapshot() {
-    return structuredClone(this.data);
+    const data = structuredClone(this.data);
+    data.members = data.members.map((member) => ({
+      ...member,
+      avatarUrl: profileMediaUrl(member.id, 'avatar', this.media.get(`${member.id}:avatar`)),
+      bannerUrl: profileMediaUrl(member.id, 'banner', this.media.get(`${member.id}:banner`)),
+    }));
+    return data;
+  }
+  async profileMedia(id, kind) {
+    return this.media.get(`${id}:${kind}`) || null;
+  }
+  async replaceProfileMedia(id, kind, path, save) {
+    const previous = this.mediaLocks.get(id);
+    let release;
+    const waiting = new Promise((resolve) => {
+      release = resolve;
+    });
+    this.mediaLocks.set(id, waiting);
+    await previous;
+    try {
+      assert(this.accounts.has(id), 'Conta não encontrada.', 404);
+      const key = `${id}:${kind}`;
+      const old = this.media.get(key) || null;
+      await save();
+      if (path) this.media.set(key, path);
+      else this.media.delete(key);
+      return old;
+    } finally {
+      if (this.mediaLocks.get(id) === waiting) this.mediaLocks.delete(id);
+      release();
+    }
   }
   async createCheckin(entry, saveProofs) {
     const key = `${entry.accountId}:${entry.day}`;

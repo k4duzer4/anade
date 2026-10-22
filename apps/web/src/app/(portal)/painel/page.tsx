@@ -15,7 +15,8 @@ import {
 import { usePortal } from '@/components/portal-provider';
 import { Badge, PageHeading, Empty } from '@/components/ui';
 import { MeetingCard } from '@/components/meeting-card';
-import { formatDate, initials } from '@/lib/types';
+import { formatDate } from '@/lib/types';
+import { MemberAvatar } from '@/components/member-avatar';
 import { AnimatedNumber } from '@/components/animated-number';
 import { Spotlight } from '@/components/spotlight';
 import { m } from 'motion/react';
@@ -209,7 +210,7 @@ export default function Dashboard() {
         <div className="member-strip">
           {data.members.slice(0, 4).map((m) => (
             <Link href={`/filiados/${encodeURIComponent(m.id)}`} className="member-mini" key={m.id}>
-              <div className="avatar">{initials(m.name)}</div>
+              <MemberAvatar name={m.name} src={m.avatarUrl} />
               <div>
                 <strong>{m.name}</strong>
                 <span>

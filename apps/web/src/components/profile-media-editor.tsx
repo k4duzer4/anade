@@ -1,0 +1,181 @@
+'use client';
+import Image from 'next/image';
+import { useEffect, useId, useState } from 'react';
+import { Camera, ImagePlus, LoaderCircle, Save, Trash2, Upload, X } from 'lucide-react';
+import { usePortal } from './portal-provider';
+import { ErrorNotice } from './ui';
+import type { Member } from '@/lib/types';
+
+function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: string }) {
+  const { mutate, notify } = usePortal();
+  const id = useId();
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const title = kind === 'avatar' ? 'Foto de perfil' : 'Banner do perfil';
+  const src = (file && preview?.file === file ? preview.url : '') || current;
+  useEffect(() => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const task = requestAnimationFrame(() => setPreview({ file, url }));
+    return () => {
+      cancelAnimationFrame(task);
+      URL.revokeObjectURL(url);
+    };
+  }, [file]);
+  async function save(remove = false) {
+    if (!remove && !file) return;
+    setBusy(true);
+    setError('');
+    try {
+      const body = new FormData();
+      if (file) body.set('image', file);
+      await mutate(
+        `/api/profile/media/${kind}`,
+        remove ? 'DELETE' : 'PUT',
+        remove ? undefined : body,
+      );
+      setFile(null);
+      notify(
+        kind === 'avatar'
+          ? remove
+            ? 'Foto de perfil removida.'
+            : 'Foto de perfil atualizada.'
+          : remove
+            ? 'Banner do perfil removido.'
+            : 'Banner do perfil atualizado.',
+      );
+    } catch (failure) {
+      setError((failure as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className={`profile-media-field is-${kind}`} aria-label={title}>
+      <div className="profile-media-preview" data-empty={!src}>
+        {src ? (
+          <Image
+            src={src}
+            alt={`Prévia: ${title}`}
+            width={kind === 'avatar' ? 512 : 1200}
+            height={kind === 'avatar' ? 512 : 400}
+            unoptimized
+          />
+        ) : (
+          <span>
+            {kind === 'avatar' ? <Camera size={27} /> : <ImagePlus size={30} />}
+            <small>{kind === 'avatar' ? 'Sua identidade' : 'Seu espaço na ANADE'}</small>
+          </span>
+        )}
+        {file && <span className="profile-media-pending">Prévia · ainda não salva</span>}
+      </div>
+      <div className="profile-media-field-heading">
+        <h3>{title}</h3>
+        <span>Até 4 MB</span>
+      </div>
+      <p>
+        {kind === 'avatar'
+          ? 'Foto quadrada. Sugerido: 512 × 512 px.'
+          : 'Imagem horizontal. Sugerido: 1920 × 640 px.'}
+      </p>
+      <div className="profile-media-actions">
+        <label className={`button secondary ${busy ? 'is-disabled' : ''}`} htmlFor={id}>
+          <Upload size={14} /> {src ? 'Trocar imagem' : 'Escolher imagem'}
+          <input
+            id={id}
+            type="file"
+            aria-label={title}
+            accept="image/png,image/jpeg,image/webp"
+            disabled={busy}
+            onChange={(event) => {
+              const selected = event.target.files?.[0];
+              event.target.value = '';
+              if (!selected) return;
+              if (
+                !['image/png', 'image/jpeg', 'image/webp'].includes(selected.type) ||
+                selected.size === 0 ||
+                selected.size > 4 * 1024 * 1024
+              ) {
+                setError('Escolha uma imagem PNG, JPG ou WebP de até 4 MB.');
+                return;
+              }
+              setError('');
+              setFile(selected);
+            }}
+          />
+        </label>
+        {file ? (
+          <>
+            <button
+              type="button"
+              className="button primary"
+              disabled={busy}
+              onClick={() => void save()}
+            >
+              {busy ? <LoaderCircle className="spin" size={14} /> : <Save size={14} />} Salvar{' '}
+              {kind === 'avatar' ? 'foto' : 'banner'}
+            </button>
+            <button
+              type="button"
+              className="profile-media-discard"
+              disabled={busy}
+              onClick={() => {
+                setFile(null);
+                setError('');
+              }}
+              aria-label={`Descartar ${title.toLowerCase()}`}
+            >
+              <X size={15} />
+            </button>
+          </>
+        ) : (
+          current && (
+            <button
+              type="button"
+              className="button secondary"
+              disabled={busy}
+              onClick={() => void save(true)}
+            >
+              {busy ? <LoaderCircle className="spin" size={14} /> : <Trash2 size={14} />} Remover{' '}
+              {kind === 'avatar' ? 'foto' : 'banner'}
+            </button>
+          )
+        )}
+      </div>
+      <ErrorNotice message={error} />
+    </section>
+  );
+}
+export function ProfileMediaEditor({ member }: { member?: Member }) {
+  return (
+    <section className="panel profile-media-editor" aria-labelledby="profile-media-title">
+      <header>
+        <span className="section-icon">
+          <Camera size={20} />
+        </span>
+        <div>
+          <span className="eyebrow">DEIXE COM A SUA CARA</span>
+          <h2 id="profile-media-title">Foto e banner</h2>
+          <p>PNG, JPG ou WebP, até 4 MB por imagem. Visíveis aos filiados no portal.</p>
+        </div>
+      </header>
+      {member ? (
+        <>
+          <div className="profile-media-grid">
+            <MediaField kind="avatar" current={member.avatarUrl} />
+            <MediaField kind="banner" current={member.bannerUrl} />
+          </div>
+          <p className="profile-media-note">
+            As imagens são salvas nos botões acima. O enquadramento é centralizado.
+          </p>
+        </>
+      ) : (
+        <p className="profile-media-note">
+          Salve sua ficha abaixo para começar a personalizar suas imagens.
+        </p>
+      )}
+    </section>
+  );
+}

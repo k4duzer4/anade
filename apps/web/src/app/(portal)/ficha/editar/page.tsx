@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, SubmitButton, ErrorNotice, Badge, RoleInsignia } from '@/components/ui';
-import { initials } from '@/lib/types';
+import { MemberAvatar } from '@/components/member-avatar';
+import { ProfileMediaEditor } from '@/components/profile-media-editor';
 export default function EditProfile() {
   const { data, config, mutate, notify } = usePortal();
   const router = useRouter();
@@ -58,10 +59,15 @@ export default function EditProfile() {
           </Link>
         }
       />
+      <ProfileMediaEditor member={me} />
       <div className="profile-layout">
         <aside className="profile-summary">
           <div className="profile-summary-top">
-            <div className="avatar portrait">{initials(me?.name || data.user.discord)}</div>
+            <MemberAvatar
+              className="avatar portrait"
+              name={me?.name || data.user.discord}
+              src={me?.avatarUrl}
+            />
             <h2>{me?.name || 'Seu personagem'}</h2>
             <span>{me?.blue || 'Cadastre seu @ do Blue'}</span>
             <RoleInsignia admin={data.user.admin} />

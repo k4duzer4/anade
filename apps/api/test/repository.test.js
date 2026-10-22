@@ -15,6 +15,11 @@ async function directorsTable(db) {
     implementation: (value) => Array.from(value).length,
   });
   db.public.none(migration.split('ALTER TABLE')[0]);
+  db.public.none(
+    (await readFile(new URL('../db/010_profile_media.sql', import.meta.url), 'utf8')).split(
+      'ALTER TABLE',
+    )[0],
+  );
 }
 test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do voto', async () => {
   const db = newDb();
@@ -58,6 +63,18 @@ test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do vot
       legapp: '(71) 432-653',
     });
     await repo.saveProfile('b', person);
+    await repo.saveProfile('b', { ...person, city: 'Salvador' });
+    await repo.replaceProfileMedia('b', 'avatar', 'b/avatar/test.webp', async () => {});
+    await repo.saveProfile('b', person);
+    assert.equal(await repo.profileMedia('b', 'avatar'), 'b/avatar/test.webp');
+    assert.equal(
+      (await repo.snapshot()).members.find((m) => m.id === 'b').avatarUrl,
+      '/api/members/b/media/avatar?v=test.webp',
+    );
+    assert.equal(
+      await repo.replaceProfileMedia('b', 'avatar', null, async () => {}),
+      'b/avatar/test.webp',
+    );
     await repo.saveProfile('b', { ...person, city: 'Salvador' });
     let snapshot = await repo.snapshot();
     assert.equal(snapshot.members.length, 1);

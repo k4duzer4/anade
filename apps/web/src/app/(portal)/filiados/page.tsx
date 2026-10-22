@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Search,
   ArrowUpRight,
@@ -12,7 +13,7 @@ import {
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, Badge, Empty } from '@/components/ui';
-import { initials } from '@/lib/types';
+import { MemberAvatar } from '@/components/member-avatar';
 import { Select } from '@/components/select';
 export default function Members() {
   const { data, config } = usePortal();
@@ -68,18 +69,33 @@ export default function Members() {
               key={m.id}
               aria-label={`Ver perfil de ${m.name}`}
             >
-              <div className="member-banner" aria-hidden="true">
-                <span>
-                  ALIANÇA NACIONAL
-                  <br />
-                  DEMOCRÁTICA
-                </span>
-                <b>
-                  ANADE<em>10</em>
-                </b>
+              <div
+                className={`member-banner ${m.bannerUrl ? 'has-custom-banner' : ''}`}
+                aria-hidden="true"
+              >
+                {m.bannerUrl ? (
+                  <Image
+                    src={m.bannerUrl}
+                    alt=""
+                    fill
+                    sizes="(max-width: 700px) 100vw, 33vw"
+                    unoptimized
+                  />
+                ) : (
+                  <>
+                    <span>
+                      ALIANÇA NACIONAL
+                      <br />
+                      DEMOCRÁTICA
+                    </span>
+                    <b>
+                      ANADE<em>10</em>
+                    </b>
+                  </>
+                )}
               </div>
               <div className="member-card-top">
-                <div className="avatar large">{initials(m.name)}</div>
+                <MemberAvatar className="avatar large" name={m.name} src={m.avatarUrl} />
                 <Badge tone="gray">{m.state}</Badge>
               </div>
               <h2>{m.name}</h2>

@@ -95,6 +95,12 @@ Cargo e situação usam componentes próprios (`RoleInsignia` e `StatusLabel`), 
 
 A migração `003_abstention.sql` amplia o limite de alternativas e acrescenta Abstenção às votações existentes que ainda estão abertas e dentro do prazo, preservando as encerradas e as de prazo expirado. Execute `npm run db:migrate` após atualizar uma instalação real. Os testes locais verificam a restrição ampliada, a preservação das votações encerradas e a ausência de duplicação da opção.
 
+## Foto e banner do perfil
+
+Em **Meu perfil → Editar meu perfil**, cada filiado pode enviar, trocar ou remover sua foto e seu banner. Cada arquivo pode ter até **4 MB**, em PNG, JPG ou WebP estático. A interface mostra a prévia antes de salvar; foto e banner são enviados separadamente. O servidor valida o conteúdo real, remove metadados e converte para WebP, com enquadramento central: foto de 512 × 512 e banner de até 1920 × 640.
+
+A migração `010_profile_media.sql` guarda apenas referências aos arquivos. O bucket **anade-profiles** é privado, usa as mesmas variáveis do Supabase já configuradas e é preparado automaticamente. Somente o próprio dono pode alterar as imagens; a leitura exige sessão de filiado. Alterar os dados da ficha preserva as imagens. Falha no upload mantém a imagem anterior; substituir ou remover limpa os objetos antigos.
+
 ## Bater ponto
 
 `/ponto` está disponível para **qualquer filiado**, de forma **opcional**, com um registro por dia no fuso **America/Sao_Paulo**. Envie o print das três ações e o print do post no Blue, confirme a declaração e clique em **Bater ponto**. O cargo pretendido é opcional, útil para quem concorre a eleições. A data, o dono e o horário são definidos no servidor; não há registro retroativo, edição ou substituição dos comprovantes. Uma restrição única no PostgreSQL protege contra envios duplicados, inclusive simultâneos. A página mostra o próprio histórico e atualiza a disponibilidade a cada minuto.

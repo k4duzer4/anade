@@ -3,7 +3,9 @@ import { MAX_PROOF_BYTES } from './checkins.js';
 
 const BUCKET = 'anade-checkins';
 export class SupabaseProofStorage {
-  constructor(env, request = fetch) {
+  constructor(env, request = fetch, { bucket = BUCKET, maxBytes = MAX_PROOF_BYTES } = {}) {
+    this.bucket = bucket;
+    this.maxBytes = maxBytes;
     this.url = env.SUPABASE_URL?.replace(/\/$/, '');
     this.key = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
     this.request = request;
@@ -45,16 +47,16 @@ export class SupabaseProofStorage {
     return this.ready;
   }
   async prepareBucket() {
-    let response = await this.call(`bucket/${BUCKET}`);
+    let response = await this.call(`bucket/${this.bucket}`);
     if ([400, 404].includes(response.status)) {
       const created = await this.call('bucket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: BUCKET,
-          name: BUCKET,
+          id: this.bucket,
+          name: this.bucket,
           public: false,
-          file_size_limit: MAX_PROOF_BYTES,
+          file_size_limit: this.maxBytes,
           allowed_mime_types: ['image/webp'],
         }),
       });
@@ -64,7 +66,7 @@ export class SupabaseProofStorage {
         'Não foi possível preparar o armazenamento privado.',
         503,
       );
-      response = await this.call(`bucket/${BUCKET}`);
+      response = await this.call(`bucket/${this.bucket}`);
     }
     assert(response.ok, 'Não foi possível acessar o armazenamento privado.', 503);
     const bucket = await response.json();
@@ -76,32 +78,32 @@ export class SupabaseProofStorage {
   }
   async put(path, buffer) {
     await this.ensureBucket();
-    const response = await this.call(`object/${BUCKET}/${path}`, {
+    const response = await this.call(`object/${this.bucket}/${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'image/webp', 'x-upsert': 'false' },
       body: buffer,
     });
-    assert(response.ok, 'Não foi possível salvar os prints. Tente novamente.', 503);
+    assert(response.ok, 'Não foi possível salvar as imagens. Tente novamente.', 503);
   }
   async get(path) {
     await this.ensureBucket();
-    const response = await this.call(`object/authenticated/${BUCKET}/${path}`);
+    const response = await this.call(`object/authenticated/${this.bucket}/${path}`);
     assert(
       response.ok,
       'Comprovante temporariamente indisponível.',
       response.status === 404 ? 404 : 503,
     );
     assert(
-      Number(response.headers.get('content-length') || 0) <= MAX_PROOF_BYTES,
+      Number(response.headers.get('content-length') || 0) <= this.maxBytes,
       'Comprovante inválido.',
       503,
     );
     const buffer = Buffer.from(await response.arrayBuffer());
-    assert(buffer.length <= MAX_PROOF_BYTES, 'Comprovante inválido.', 503);
+    assert(buffer.length <= this.maxBytes, 'Imagem inválida.', 503);
     return buffer;
   }
   async remove(paths) {
-    const response = await this.call(`object/${BUCKET}`, {
+    const response = await this.call(`object/${this.bucket}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prefixes: paths }),

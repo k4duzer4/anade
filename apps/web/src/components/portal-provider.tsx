@@ -16,11 +16,15 @@ type Context = {
 };
 const PortalContext = createContext<Context | null>(null);
 async function request(url: string, method = 'GET', body?: unknown, csrf?: string) {
+  const multipart = body instanceof FormData;
   const res = await fetch(url, {
     method,
     cache: 'no-store',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    headers: {
+      ...(!multipart ? { 'Content-Type': 'application/json' } : {}),
+      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
+    },
+    ...(body !== undefined ? { body: multipart ? body : JSON.stringify(body) } : {}),
   });
   if (!res.headers.get('content-type')?.includes('application/json')) {
     throw new Error('O portal está temporariamente indisponível. Tente novamente em instantes.');

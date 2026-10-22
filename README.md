@@ -95,6 +95,14 @@ Cargo e situação usam componentes próprios (`RoleInsignia` e `StatusLabel`), 
 
 A migração `003_abstention.sql` amplia o limite de alternativas e acrescenta Abstenção às votações existentes que ainda estão abertas e dentro do prazo, preservando as encerradas e as de prazo expirado. Execute `npm run db:migrate` após atualizar uma instalação real. Os testes locais verificam a restrição ampliada, a preservação das votações encerradas e a ausência de duplicação da opção.
 
+## Bater ponto
+
+`/ponto` está disponível para **qualquer filiado**, de forma **opcional**, com um registro por dia no fuso **America/Sao_Paulo**. Envie o print das três ações e o print do post no Blue, confirme a declaração e clique em **Bater ponto**. O cargo pretendido é opcional, útil para quem concorre a eleições. A data, o dono e o horário são definidos no servidor; não há registro retroativo, edição ou substituição dos comprovantes. Uma restrição única no PostgreSQL protege contra envios duplicados, inclusive simultâneos. A página mostra o próprio histórico e atualiza a disponibilidade a cada minuto.
+
+Administradores acessam **Administração → Consultar pontos** (`/administracao/pontos`), com filtros por dia, filiado e cargo, paginação e abertura dos dois comprovantes. Filiados consultam somente os próprios registros e imagens. A identificação do personagem, Discord e Blue é preservada como estava no momento do ponto. LegApp e outros dados privados não entram na consulta.
+
+A migração `009_checkins.sql` cria a tabela privada com RLS e revoga a Data API. Os prints são validados pelo Sharp, sem SVG ou animação, sem metadados e regravados em WebP no bucket **privado** do Supabase Storage. Consulte [a configuração de Production](DEPLOY.md) para `SUPABASE_URL` e `SUPABASE_SECRET_KEY` (também aceita `SUPABASE_SERVICE_ROLE_KEY` legada). O bucket é preparado automaticamente no primeiro envio. Falhas não produzem pontos incompletos e a API tenta remover os arquivos parciais. O envio não interpreta o conteúdo do print nem confirma atividades diretamente no jogo; os comprovantes ficam disponíveis para consulta humana.
+
 ## Controles e elementos flutuantes
 
 Selects da ficha, direção, modalidade de voto e filtro de estados usam o mesmo componente ANADE, com busca por digitação, navegação por teclado e indicação da opção selecionada. Os calendários de reuniões e votações têm meses em português, navegação por mês/ano, horário com precisão de minutos e ações Hoje, Limpar e Aplicar. Fechar o calendário sem aplicar descarta o rascunho. A data continua usando o horário local do dispositivo e é convertida para ISO no envio à API, como antes.

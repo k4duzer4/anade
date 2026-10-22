@@ -36,16 +36,23 @@ export function DateTimePicker({
   required = false,
   disabled = false,
   label,
+  dateOnly = false,
+  value: controlledValue,
+  onValueChange,
 }: {
   name: string;
   defaultValue?: string;
   required?: boolean;
   disabled?: boolean;
   label: string;
+  dateOnly?: boolean;
+  value?: string;
+  onValueChange?: (value: string) => void;
 }) {
   const container = useContext(FloatingLayerContext);
   const input = useRef<HTMLInputElement>(null);
-  const [value, setValue] = useState(defaultValue);
+  const [internalValue, setValue] = useState(defaultValue);
+  const value = controlledValue ?? internalValue;
   const [open, setOpen] = useState(false);
   const [day, setDay] = useState<Date | undefined>(() => parseDay(defaultValue));
   const [month, setMonth] = useState(() => parseDay(defaultValue) || new Date());
@@ -62,6 +69,7 @@ export function DateTimePicker({
   }
   function commit(next: string) {
     setValue(next);
+    onValueChange?.(next);
     setOpen(false);
     // Notify form validation after React has committed the input value.
     requestAnimationFrame(() =>
@@ -70,8 +78,10 @@ export function DateTimePicker({
   }
   const selected = parseDay(value);
   const caption = selected
-    ? `${new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(selected)} · ${value.slice(11, 16)}`
-    : 'Escolher data e horário';
+    ? `${new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(selected)}${dateOnly ? '' : ` · ${value.slice(11, 16)}`}`
+    : dateOnly
+      ? 'Todos os dias'
+      : 'Escolher data e horário';
   const year = month.getFullYear();
   const years = Array.from({ length: 31 }, (_, index) => {
     const option = year - 10 + index;
@@ -160,35 +170,37 @@ export function DateTimePicker({
               fixedWeeks
               autoFocus
             />
-            <div className="date-time-section">
-              <span>
-                <Clock3 size={16} /> Horário <small>do seu dispositivo</small>
-              </span>
-              <div className="date-time-controls">
-                <Select
-                  aria-label="Hora"
-                  value={hours}
-                  onValueChange={(next) => setTime(`${next}:${minutes}`)}
-                  options={Array.from({ length: 24 }, (_, hour) => ({
-                    value: pad(hour),
-                    label: pad(hour),
-                  }))}
-                />
-                <b aria-hidden="true">:</b>
-                <Select
-                  aria-label="Minuto"
-                  value={minutes}
-                  onValueChange={(next) => setTime(`${hours}:${next}`)}
-                  options={Array.from({ length: 60 }, (_, minute) => ({
-                    value: pad(minute),
-                    label: pad(minute),
-                  }))}
-                />
+            {!dateOnly && (
+              <div className="date-time-section">
+                <span>
+                  <Clock3 size={16} /> Horário <small>do seu dispositivo</small>
+                </span>
+                <div className="date-time-controls">
+                  <Select
+                    aria-label="Hora"
+                    value={hours}
+                    onValueChange={(next) => setTime(`${next}:${minutes}`)}
+                    options={Array.from({ length: 24 }, (_, hour) => ({
+                      value: pad(hour),
+                      label: pad(hour),
+                    }))}
+                  />
+                  <b aria-hidden="true">:</b>
+                  <Select
+                    aria-label="Minuto"
+                    value={minutes}
+                    onValueChange={(next) => setTime(`${hours}:${next}`)}
+                    options={Array.from({ length: 60 }, (_, minute) => ({
+                      value: pad(minute),
+                      label: pad(minute),
+                    }))}
+                  />
+                </div>
               </div>
-            </div>
+            )}
             <div className="date-picker-summary" aria-live="polite">
               {day
-                ? `${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(day)} às ${time}`
+                ? `${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(day)}${dateOnly ? '' : ` às ${time}`}`
                 : 'Selecione um dia no calendário'}
             </div>
             <div className="date-picker-actions">
@@ -209,7 +221,7 @@ export function DateTimePicker({
                 type="button"
                 className="date-apply"
                 disabled={!day}
-                onClick={() => day && commit(`${datePart(day)}T${time}`)}
+                onClick={() => day && commit(`${datePart(day)}${dateOnly ? '' : `T${time}`}`)}
               >
                 <Check size={15} /> Aplicar
               </button>

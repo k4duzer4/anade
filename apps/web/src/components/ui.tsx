@@ -133,9 +133,17 @@ export function Modal({
     </m.dialog>
   );
 }
-export function SubmitButton({ busy, children }: { busy: boolean; children: ReactNode }) {
+export function SubmitButton({
+  busy,
+  disabled = false,
+  children,
+}: {
+  busy: boolean;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <button type="submit" className="button primary" disabled={busy}>
+    <button type="submit" className="button primary" disabled={busy || disabled}>
       {busy ? <LoaderCircle className="spin" size={16} /> : null}
       {children}
     </button>

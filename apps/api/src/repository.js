@@ -1,5 +1,6 @@
 import { assert, castVote } from './domain.js';
 import { randomUUID } from 'node:crypto';
+import { CHECKIN_PAGE_SIZE, presentCheckin } from './checkins.js';
 export class PgRepository {
   constructor(pool) {
     this.pool = pool;
@@ -106,6 +107,83 @@ export class PgRepository {
       'INSERT INTO anade.profiles(account_id,data) VALUES($1,$2) ON CONFLICT(account_id) DO UPDATE SET data=EXCLUDED.data, updated_at=now()',
       [id, JSON.stringify(data)],
     );
+  }
+  async createCheckin(entry, saveProofs) {
+    try {
+      return await this.transaction(async (client) => {
+        await client.query('SELECT id FROM anade.accounts WHERE id=$1 FOR UPDATE', [
+          entry.accountId,
+        ]);
+        const existing = await client.query(
+          'SELECT id FROM anade.checkins WHERE account_id=$1 AND day=$2',
+          [entry.accountId, entry.day],
+        );
+        assert(
+          !existing.rowCount,
+          'Você já bateu ponto hoje. Seu registro está no histórico.',
+          409,
+        );
+        const { rows } = await client.query(
+          "SELECT a.username,p.data->>'name' AS name,p.data->>'blue' AS blue FROM anade.accounts a LEFT JOIN anade.profiles p ON p.account_id=a.id WHERE a.id=$1",
+          [entry.accountId],
+        );
+        assert(rows[0], 'Conta não encontrada.', 404);
+        await saveProofs();
+        const result = await client.query(
+          `INSERT INTO anade.checkins(id,account_id,day,created_at,office,character_name,discord_username,blue,actions_path,blue_path)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *,day::text AS day`,
+          [
+            entry.id,
+            entry.accountId,
+            entry.day,
+            entry.createdAt,
+            entry.office,
+            rows[0].name || rows[0].username,
+            rows[0].username,
+            rows[0].blue || '',
+            entry.actionsPath,
+            entry.bluePath,
+          ],
+        );
+        return presentCheckin(result.rows[0]);
+      });
+    } catch (error) {
+      if (error.code === '23505')
+        assert(false, 'Você já bateu ponto hoje. Seu registro está no histórico.', 409);
+      throw error;
+    }
+  }
+  async listCheckins({ userId = '', day = '', memberId = '', office = '', page = 0 }) {
+    const values = [];
+    const conditions = [];
+    for (const [column, value] of [
+      ['account_id', userId || memberId],
+      ['day', day],
+      ['office', office],
+    ]) {
+      if (value) {
+        values.push(value);
+        conditions.push(`${column}=$${values.length}`);
+      }
+    }
+    values.push(CHECKIN_PAGE_SIZE + 1, page * CHECKIN_PAGE_SIZE);
+    const result = await this.pool.query(
+      `SELECT *,day::text AS day FROM anade.checkins ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''} ORDER BY created_at DESC,id DESC LIMIT $${values.length - 1} OFFSET $${values.length}`,
+      values,
+    );
+    return {
+      records: result.rows.slice(0, CHECKIN_PAGE_SIZE).map(presentCheckin),
+      hasMore: result.rows.length > CHECKIN_PAGE_SIZE,
+    };
+  }
+  async checkinProof(id, kind, userId, admin) {
+    const { rows } = await this.pool.query(
+      'SELECT account_id,actions_path,blue_path FROM anade.checkins WHERE id=$1',
+      [id],
+    );
+    const record = rows[0];
+    assert(record && (record.account_id === userId || admin), 'Comprovante não encontrado.', 404);
+    return kind === 'actions' ? record.actions_path : record.blue_path;
   }
   async snapshot() {
     const [profiles, meetings, attendance, polls, options, votes, directors] = await Promise.all([
@@ -305,6 +383,8 @@ export class MemoryRepository {
     this.accounts = new Map();
     this.admins = new Set();
     this.adminGrants = [];
+    this.checkins = [];
+    this.checkinLocks = new Set();
   }
   async account(id, username) {
     this.accounts.set(id, username);
@@ -333,6 +413,59 @@ export class MemoryRepository {
   }
   async snapshot() {
     return structuredClone(this.data);
+  }
+  async createCheckin(entry, saveProofs) {
+    const key = `${entry.accountId}:${entry.day}`;
+    assert(
+      !this.checkinLocks.has(key) &&
+        !this.checkins.some(
+          (item) => item.account_id === entry.accountId && item.day === entry.day,
+        ),
+      'Você já bateu ponto hoje. Seu registro está no histórico.',
+      409,
+    );
+    this.checkinLocks.add(key);
+    try {
+      assert(this.accounts.has(entry.accountId), 'Conta não encontrada.', 404);
+      const profile = this.data.members.find((member) => member.id === entry.accountId);
+      await saveProofs();
+      const row = {
+        id: entry.id,
+        account_id: entry.accountId,
+        day: entry.day,
+        created_at: entry.createdAt,
+        office: entry.office,
+        character_name: profile?.name || this.accounts.get(entry.accountId),
+        discord_username: this.accounts.get(entry.accountId),
+        blue: profile?.blue || '',
+        actions_path: entry.actionsPath,
+        blue_path: entry.bluePath,
+      };
+      this.checkins.push(row);
+      return presentCheckin(row);
+    } finally {
+      this.checkinLocks.delete(key);
+    }
+  }
+  async listCheckins({ userId = '', day = '', memberId = '', office = '', page = 0 }) {
+    const rows = this.checkins
+      .filter(
+        (row) =>
+          (!(userId || memberId) || row.account_id === (userId || memberId)) &&
+          (!day || row.day === day) &&
+          (!office || row.office === office),
+      )
+      .sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id));
+    const start = page * CHECKIN_PAGE_SIZE;
+    return {
+      records: rows.slice(start, start + CHECKIN_PAGE_SIZE).map(presentCheckin),
+      hasMore: rows.length > start + CHECKIN_PAGE_SIZE,
+    };
+  }
+  async checkinProof(id, kind, userId, admin) {
+    const row = this.checkins.find((record) => record.id === id);
+    assert(row && (row.account_id === userId || admin), 'Comprovante não encontrado.', 404);
+    return kind === 'actions' ? row.actions_path : row.blue_path;
   }
   async saveProfile(id, data) {
     const old = this.data.members.find((m) => m.id === id);

@@ -70,6 +70,26 @@ export type Config = {
   ideologies: string[];
   degrees: string[];
   states: string[];
+  electoralOffices: string[];
+};
+export type Checkin = {
+  id: string;
+  memberId: string;
+  day: string;
+  createdAt: string;
+  name: string;
+  discord: string;
+  blue: string;
+  office: string;
+  proofs: { actions: string; blue: string };
+};
+export type CheckinList = {
+  records: Checkin[];
+  hasMore: boolean;
+  today: string;
+  todayRecord?: Checkin | null;
+  storageReady: boolean;
+  members?: { id: string; name: string; discord: string }[];
 };
 export const formatDate = (value: string, full = false) =>
   new Intl.DateTimeFormat('pt-BR', {

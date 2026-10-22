@@ -78,6 +78,21 @@ Depois de configurar o primeiro administrador, use **Administração → Adicion
 
 As sessões ficam no PostgreSQL. A API reutiliza um pool pequeno por instância e usa `attachDatabasePool` para liberar conexões ociosas antes da suspensão. Sessões expiradas são limpas durante requisições, sem cron pago ou timers em segundo plano. O rate limit em memória vale por instância; limites globais adicionais podem ser configurados no firewall da plataforma.
 
+## Prints do sistema de ponto
+
+Execute `npm run db:migrate` para aplicar `009_checkins.sql`. Em Production na Vercel e no `.env` local da API, cadastre:
+
+```dotenv
+SUPABASE_URL=https://lsvejzuhyhasjlqyqntr.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_CHAVE_SECRETA_DO_PROJETO
+```
+
+Obtenha a URL no **Connect** do projeto e uma **Secret key** (`sb_secret_...`) em **Supabase → Settings → API Keys**. Copie o valor real sem aspas e sem o nome da variável. Essa chave fica exclusivamente no backend: não use `NEXT_PUBLIC_` e não a envie pelo chat nem ao GitHub. O código também aceita a chave `service_role` legada na variável `SUPABASE_SERVICE_ROLE_KEY`, caso já esteja usando esse formato; basta configurar uma das duas. Salve as variáveis e faça Redeploy na Vercel. Veja a [documentação de chaves do Supabase](https://supabase.com/docs/guides/getting-started/api-keys).
+
+O backend cria automaticamente o bucket privado **anade-checkins** no primeiro envio. Caso prefira criar manualmente em Storage, mantenha **Public bucket desativado**, limite de **1 MB** por arquivo e MIME **image/webp**. Não crie políticas públicas nem torne o bucket público. O navegador envia os dois prints à API autenticada, que valida, recomprime e grava no Storage; o banco guarda somente caminhos e dados do ponto. As imagens são entregues pela API após conferir se a pessoa é dona do registro ou administradora, sem URLs públicas permanentes.
+
+PNG, JPG e WebP de até 10 MB são preparados no navegador; o upload aceita até 2 MB por print e salva até 1 MB por comprovante. Os dois arquivos passam juntos pela API dentro do limite de payload da Vercel. Uma falha de upload impede o ponto e tenta remover arquivos parciais. Sem as variáveis, o restante do portal continua funcionando e somente o envio de ponto fica indisponível. A demonstração usa arquivos em memória, descartados ao reiniciar.
+
 ## Verificação local
 
 ```powershell

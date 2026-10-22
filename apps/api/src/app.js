@@ -3,6 +3,16 @@ import session from 'express-session';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import multer from 'multer';
+import {
+  brasiliaDay,
+  checkinFields,
+  checkinFilters,
+  electoralOffices,
+  MAX_UPLOAD_BYTES,
+  optimizeProof,
+} from './checkins.js';
+import { MemoryProofStorage, SupabaseProofStorage } from './proof-storage.js';
 import {
   assert,
   text,
@@ -70,11 +80,14 @@ export function createApp({
   demo = false,
   env = process.env,
   discord = discordRequest,
+  proofStorage,
+  now = () => new Date(),
 }) {
   assert(!demo || env.NODE_ENV !== 'production', 'Modo demonstração indisponível em produção.');
   assert(new URL(origin).origin === origin, 'APP_ORIGIN deve ser uma origem sem caminho.');
   assert(secret && secret.length >= 32, 'SESSION_SECRET deve ter pelo menos 32 caracteres.');
   const app = express();
+  const storage = proofStorage || (demo ? new MemoryProofStorage() : new SupabaseProofStorage(env));
   app.disable('x-powered-by');
   if (Number(env.TRUST_PROXY) > 0) app.set('trust proxy', Number(env.TRUST_PROXY));
   app.use(helmet());
@@ -145,6 +158,7 @@ export function createApp({
       ideologies,
       degrees,
       states,
+      electoralOffices,
     }),
   );
   const checkOrigin = (req, _res, next) => {
@@ -270,6 +284,125 @@ export function createApp({
   });
   app.get('/api/admin/accounts', admin, async (_req, res) => {
     res.json({ accounts: await repo.adminAccounts() });
+  });
+  app.get('/api/checkins', async (req, res) => {
+    const today = brasiliaDay(now());
+    const filters = checkinFilters(req.query);
+    const result = await repo.listCheckins({ ...filters, userId: res.locals.user.id });
+    const todays = await repo.listCheckins({ userId: res.locals.user.id, day: today });
+    res.json({
+      ...result,
+      today,
+      todayRecord: todays.records[0] || null,
+      storageReady: storage.configured,
+    });
+  });
+  app.get('/api/admin/checkins', admin, async (req, res) => {
+    const [result, accounts] = await Promise.all([
+      repo.listCheckins(checkinFilters(req.query, true)),
+      repo.adminAccounts(),
+    ]);
+    res.json({
+      ...result,
+      members: accounts.map(({ id, name, discord }) => ({ id, name, discord })),
+      today: brasiliaDay(now()),
+      storageReady: storage.configured,
+    });
+  });
+  const proofUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: MAX_UPLOAD_BYTES, files: 2, fields: 2, parts: 4, fieldSize: 200 },
+  }).fields([
+    { name: 'actions', maxCount: 1 },
+    { name: 'blue', maxCount: 1 },
+  ]);
+  app.post(
+    '/api/checkins',
+    rateLimit({
+      windowMs: 60000,
+      limit: 6,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      message: { error: 'Aguarde um minuto antes de tentar enviar novamente.' },
+    }),
+    (_req, _res, next) => {
+      assert(
+        storage.configured,
+        'A administração ainda precisa configurar o armazenamento dos comprovantes.',
+        503,
+      );
+      next();
+    },
+    (req, res, next) =>
+      proofUpload(req, res, (error) => {
+        if (!error) return next();
+        next(
+          Object.assign(
+            new Error(
+              error.code === 'LIMIT_FILE_SIZE'
+                ? 'Cada print deve ter até 2 MB após a preparação.'
+                : 'Envie exatamente dois prints, um para as ações e outro para o Blue.',
+            ),
+            { status: error.code === 'LIMIT_FILE_SIZE' ? 413 : 400 },
+          ),
+        );
+      }),
+    async (req, res) => {
+      const fields = checkinFields(req.body);
+      assert(
+        req.files?.actions?.length === 1 && req.files?.blue?.length === 1,
+        'Envie o print das três ações e o print do post no Blue.',
+      );
+      const buffers = await Promise.all([
+        optimizeProof(req.files.actions[0].buffer),
+        optimizeProof(req.files.blue[0].buffer),
+      ]);
+      const id = randomUUID();
+      const createdAt = now();
+      const entry = {
+        ...fields,
+        id,
+        accountId: res.locals.user.id,
+        day: brasiliaDay(createdAt),
+        createdAt: createdAt.toISOString(),
+        actionsPath: `${id}/actions.webp`,
+        bluePath: `${id}/blue.webp`,
+      };
+      let started = false;
+      try {
+        const record = await repo.createCheckin(entry, async () => {
+          started = true;
+          const results = await Promise.allSettled([
+            storage.put(entry.actionsPath, buffers[0]),
+            storage.put(entry.bluePath, buffers[1]),
+          ]);
+          const failure = results.find((result) => result.status === 'rejected');
+          if (failure) throw failure.reason;
+        });
+        res.status(201).json({ record });
+      } catch (error) {
+        if (started)
+          await storage
+            .remove([entry.actionsPath, entry.bluePath])
+            .catch(() => console.error('CHECKIN_PROOF_CLEANUP_FAILED'));
+        throw error;
+      }
+    },
+  );
+  app.get('/api/checkins/:id/proofs/:kind', async (req, res) => {
+    uuid(req.params.id);
+    assert(['actions', 'blue'].includes(req.params.kind), 'Comprovante não encontrado.', 404);
+    const path = await repo.checkinProof(
+      req.params.id,
+      req.params.kind,
+      res.locals.user.id,
+      res.locals.user.admin,
+    );
+    const buffer = await storage.get(path);
+    res
+      .type('image/webp')
+      .set('Content-Disposition', `inline; filename="${req.params.kind}.webp"`)
+      .send(buffer);
   });
   app.post('/api/admin/admins', admin, async (req, res) => {
     const discordId = typeof req.body?.discordId === 'string' ? req.body.discordId.trim() : '';

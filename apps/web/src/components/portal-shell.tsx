@@ -19,6 +19,7 @@ import {
   RefreshCw,
   Landmark,
   Settings2,
+  Clock3,
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { initials } from '@/lib/types';
@@ -28,6 +29,7 @@ const nav = [
   { path: '/painel', title: 'Visão geral', icon: LayoutDashboard },
   { path: '/agenda', title: 'Agenda do partido', icon: CalendarDays },
   { path: '/votacoes', title: 'Votações internas', icon: Vote },
+  { path: '/ponto', title: 'Bater ponto', icon: Clock3 },
   { path: '/filiados', title: 'Nossos filiados', icon: Users },
   { path: '/direcao', title: 'Direção', icon: Landmark },
   { path: '/ficha', title: 'Meu perfil', icon: ContactRound },

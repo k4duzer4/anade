@@ -15,6 +15,7 @@ import {
   UserPlus,
   Users,
   Vote,
+  Clock3,
 } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { Badge, Empty, ErrorNotice, PageHeading, SubmitButton } from './ui';
@@ -96,6 +97,12 @@ export default function AdministrationContent() {
     }
   }
   const actions = [
+    {
+      title: 'Consultar pontos',
+      description: 'Participação e comprovantes dos filiados.',
+      href: '/administracao/pontos',
+      Icon: Clock3,
+    },
     {
       title: 'Agenda do partido',
       description: 'Reuniões, pautas e atas.',

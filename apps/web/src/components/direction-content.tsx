@@ -1,23 +1,18 @@
 'use client';
 import { useState } from 'react';
-import { m } from 'motion/react';
-import {
-  Landmark,
-  Plus,
-  Pencil,
-  Trash2,
-  AtSign,
-  MapPin,
-  ArrowUpRight,
-  ShieldCheck,
-  Users,
-} from 'lucide-react';
+import { Landmark, Plus, Pencil, Trash2, ShieldCheck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePortal } from './portal-provider';
 import { PageHeading, Modal, Empty, ErrorNotice, SubmitButton } from './ui';
 import { DirectorForm } from './director-form';
 import { type Director } from '@/lib/types';
 import { MemberAvatar } from './member-avatar';
+const stateNames: Record<string, string> = {
+  SP: 'São Paulo',
+  MG: 'Minas Gerais',
+  RS: 'Rio Grande do Sul',
+  BA: 'Bahia',
+};
 export default function DirectionContent() {
   const { data, mutate, notify } = usePortal();
   const [editing, setEditing] = useState<Director | 'new' | null>(null);
@@ -31,6 +26,8 @@ export default function DirectionContent() {
       a.title.localeCompare(b.title, 'pt-BR') ||
       a.id.localeCompare(b.id),
   );
+  const members = data.members;
+  const isAdmin = data.user.admin;
   async function remove(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!removing) return;
@@ -45,6 +42,48 @@ export default function DirectionContent() {
     } finally {
       setBusy(false);
     }
+  }
+  function renderDirector(director: Director, featured = false) {
+    const member = members.find((m) => m.id === director.memberId);
+    const name = member?.name || 'Ficha indisponível';
+    return (
+      <article className={`director-card ${featured ? 'is-featured' : ''}`} key={director.id}>
+        <Link
+          className="director-profile-link"
+          href={`/filiados/${encodeURIComponent(director.memberId)}`}
+          aria-label={`Ver perfil de ${name}`}
+        >
+          <MemberAvatar className="director-avatar" name={name} src={member?.avatarUrl} />
+          <span className="director-title">{director.title}</span>
+          <h3>{name}</h3>
+          <span className="director-state">
+            {stateNames[member?.state || ''] || member?.state || 'Domicílio não informado'}
+          </span>
+        </Link>
+        {isAdmin && (
+          <div className="director-management">
+            <button
+              type="button"
+              onClick={() => setEditing(director)}
+              aria-label={`Editar ${director.title} — ${name}`}
+            >
+              <Pencil size={13} /> Editar
+            </button>
+            <button
+              type="button"
+              className="director-remove"
+              aria-label={`Remover ${director.title} — ${name}`}
+              onClick={() => {
+                setError('');
+                setRemoving(director);
+              }}
+            >
+              <Trash2 size={13} /> Remover
+            </button>
+          </div>
+        )}
+      </article>
+    );
   }
   return (
     <>
@@ -91,96 +130,43 @@ export default function DirectionContent() {
           {directors.length === 1 ? '' : 's'}
         </span>
       </div>
-      <div className="direction-grid">
-        {directors.length ? (
-          directors.map((director, index) => {
-            const member = data.members.find((m) => m.id === director.memberId);
-            return (
-              <m.article
-                className="director-card"
-                key={director.id}
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="director-card-header">
-                  <span className="director-seal">
-                    <Landmark size={17} /> ANA<span>DE</span>
-                  </span>
-                  <span className="director-index">
-                    {String(index + 1).padStart(2, '0')} <i /> DIREÇÃO
-                  </span>
-                </div>
-                <div className="director-identity">
-                  <MemberAvatar
-                    className="director-avatar"
-                    name={member?.name || 'ANADE'}
-                    src={member?.avatarUrl}
-                  />
-                  <div>
-                    <span className="director-title">{director.title}</span>
-                    <h3>{member?.name || 'Ficha indisponível'}</h3>
-                    <span className="director-blue">
-                      <AtSign size={12} />
-                      {member?.blue?.replace(/^@/, '') || 'Blue não informado'}
-                    </span>
-                  </div>
-                </div>
-                <div className="director-responsibility">
-                  <span>ÁREA DE ATUAÇÃO</span>
-                  <p>
-                    {director.responsibility ||
-                      'As responsabilidades deste cargo serão publicadas pela administração.'}
-                  </p>
-                </div>
-                <div className="director-footer">
-                  <span>
-                    <MapPin size={13} /> {member?.state || '—'} <i /> {member?.season || 'ANADE'}
-                  </span>
-                  <Link
-                    href={`/filiados/${encodeURIComponent(director.memberId)}`}
-                    aria-label={`Ver perfil de ${member?.name || 'este diretor'}`}
-                  >
-                    <ArrowUpRight size={17} />
-                  </Link>
-                </div>
-                {data.user.admin && (
-                  <div className="director-management">
-                    <button className="text-button" onClick={() => setEditing(director)}>
-                      <Pencil size={13} /> Editar
-                    </button>
-                    <button
-                      className="text-button director-remove"
-                      onClick={() => {
-                        setError('');
-                        setRemoving(director);
-                      }}
-                    >
-                      <Trash2 size={13} /> Remover
-                    </button>
-                  </div>
-                )}
-              </m.article>
-            );
-          })
-        ) : (
-          <section className="panel full">
-            <Empty>
-              <Landmark size={32} />
-              <h3>A direção será apresentada aqui.</h3>
-              <p>
-                {data.user.admin
-                  ? 'Adicione os filiados que ocupam cargos na organização do partido.'
-                  : 'A administração ainda não publicou a composição do diretório.'}
-              </p>
-              {data.user.admin && (
-                <button className="button primary" onClick={() => setEditing('new')}>
-                  <Plus size={16} /> Adicionar primeiro diretor
-                </button>
-              )}
-            </Empty>
-          </section>
-        )}
-      </div>
+      {directors.length ? (
+        <section className="direction-directory" aria-label="Composição do diretório">
+          <div
+            className="direction-grid direction-featured"
+            role="group"
+            aria-label="Primeira fileira da direção"
+          >
+            {directors.slice(0, 4).map((director) => renderDirector(director, true))}
+          </div>
+          {directors.length > 4 && (
+            <div
+              className="direction-grid direction-members"
+              role="group"
+              aria-label="Demais integrantes da direção"
+            >
+              {directors.slice(4).map((director) => renderDirector(director))}
+            </div>
+          )}
+        </section>
+      ) : (
+        <section className="panel full">
+          <Empty>
+            <Landmark size={32} />
+            <h3>A direção será apresentada aqui.</h3>
+            <p>
+              {data.user.admin
+                ? 'Adicione os filiados que ocupam cargos na organização do partido.'
+                : 'A administração ainda não publicou a composição do diretório.'}
+            </p>
+            {data.user.admin && (
+              <button className="button primary" onClick={() => setEditing('new')}>
+                <Plus size={16} /> Adicionar primeiro diretor
+              </button>
+            )}
+          </Empty>
+        </section>
+      )}
       <p className="page-note">
         <ShieldCheck size={15} /> Composição publicada pela administração · Visível apenas aos
         filiados.

@@ -85,7 +85,8 @@ export function DirectorForm({ director, onClose }: { director?: Director; onClo
               defaultValue={director?.position || 1}
             />
             <small>
-              Números menores aparecem primeiro. Em caso de empate, a ordem é alfabética pelo cargo.
+              Os quatro primeiros ficam em destaque; os demais aparecem abaixo. Números menores vêm
+              primeiro. Em caso de empate, a ordem é alfabética pelo cargo.
             </small>
           </label>
         </div>

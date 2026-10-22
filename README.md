@@ -97,7 +97,7 @@ A migração `003_abstention.sql` amplia o limite de alternativas e acrescenta A
 
 ## Foto e banner do perfil
 
-Em **Meu perfil → Editar meu perfil**, cada filiado pode enviar, trocar ou remover sua foto e seu banner. Cada arquivo pode ter até **4 MB**, em PNG, JPG ou WebP estático. A interface mostra a prévia antes de salvar; foto e banner são enviados separadamente. O servidor valida o conteúdo real, remove metadados e converte para WebP, com enquadramento central: foto de 512 × 512 e banner de até 1920 × 640.
+Em **Meu perfil → Editar meu perfil**, cada filiado pode enviar, trocar ou remover sua foto e seu banner. Cada arquivo pode ter até **4 MB**, em PNG, JPG ou WebP estático. O editor permite arrastar a imagem com mouse ou toque, mover com as setas, ajustar o zoom e centralizar novamente. A foto mantém recorte quadrado e o banner, proporção 3:1. **Usar recorte** prepara a prévia local; **Salvar foto/banner** publica. **Ajustar recorte** também abre uma imagem já salva. Cancelar não altera o perfil. O servidor valida o conteúdo real, remove metadados e converte para WebP, com foto de 512 × 512 e banner de até 1920 × 640. Foto e banner são enviados separadamente.
 
 A migração `010_profile_media.sql` guarda apenas referências aos arquivos. O bucket **anade-profiles** é privado, usa as mesmas variáveis do Supabase já configuradas e é preparado automaticamente. Somente o próprio dono pode alterar as imagens; a leitura exige sessão de filiado. Alterar os dados da ficha preserva as imagens. Falha no upload mantém a imagem anterior; substituir ou remover limpa os objetos antigos.
 

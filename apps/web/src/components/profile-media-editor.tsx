@@ -1,10 +1,12 @@
 'use client';
 import Image from 'next/image';
 import { useEffect, useId, useState } from 'react';
-import { Camera, ImagePlus, LoaderCircle, Save, Trash2, Upload, X } from 'lucide-react';
+import { Camera, Crop, ImagePlus, LoaderCircle, Save, Trash2, Upload, X } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { ErrorNotice } from './ui';
 import type { Member } from '@/lib/types';
+import { ProfileImageCropper } from './profile-image-cropper';
+import { centeredCrop, type CropPosition } from '@/lib/profile-crop';
 
 function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: string }) {
   const { mutate, notify } = usePortal();
@@ -13,6 +15,8 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
   const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [draft, setDraft] = useState<{ source: File; position: CropPosition } | null>(null);
+  const [editing, setEditing] = useState<{ source: File; position: CropPosition } | null>(null);
   const title = kind === 'avatar' ? 'Foto de perfil' : 'Banner do perfil';
   const src = (file && preview?.file === file ? preview.url : '') || current;
   useEffect(() => {
@@ -37,6 +41,7 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
         remove ? undefined : body,
       );
       setFile(null);
+      setDraft(null);
       notify(
         kind === 'avatar'
           ? remove
@@ -46,6 +51,30 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
             ? 'Banner do perfil removido.'
             : 'Banner do perfil atualizado.',
       );
+    } catch (failure) {
+      setError((failure as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function adjust() {
+    if (draft) {
+      setEditing(draft);
+      return;
+    }
+    if (!current) return;
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch(current, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Não foi possível abrir a imagem salva. Tente novamente.');
+      const blob = await response.blob();
+      if (!blob.type.startsWith('image/') || !blob.size || blob.size > 4 * 1024 * 1024)
+        throw new Error('Não foi possível abrir a imagem salva. Escolha outro arquivo.');
+      setEditing({
+        source: new File([blob], `${kind}.webp`, { type: blob.type }),
+        position: centeredCrop,
+      });
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
@@ -102,10 +131,20 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
                 return;
               }
               setError('');
-              setFile(selected);
+              setEditing({ source: selected, position: centeredCrop });
             }}
           />
         </label>
+        {(file || current) && (
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busy}
+            onClick={() => void adjust()}
+          >
+            <Crop size={14} /> Ajustar recorte
+          </button>
+        )}
         {file ? (
           <>
             <button
@@ -123,6 +162,7 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
               disabled={busy}
               onClick={() => {
                 setFile(null);
+                setDraft(null);
                 setError('');
               }}
               aria-label={`Descartar ${title.toLowerCase()}`}
@@ -145,6 +185,20 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
         )}
       </div>
       <ErrorNotice message={error} />
+      {editing && (
+        <ProfileImageCropper
+          file={editing.source}
+          kind={kind}
+          initial={editing.position}
+          onClose={() => setEditing(null)}
+          onApply={(cropped, position) => {
+            setFile(cropped);
+            setDraft({ source: editing.source, position });
+            setEditing(null);
+            setError('');
+          }}
+        />
+      )}
     </section>
   );
 }
@@ -168,7 +222,7 @@ export function ProfileMediaEditor({ member }: { member?: Member }) {
             <MediaField kind="banner" current={member.bannerUrl} />
           </div>
           <p className="profile-media-note">
-            As imagens são salvas nos botões acima. O enquadramento é centralizado.
+            Escolha o enquadramento no editor e salve a foto ou o banner para publicar.
           </p>
         </>
       ) : (

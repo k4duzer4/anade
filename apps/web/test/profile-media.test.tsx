@@ -4,6 +4,30 @@ import userEvent from '@testing-library/user-event';
 import { ProfileMediaEditor } from '../src/components/profile-media-editor';
 import { MemberAvatar } from '../src/components/member-avatar';
 import type { Member } from '../src/lib/types';
+import { Provider as TooltipProvider } from '@radix-ui/react-tooltip';
+import { exportProfileCrop } from '../src/lib/profile-crop';
+
+vi.mock('../src/lib/profile-crop', async (original) => ({
+  ...(await original<typeof import('../src/lib/profile-crop')>()),
+  exportProfileCrop: vi.fn(),
+}));
+const cropped = new File(['cropped'], 'recortada.webp', { type: 'image/webp' });
+function editor() {
+  return render(
+    <TooltipProvider>
+      <ProfileMediaEditor member={member} />
+    </TooltipProvider>,
+  );
+}
+async function applyCrop(user: ReturnType<typeof userEvent.setup>) {
+  const image = await screen.findByRole('img', { name: 'Imagem em edição' });
+  Object.defineProperties(image, {
+    naturalWidth: { value: 1600, configurable: true },
+    naturalHeight: { value: 900, configurable: true },
+  });
+  fireEvent.load(image);
+  await user.click(screen.getByRole('button', { name: 'Usar recorte' }));
+}
 
 const portal = vi.hoisted(() => ({ mutate: vi.fn(), notify: vi.fn() }));
 vi.mock('../src/components/portal-provider', () => ({ usePortal: () => portal }));
@@ -17,13 +41,15 @@ beforeEach(() => {
   URL.createObjectURL = vi.fn(() => 'blob:media-preview');
   URL.revokeObjectURL = vi.fn();
   portal.mutate.mockResolvedValue(undefined);
+  vi.mocked(exportProfileCrop).mockResolvedValue(cropped);
 });
 describe('imagens do perfil', () => {
   it('mostra prévia, salva foto e banner separadamente e libera a URL temporária', async () => {
     const user = userEvent.setup();
-    render(<ProfileMediaEditor member={member} />);
+    editor();
     const file = new File(['foto'], 'foto.png', { type: 'image/png' });
     await user.upload(screen.getByLabelText('Foto de perfil', { selector: 'input' }), file);
+    await applyCrop(user);
     await waitFor(() =>
       expect(screen.getByRole('img', { name: 'Prévia: Foto de perfil' }).getAttribute('src')).toBe(
         'blob:media-preview',
@@ -36,7 +62,7 @@ describe('imagens do perfil', () => {
     expect(path).toBe('/api/profile/media/avatar');
     expect(method).toBe('PUT');
     expect(body).toBeInstanceOf(FormData);
-    expect(body.get('image')).toBe(file);
+    expect(body.get('image')).toBe(cropped);
     expect(Array.from(body.keys())).toEqual(['image']);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:media-preview');
     expect(portal.notify).toHaveBeenCalledWith('Foto de perfil atualizada.');
@@ -44,12 +70,13 @@ describe('imagens do perfil', () => {
       screen.getByLabelText('Banner do perfil', { selector: 'input' }),
       new File(['banner'], 'banner.webp', { type: 'image/webp' }),
     );
+    await applyCrop(user);
     await user.click(screen.getByRole('button', { name: 'Salvar banner' }));
     expect(portal.mutate.mock.calls[1][0]).toBe('/api/profile/media/banner');
   });
   it('rejeita arquivos acima de 4 MB e formatos inválidos; permite descartar sem enviar', async () => {
     const user = userEvent.setup();
-    render(<ProfileMediaEditor member={member} />);
+    editor();
     const input = screen.getByLabelText('Foto de perfil', { selector: 'input' });
     fireEvent.change(input, {
       target: {
@@ -66,6 +93,7 @@ describe('imagens do perfil', () => {
     fireEvent.change(input, {
       target: { files: [new File(['ok'], 'valida.jpg', { type: 'image/jpeg' })] },
     });
+    await applyCrop(user);
     await user.click(screen.getByRole('button', { name: 'Descartar foto de perfil' }));
     expect(screen.queryByRole('button', { name: 'Salvar foto' })).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
@@ -74,17 +102,106 @@ describe('imagens do perfil', () => {
   it('falha mantém a seleção para tentar novamente; remover usa somente a rota do dono', async () => {
     const user = userEvent.setup();
     portal.mutate.mockRejectedValueOnce(new Error('Armazenamento indisponível.'));
-    render(<ProfileMediaEditor member={member} />);
+    editor();
     await user.upload(
       screen.getByLabelText('Foto de perfil', { selector: 'input' }),
       new File(['ok'], 'foto.png', { type: 'image/png' }),
     );
+    await applyCrop(user);
     await user.click(screen.getByRole('button', { name: 'Salvar foto' }));
     expect(await screen.findByText('Armazenamento indisponível.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Salvar foto' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Descartar foto de perfil' }));
     await user.click(screen.getByRole('button', { name: 'Remover foto' }));
     expect(portal.mutate.mock.calls[1]).toEqual(['/api/profile/media/avatar', 'DELETE', undefined]);
+  });
+  it('cancelar o recorte não altera a foto existente nem publica arquivos', async () => {
+    const user = userEvent.setup();
+    editor();
+    await user.upload(
+      screen.getByLabelText('Foto de perfil', { selector: 'input' }),
+      new File(['new'], 'nova.png', { type: 'image/png' }),
+    );
+    await user.click(await screen.findByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Salvar foto' })).toBeNull();
+    expect(screen.getByRole('img', { name: 'Prévia: Foto de perfil' }).getAttribute('src')).toBe(
+      member.avatarUrl,
+    );
+    expect(portal.mutate).not.toHaveBeenCalled();
+  });
+  it('arrasta até a borda sem deixar espaços vazios nem enviar automaticamente', async () => {
+    const user = userEvent.setup();
+    editor();
+    await user.upload(
+      screen.getByLabelText('Foto de perfil', { selector: 'input' }),
+      new File(['new'], 'nova.png', { type: 'image/png' }),
+    );
+    const image = await screen.findByRole('img', { name: 'Imagem em edição' });
+    Object.defineProperties(image, {
+      naturalWidth: { value: 1600, configurable: true },
+      naturalHeight: { value: 900, configurable: true },
+    });
+    fireEvent.load(image);
+    const stage = screen.getByRole('button', { name: 'Área de recorte da foto' });
+    await waitFor(() => expect((stage as HTMLButtonElement).disabled).toBe(false));
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 320, 320));
+    vi.spyOn(stage, 'setPointerCapture');
+    // JSDOM does not supply PointerEvent coordinates; use native mouse fields with a pointer ID.
+    const pointer = (type: string, clientX: number, clientY: number) => {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        clientX,
+        clientY,
+      });
+      Object.defineProperty(event, 'pointerId', { value: 1 });
+      fireEvent(stage, event);
+    };
+    pointer('pointerdown', 100, 100);
+    expect(stage.setPointerCapture).toHaveBeenCalledWith(1);
+    pointer('pointermove', 1000, 800);
+    pointer('pointerup', 1000, 800);
+    await user.click(screen.getByRole('button', { name: 'Usar recorte' }));
+    expect(exportProfileCrop).toHaveBeenLastCalledWith(image, 'avatar', { x: 1, y: 0, zoom: 1 });
+    expect(portal.mutate).not.toHaveBeenCalled();
+  });
+  it('permite recortar a imagem já salva e reajustar sem perder a posição', async () => {
+    const user = userEvent.setup();
+    const request = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['existing'], { type: 'image/webp' }),
+    } as Response);
+    try {
+      editor();
+      await user.click(screen.getByRole('button', { name: 'Ajustar recorte' }));
+      const image = await screen.findByRole('img', { name: 'Imagem em edição' });
+      Object.defineProperties(image, {
+        naturalWidth: { value: 1600, configurable: true },
+        naturalHeight: { value: 900, configurable: true },
+      });
+      fireEvent.load(image);
+      fireEvent.change(screen.getByRole('slider', { name: 'Zoom do recorte' }), {
+        target: { value: '2' },
+      });
+      await user.click(screen.getByRole('button', { name: 'Área de recorte da foto' }));
+      await user.keyboard('{ArrowRight}');
+      await user.click(screen.getByRole('button', { name: 'Usar recorte' }));
+      expect(exportProfileCrop).toHaveBeenLastCalledWith(image, 'avatar', {
+        x: 0.05,
+        y: 0,
+        zoom: 2,
+      });
+      await user.click(screen.getByRole('button', { name: 'Ajustar recorte' }));
+      expect(
+        (screen.getByRole('slider', { name: 'Zoom do recorte' }) as HTMLInputElement).value,
+      ).toBe('2');
+      expect(request).toHaveBeenCalledOnce();
+      expect(portal.mutate).not.toHaveBeenCalled();
+    } finally {
+      request.mockRestore();
+    }
   });
   it('foto indisponível volta às iniciais e cadastro novo orienta salvar a ficha primeiro', () => {
     render(

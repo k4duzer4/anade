@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider as TooltipProvider } from '@radix-ui/react-tooltip';
 import CheckinContent from '../src/components/checkin-content';
@@ -48,6 +48,55 @@ beforeEach(() => {
 });
 
 describe('página de ponto', () => {
+  it('arrastar, colar, ampliar e remover atualiza o progresso sem enviar o ponto', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <TooltipProvider>
+        <CheckinContent />
+      </TooltipProvider>,
+    );
+    const actions = screen.getByLabelText('Print das três ações');
+    const blue = screen.getByLabelText('Print do post no Blue');
+    await waitFor(() => expect((actions as HTMLInputElement).disabled).toBe(false));
+    const progress = screen.getByRole('progressbar', { name: 'Preparação do ponto' });
+    fireEvent.drop(actions.closest('label')!, {
+      dataTransfer: { files: [new File(['a'], 'acoes.png', { type: 'image/png' })] },
+    });
+    fireEvent.paste(blue, {
+      clipboardData: { files: [new File(['b'], 'blue.jpg', { type: 'image/jpeg' })] },
+    });
+    expect(progress.getAttribute('aria-valuenow')).toBe('2');
+    await user.click(await screen.findByRole('button', { name: 'Ampliar print das três ações' }));
+    expect(screen.getByRole('img', { name: 'Ampliação: Print das três ações' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Voltar ao envio' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Remover print das três ações' }));
+    expect(progress.getAttribute('aria-valuenow')).toBe('1');
+    expect(screen.queryByText('acoes.png')).toBeNull();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview-test');
+    expect(portal.mutate).not.toHaveBeenCalled();
+    expect(prepareCheckinProof).not.toHaveBeenCalled();
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejeita arquivos inválidos e ignora arrastar enquanto o envio está desabilitado', async () => {
+    render(<CheckinContent />);
+    const actions = screen.getByLabelText('Print das três ações');
+    const area = actions.closest('label')!;
+    const drop = (file: File) => fireEvent.drop(area, { dataTransfer: { files: [file] } });
+    drop(new File(['a'], 'bloqueado.png', { type: 'image/png' }));
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('0');
+    await waitFor(() => expect((actions as HTMLInputElement).disabled).toBe(false));
+    drop(new File(['pdf'], 'arquivo.pdf', { type: 'application/pdf' }));
+    expect(screen.getByRole('alert').textContent).toContain('PNG, JPG ou WebP');
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('0');
+    drop(new File(['a'], 'valido.png', { type: 'image/png' }));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('1');
+    expect(portal.mutate).not.toHaveBeenCalled();
+  });
+
   it('qualquer filiado envia os dois prints sem cargo obrigatório e recebe confirmação', async () => {
     const user = userEvent.setup();
     portal.mutate.mockImplementation(async () => {
@@ -166,5 +215,13 @@ describe('página de ponto', () => {
     expect(new URL(image.getAttribute('src')!, window.location.origin).pathname).toBe(
       record.proofs.actions,
     );
+    await user.click(screen.getByRole('button', { name: 'Post no Blue' }));
+    const blueImage = screen.getByRole('img', {
+      name: 'Comprovante do Blue enviado por Pessoa do RPG',
+    });
+    expect(new URL(blueImage.getAttribute('src')!, window.location.origin).pathname).toBe(
+      record.proofs.blue,
+    );
+    expect(portal.mutate).not.toHaveBeenCalled();
   });
 });

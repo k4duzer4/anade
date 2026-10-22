@@ -7,18 +7,18 @@ import {
   CheckCheck,
   ChevronLeft,
   ChevronRight,
-  Clock3,
   FileImage,
+  MessageSquare,
   Filter,
   LoaderCircle,
   RefreshCw,
 } from 'lucide-react';
 import { usePortal } from './portal-provider';
-import { Badge, Empty, ErrorNotice, Modal } from './ui';
+import { ErrorNotice, Modal } from './ui';
 import { Select } from './select';
 import { DateTimePicker } from './date-time-picker';
 import { loadCheckins } from '@/lib/checkin-upload';
-import { formatDate, type Checkin, type CheckinList } from '@/lib/types';
+import { type Checkin, type CheckinList } from '@/lib/types';
 
 function dayLabel(day: string) {
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(
@@ -42,6 +42,7 @@ export function CheckinHistory({
   const [loading, setLoading] = useState(true);
   const [proof, setProof] = useState<{ record: Checkin; kind: 'actions' | 'blue' } | null>(null);
   const [proofError, setProofError] = useState('');
+  const [showFilters, setShowFilters] = useState(admin);
   const query = new URLSearchParams({ ...filters, page: String(page) }).toString();
   useEffect(() => {
     const controller = new AbortController();
@@ -82,123 +83,175 @@ export function CheckinHistory({
           <h2>{admin ? 'Consulta de pontos' : 'Meu histórico'}</h2>
           <p>
             {admin
-              ? 'Confira os envios e abra os dois comprovantes de cada registro.'
-              : 'Seus registros ficam aqui, com os dois comprovantes enviados.'}
+              ? 'Todos os registros, com os dois prints para conferir.'
+              : 'Um registro por dia. Seus comprovantes, sempre à mão.'}
           </p>
         </div>
-        <button
-          className="button secondary small-button"
-          type="button"
-          disabled={loading}
-          onClick={() => {
-            setLoading(true);
-            setVersion((value) => value + 1);
-          }}
-        >
-          <RefreshCw size={15} /> Atualizar
-        </button>
-      </header>
-      <div className={`checkin-filters ${admin ? 'is-admin' : ''}`}>
-        <label className="field">
-          Dia do ponto
-          <DateTimePicker
-            name="day"
-            label="Filtrar pontos por dia"
-            dateOnly
-            value={filters.day}
-            onValueChange={(value) => filter('day', value)}
-          />
-        </label>
-        {admin && (
-          <>
-            <label className="field">
-              Filiado
-              <Select
-                aria-label="Filtrar pontos por filiado"
-                value={filters.memberId || 'all'}
-                onValueChange={(value) => filter('memberId', value === 'all' ? '' : value)}
-                options={[
-                  { value: 'all', label: 'Todos os filiados' },
-                  ...(result?.members || []).map((member) => ({
-                    value: member.id,
-                    label: member.name || `@${member.discord}`,
-                  })),
-                ]}
-              />
-            </label>
-            <label className="field">
-              Cargo pretendido
-              <Select
-                aria-label="Filtrar pontos por cargo"
-                value={filters.office || 'all'}
-                onValueChange={(value) => filter('office', value === 'all' ? '' : value)}
-                options={[
-                  { value: 'all', label: 'Todos os cargos' },
-                  ...(config?.electoralOffices || []).map((office) => ({
-                    value: office,
-                    label: office,
-                  })),
-                ]}
-              />
-            </label>
-          </>
-        )}
-        <div className="checkin-quick-filters">
-          <button
-            type="button"
-            disabled={!result || loading}
-            onClick={() => result && filter('day', result.today)}
-          >
-            <CalendarDays size={14} /> Só hoje
-          </button>
-          {(filters.day || filters.memberId || filters.office) && (
+        <div className="checkin-history-actions">
+          {!admin && (
             <button
               type="button"
-              onClick={() => {
-                setLoading(true);
-                setPage(0);
-                setFilters({ day: '', memberId: '', office: '' });
-              }}
+              className={`checkin-filter-toggle ${showFilters ? 'active' : ''}`}
+              aria-expanded={showFilters}
+              aria-label="Filtrar histórico"
+              onClick={() => setShowFilters((value) => !value)}
             >
-              <Filter size={13} /> Limpar filtros
+              <Filter size={15} /> Filtrar
+              {(filters.day || filters.memberId || filters.office) && (
+                <span className="checkin-live-dot" />
+              )}
             </button>
           )}
+          <button
+            className="button secondary small-button"
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              setLoading(true);
+              setVersion((value) => value + 1);
+            }}
+          >
+            <RefreshCw size={15} /> Atualizar
+          </button>
         </div>
-      </div>
+      </header>
+      {showFilters && (
+        <div className={`checkin-filters ${admin ? 'is-admin' : ''}`}>
+          <label className="field">
+            Dia do ponto
+            <DateTimePicker
+              name="day"
+              label="Filtrar pontos por dia"
+              dateOnly
+              value={filters.day}
+              onValueChange={(value) => filter('day', value)}
+            />
+          </label>
+          {admin && (
+            <>
+              <label className="field">
+                Filiado
+                <Select
+                  aria-label="Filtrar pontos por filiado"
+                  value={filters.memberId || 'all'}
+                  onValueChange={(value) => filter('memberId', value === 'all' ? '' : value)}
+                  options={[
+                    { value: 'all', label: 'Todos os filiados' },
+                    ...(result?.members || []).map((member) => ({
+                      value: member.id,
+                      label: member.name || `@${member.discord}`,
+                    })),
+                  ]}
+                />
+              </label>
+              <label className="field">
+                Cargo pretendido
+                <Select
+                  aria-label="Filtrar pontos por cargo"
+                  value={filters.office || 'all'}
+                  onValueChange={(value) => filter('office', value === 'all' ? '' : value)}
+                  options={[
+                    { value: 'all', label: 'Todos os cargos' },
+                    ...(config?.electoralOffices || []).map((office) => ({
+                      value: office,
+                      label: office,
+                    })),
+                  ]}
+                />
+              </label>
+            </>
+          )}
+          <div className="checkin-quick-filters">
+            <button
+              type="button"
+              disabled={!result || loading}
+              onClick={() => result && filter('day', result.today)}
+            >
+              <CalendarDays size={14} /> Só hoje
+            </button>
+            {(filters.day || filters.memberId || filters.office) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  setPage(0);
+                  setFilters({ day: '', memberId: '', office: '' });
+                }}
+              >
+                <Filter size={13} /> Limpar filtros
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <ErrorNotice message={error} />
       {loading ? (
         <div className="checkin-loading" role="status">
           <LoaderCircle className="spin" size={22} /> Carregando registros…
         </div>
       ) : error ? null : !result?.records.length ? (
-        <section className="panel">
-          <Empty>
-            <Clock3 size={30} />
-            <p>Nenhum ponto registrado{filters.day ? ' neste dia' : ''}.</p>
-          </Empty>
+        <section className="checkin-empty">
+          <span>
+            <FileImage size={24} />
+            <CheckCheck size={16} />
+          </span>
+          <div>
+            <h3>
+              {filters.day || filters.memberId || filters.office
+                ? 'Nenhum registro por aqui.'
+                : 'Seu histórico começa no primeiro ponto.'}
+            </h3>
+            <p>
+              {filters.day || filters.memberId || filters.office
+                ? 'Escolha outro filtro para consultar os registros.'
+                : 'Quando você enviar os dois prints, eles aparecerão aqui.'}
+            </p>
+          </div>
         </section>
       ) : (
         <div className="checkin-records">
           {result.records.map((record) => (
-            <article className="checkin-record panel" key={record.id}>
+            <article className="checkin-record" key={record.id}>
+              <time
+                className="checkin-record-date"
+                dateTime={record.day}
+                aria-label={dayLabel(record.day)}
+              >
+                <strong>{record.day.slice(8)}</strong>
+                <span>
+                  {new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: 'UTC' })
+                    .format(new Date(`${record.day}T12:00:00Z`))
+                    .replace('.', '')}
+                </span>
+              </time>
               <div className="checkin-record-heading">
                 <div>
-                  <span className="eyebrow">{dayLabel(record.day)}</span>
-                  <h3>{record.name}</h3>
-                  <p>
-                    @{record.discord}
-                    {record.blue ? ` · ${record.blue}` : ''}
-                  </p>
+                  <h3>
+                    {admin
+                      ? record.name
+                      : record.day === result.today
+                        ? 'Seu ponto de hoje'
+                        : 'Ponto registrado'}
+                    <CheckCheck size={15} aria-label="Recebido" />
+                  </h3>
+                  {admin && (
+                    <p>
+                      @{record.discord}
+                      {record.blue ? ` · ${record.blue}` : ''}
+                    </p>
+                  )}
+                  <div className="checkin-record-meta">
+                    <span>
+                      {new Intl.DateTimeFormat('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'America/Sao_Paulo',
+                      }).format(new Date(record.createdAt))}{' '}
+                      · Brasília
+                    </span>
+                    {record.office && <span>{record.office}</span>}
+                  </div>
                 </div>
-                <Badge>
-                  <CheckCheck size={14} /> Ponto registrado
-                </Badge>
-              </div>
-              <div className="checkin-record-meta">
-                <span>
-                  <Clock3 size={14} /> {formatDate(record.createdAt, true)} · Brasília
-                </span>
-                {record.office && <span>{record.office}</span>}
               </div>
               <div className="checkin-proofs">
                 {(['actions', 'blue'] as const).map((kind) => (
@@ -211,16 +264,9 @@ export function CheckinHistory({
                     }}
                     aria-label={`Ver print ${kind === 'actions' ? 'das três ações' : 'do Blue'} de ${record.name}`}
                   >
-                    <span>
-                      <FileImage size={19} />
-                    </span>
-                    <span>
-                      <strong>
-                        {kind === 'actions' ? 'Três ações realizadas' : 'Publicação no Blue'}
-                      </strong>
-                      <small>Abrir comprovante</small>
-                    </span>
-                    <ChevronRight size={17} />
+                    {kind === 'actions' ? <FileImage size={16} /> : <MessageSquare size={16} />}
+                    <span>{kind === 'actions' ? '3 ações' : 'Blue'}</span>
+                    <ChevronRight size={13} />
                   </button>
                 ))}
               </div>
@@ -228,7 +274,7 @@ export function CheckinHistory({
           ))}
         </div>
       )}
-      {!error && (
+      {!error && !!result?.records.length && (
         <div className="checkin-pagination">
           <span>Página {page + 1} · até 20 registros por página</span>
           <div>
@@ -266,6 +312,22 @@ export function CheckinHistory({
             <p>
               <strong>{proof.record.name}</strong> · {dayLabel(proof.record.day)}
             </p>
+            <div className="checkin-proof-tabs" role="group" aria-label="Escolher comprovante">
+              {(['actions', 'blue'] as const).map((kind) => (
+                <button
+                  type="button"
+                  key={kind}
+                  aria-pressed={proof.kind === kind}
+                  onClick={() => {
+                    setProofError('');
+                    setProof({ ...proof, kind });
+                  }}
+                >
+                  {kind === 'actions' ? <FileImage size={15} /> : <MessageSquare size={15} />}
+                  {kind === 'actions' ? 'Três ações' : 'Post no Blue'}
+                </button>
+              ))}
+            </div>
             <ErrorNotice message={proofError} />
             <Image
               src={proof.record.proofs[proof.kind]}

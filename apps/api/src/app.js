@@ -14,6 +14,7 @@ import {
 } from './checkins.js';
 import { MemoryProofStorage, SupabaseProofStorage } from './proof-storage.js';
 import { rankingFilters } from './checkin-ranking.js';
+import { communityRoutes } from './community.js';
 import { MAX_PROFILE_IMAGE_BYTES, PROFILE_BUCKET, profileMediaRoutes } from './profile-media.js';
 import {
   assert,
@@ -102,7 +103,7 @@ export function createApp({
   app.disable('x-powered-by');
   if (Number(env.TRUST_PROXY) > 0) app.set('trust proxy', Number(env.TRUST_PROXY));
   app.use(helmet());
-  app.use(express.json({ limit: '32kb' }));
+  app.use(express.json({ limit: '128kb' }));
   app.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
@@ -505,6 +506,7 @@ export function createApp({
     await repo.closePoll(req.params.id);
     res.json({ ok: true });
   });
+  communityRoutes(app, repo, admin);
   app.use((_req, _res, next) =>
     next(Object.assign(new Error('Rota não encontrada.'), { status: 404 })),
   );

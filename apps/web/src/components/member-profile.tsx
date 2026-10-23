@@ -25,6 +25,7 @@ import { usePortal } from './portal-provider';
 import { Badge, Empty, PageHeading } from './ui';
 import { MemberAvatar } from './member-avatar';
 import { ProfileImageControl } from './profile-media-editor';
+import { MemberTimeline } from './member-timeline';
 
 function Biography({ text = '' }: { text?: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -248,6 +249,7 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
       <nav className="profile-section-nav" aria-label="Seções do perfil">
         <a href="#perfil-sobre">Sobre</a>
         <a href="#perfil-formacao">Formação</a>
+        <a href="#perfil-historia">Linha do tempo</a>
         {positions.length > 0 && <a href="#perfil-direcao">Na direção</a>}
         <a href="#perfil-contatos">Contatos</a>
       </nav>
@@ -306,6 +308,7 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
               </dl>
             )}
           </section>
+          <MemberTimeline key={id} memberId={id} own={own} />
           {positions.length > 0 && (
             <section className="panel member-profile-section" id="perfil-direcao">
               <header>

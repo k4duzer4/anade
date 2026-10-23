@@ -135,6 +135,16 @@ A migração `005_directors.sql` cria a tabela privada `anade.directors`, com re
 
 ## Verificação e produção
 
+### Propostas, comunicados, campanha e trajetória
+
+A migração `011_community.sql` cria os registros das novas áreas, apoios, confirmações de leitura e a configuração da campanha, com RLS e sem acesso pela Data API pública. Não há novas variáveis de ambiente.
+
+- `/propostas`: filiados apresentam ideias, apoiam uma vez por conta e comentam. Somente administradores encaminham uma proposta para votação. O encaminhamento é transacional e único, preserva o contexto completo e inclui abstenção.
+- `/comunicados`: administradores publicam, editam e fixam avisos, com prazo opcional. Cada filiado confirma sua leitura; mudanças no título, texto ou prazo reiniciam as confirmações. A direção acompanha o total de leituras.
+- `/campanha`: começa fechada. A administração abre ou fecha pela própria página ou pelo atalho do painel. Fechada, a central bloqueia cadastro/edição e oculta registros e resultados de busca dos filiados; administradores continuam consultando. Aberta, cada pessoa mantém uma pré-candidatura com cargo, estado, propostas, compromissos e até dez links HTTPS de materiais.
+- No perfil, a linha do tempo reúne marcos declarados pelo jogador: cargos, candidaturas, mandatos e contribuições. Só o dono inclui, edita ou exclui seus marcos.
+- A lupa no cabeçalho e `Ctrl+K`/`Cmd+K` abrem a busca de filiados, reuniões, atas/documentos, votações, propostas, comunicados e campanhas permitidas. LegApp e votos privados não são indexados. Links de busca para reuniões e votações funcionam também em itens encerrados.
+
 O destino escolhido é **Vercel + Supabase**, com endereço gratuito `vercel.app`: consulte [o guia de publicação](DEPLOY.md). O `vercel.json` na raiz declara Services Next.js e Express no mesmo projeto Vercel. O roteamento mantém páginas, API e autenticação no mesmo domínio; o Next consulta a API por binding interno. Dados e sessões ficam no PostgreSQL do Supabase, com Transaction pooler na produção. A configuração Cloudflare foi removida. A configuração Render permanece como alternativa no [guia separado](DEPLOY-RENDER.md).
 
 ```powershell

@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, ShieldCheck, Vote, CheckCheck, Archive } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, Modal, SubmitButton, ErrorNotice, Empty } from '@/components/ui';
@@ -11,6 +12,9 @@ import { SearchBox, ViewFilters, PagePulse } from '@/components/portal-tools';
 import { searchText } from '@/lib/types';
 export default function Polls() {
   const { data, mutate, notify } = usePortal();
+  const params = useSearchParams(),
+    router = useRouter(),
+    target = params.get('votacao') || '';
   const [filter, setFilter] = useState('open'),
     [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
@@ -21,7 +25,11 @@ export default function Polls() {
   const pending = active.filter((p) => !p.hasVoted);
   const list = data.polls
     .filter((p) =>
-      filter === 'pending' ? !p.closed && !p.hasVoted : p.closed === (filter === 'closed'),
+      target
+        ? p.id === target
+        : filter === 'pending'
+          ? !p.closed && !p.hasVoted
+          : p.closed === (filter === 'closed'),
     )
     .filter((p) => searchText(`${p.title} ${p.description}`).includes(searchText(search)))
     .sort((a, b) =>
@@ -95,8 +103,13 @@ export default function Polls() {
       <div className="refresh-toolbar">
         <ViewFilters
           label="Filtrar votações"
-          value={filter}
-          onChange={setFilter}
+          value={
+            target ? (data.polls.find((p) => p.id === target)?.closed ? 'closed' : 'open') : filter
+          }
+          onChange={(value) => {
+            setFilter(value);
+            if (target) router.replace('/votacoes');
+          }}
           options={[
             { value: 'open', label: 'Em andamento', count: active.length },
             { value: 'pending', label: 'Para votar', count: pending.length },
@@ -105,6 +118,11 @@ export default function Polls() {
         />
         <SearchBox value={search} onChange={setSearch} label="Buscar votação" />
       </div>
+      {target && (
+        <button className="text-button community-own" onClick={() => router.replace('/votacoes')}>
+          Ver todas as votações
+        </button>
+      )}
       <div className="refresh-list-caption" aria-live="polite">
         <span>
           {list.length} votaç{list.length === 1 ? 'ão' : 'ões'}
@@ -173,7 +191,7 @@ export default function Polls() {
                 Contexto
                 <textarea
                   name="description"
-                  maxLength={3000}
+                  maxLength={6000}
                   rows={3}
                   placeholder="Explique a proposta para os filiados…"
                 />

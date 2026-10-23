@@ -13,6 +13,9 @@ import {
   Trophy,
   Users,
   Vote,
+  Lightbulb,
+  Megaphone,
+  Rocket,
 } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { MemberAvatar } from './member-avatar';
@@ -68,6 +71,27 @@ export function AdminOverview({
   });
   const stateList = [...states.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   const tools = [
+    {
+      title: 'Central de propostas',
+      description: 'Ideias, apoios e encaminhamentos para votação.',
+      href: '/propostas',
+      Icon: Lightbulb,
+      detail: 'Construção coletiva',
+    },
+    {
+      title: 'Mural de comunicados',
+      description: 'Publique avisos e acompanhe as leituras.',
+      href: '/comunicados',
+      Icon: Megaphone,
+      detail: 'Publicação pela direção',
+    },
+    {
+      title: 'Central de campanha',
+      description: 'Pré-candidaturas e controle de abertura.',
+      href: '/campanha',
+      Icon: Rocket,
+      detail: 'Abrir ou fechar inscrições',
+    },
     {
       title: 'Agenda e reuniões',
       description: 'Encontros, chamadas no Meet e atas.',

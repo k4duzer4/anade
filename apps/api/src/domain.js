@@ -202,7 +202,7 @@ export function newPoll(input, author) {
   return {
     id: randomUUID(),
     title: text(input.title),
-    description: text(input.description ?? '', 3000, false),
+    description: text(input.description ?? '', 6000, false),
     options: [...options, 'Abstenção'],
     deadline: new Date(input.deadline).toISOString(),
     secret: input.secret === true,

@@ -20,6 +20,11 @@ async function directorsTable(db) {
       'ALTER TABLE',
     )[0],
   );
+  db.public.none(
+    (await readFile(new URL('../db/011_community.sql', import.meta.url), 'utf8')).split(
+      'ALTER TABLE',
+    )[0],
+  );
 }
 test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do voto', async () => {
   const db = newDb();
@@ -43,6 +48,27 @@ test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do vot
   try {
     await repo.account('a', 'direcao');
     await repo.account('b', 'filiado');
+    assert.equal(
+      (await pool.query("SELECT value FROM anade.portal_settings WHERE key='campaign_open'"))
+        .rows[0].value,
+      false,
+    );
+    const proposalId = randomUUID();
+    await pool.query(
+      "INSERT INTO anade.community_items(id,kind,owner_id,data) VALUES($1,'proposal','a',$2)",
+      [proposalId, JSON.stringify({ title: 'Ideia', body: 'Educação' })],
+    );
+    await pool.query(
+      "INSERT INTO anade.community_actions(item_id,user_id,kind) VALUES($1,'b','support')",
+      [proposalId],
+    );
+    await assert.rejects(
+      pool.query(
+        "INSERT INTO anade.community_actions(item_id,user_id,kind) VALUES($1,'b','support')",
+        [proposalId],
+      ),
+      /duplicate|unique/i,
+    );
     assert.equal(await repo.isAdmin('b'), false);
     await pool.query('UPDATE anade.accounts SET is_admin=true WHERE id=$1', ['b']);
     assert.equal(await repo.isAdmin('b'), true);

@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, CalendarDays, CheckCheck, History } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, Modal, Empty } from '@/components/ui';
@@ -10,6 +11,9 @@ import { AgendaCalendar, meetingDay } from '@/components/agenda-calendar';
 import { searchText } from '@/lib/types';
 export default function Agenda() {
   const { data } = usePortal();
+  const params = useSearchParams(),
+    router = useRouter(),
+    target = params.get('encontro') || '';
   const [filter, setFilter] = useState('upcoming'),
     [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -19,9 +23,11 @@ export default function Agenda() {
   const confirmed = upcoming.filter((m) => m.attendance.includes(data.user.id));
   const filtered = data.meetings
     .filter((m) =>
-      filter === 'confirmed'
-        ? confirmed.some((item) => item.id === m.id)
-        : Date.parse(m.date) > Date.parse(data.serverTime) === (filter === 'upcoming'),
+      target
+        ? m.id === target
+        : filter === 'confirmed'
+          ? confirmed.some((item) => item.id === m.id)
+          : Date.parse(m.date) > Date.parse(data.serverTime) === (filter === 'upcoming'),
     )
     .filter((m) =>
       searchText([m.title, m.location, ...m.agenda].join(' ')).includes(searchText(search)),
@@ -64,10 +70,11 @@ export default function Agenda() {
       />
       <div className="refresh-toolbar">
         <ViewFilters
-          value={filter}
+          value={target ? (upcoming.some((m) => m.id === target) ? 'upcoming' : 'past') : filter}
           onChange={(value) => {
             setFilter(value);
             setDay('');
+            if (target) router.replace('/agenda');
           }}
           label="Filtrar reuniões"
           options={[
@@ -78,6 +85,11 @@ export default function Agenda() {
         />
         <SearchBox value={search} onChange={setSearch} label="Buscar reunião ou pauta" />
       </div>
+      {target && (
+        <button className="text-button community-own" onClick={() => router.replace('/agenda')}>
+          Ver toda a agenda
+        </button>
+      )}
       <div className="refresh-list-caption" aria-live="polite">
         <span>
           {list.length} encontro{list.length === 1 ? '' : 's'}

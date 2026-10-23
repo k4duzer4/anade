@@ -116,6 +116,10 @@ const portal = vi.hoisted(() => ({
   notify: vi.fn(),
 }));
 vi.mock('../src/components/portal-provider', () => ({ usePortal: () => portal }));
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ replace: vi.fn() }),
+}));
 beforeEach(() => {
   vi.clearAllMocks();
   portal.mutate.mockResolvedValue(undefined);

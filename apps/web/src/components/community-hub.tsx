@@ -354,7 +354,12 @@ export function CommunityHub({ kind }: { kind: Kind }) {
                           <Check size={15} />
                           {item.read ? 'Leitura confirmada' : 'Confirmar leitura'}
                         </button>
-                        {data.user.admin && <small>{item.reads} leituras confirmadas</small>}
+                        {data.user.admin && (
+                          <small>
+                            {item.reads}{' '}
+                            {item.reads === 1 ? 'leitura confirmada' : 'leituras confirmadas'}
+                          </small>
+                        )}
                       </>
                     ) : (
                       <Link
@@ -625,6 +630,7 @@ function EntryForm({
               <DateTimePicker
                 name="dueDate"
                 label="Prazo do comunicado"
+                placeholder="Sem prazo"
                 dateOnly
                 defaultValue={item?.dueDate}
               />

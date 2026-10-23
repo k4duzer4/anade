@@ -20,6 +20,8 @@ import './controls.css';
 import './checkins.css';
 import './portal-refresh.css';
 import './community.css';
+import './updates.css';
+import './scrollbars.css';
 import { PortalProvider } from '@/components/portal-provider';
 import { ExperienceProvider } from '@/components/experience-provider';
 export const metadata: Metadata = {

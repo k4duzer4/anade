@@ -179,6 +179,7 @@ export function MemberTimeline({ memberId, own }: { memberId: string; own: boole
                   dateOnly
                   name="start"
                   label="Início do marco"
+                  placeholder="Escolher data"
                   defaultValue={dialog.item?.start}
                   required
                 />
@@ -189,6 +190,7 @@ export function MemberTimeline({ memberId, own }: { memberId: string; own: boole
                   dateOnly
                   name="end"
                   label="Término do marco"
+                  placeholder="Sem término"
                   defaultValue={dialog.item?.end}
                 />
               </label>

@@ -37,6 +37,7 @@ export function DateTimePicker({
   disabled = false,
   label,
   dateOnly = false,
+  placeholder,
   value: controlledValue,
   onValueChange,
 }: {
@@ -46,6 +47,7 @@ export function DateTimePicker({
   disabled?: boolean;
   label: string;
   dateOnly?: boolean;
+  placeholder?: string;
   value?: string;
   onValueChange?: (value: string) => void;
 }) {
@@ -79,9 +81,7 @@ export function DateTimePicker({
   const selected = parseDay(value);
   const caption = selected
     ? `${new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(selected)}${dateOnly ? '' : ` · ${value.slice(11, 16)}`}`
-    : dateOnly
-      ? 'Todos os dias'
-      : 'Escolher data e horário';
+    : placeholder || (dateOnly ? 'Todos os dias' : 'Escolher data e horário');
   const year = month.getFullYear();
   const years = Array.from({ length: 31 }, (_, index) => {
     const option = year - 10 + index;

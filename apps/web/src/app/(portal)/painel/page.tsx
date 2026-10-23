@@ -19,6 +19,7 @@ import { Badge, PageHeading, Empty } from '@/components/ui';
 import { MeetingCard } from '@/components/meeting-card';
 import { formatDate } from '@/lib/types';
 import { MemberAvatar } from '@/components/member-avatar';
+import { PortalUpdates } from '@/components/portal-updates';
 export default function Dashboard() {
   const { data } = usePortal();
   if (!data) return null;
@@ -82,6 +83,7 @@ export default function Dashboard() {
           </span>
         }
       />
+      <PortalUpdates userId={data.user.id} />
       <div className={`home-intro ${me ? 'has-profile' : ''}`}>
         <section className="home-focus">
           <div>

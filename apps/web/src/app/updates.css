@@ -1,0 +1,41 @@
+.updates-banner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 24px;
+  margin-bottom: 26px;
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line));
+  border-radius: 20px;
+  background: linear-gradient(110deg, color-mix(in srgb, var(--gold) 9%, var(--white)), var(--white));
+}
+.updates-symbol {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 45px;
+  height: 45px;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.updates-banner > div { flex: 1; }
+.updates-banner strong { display: block; margin: 5px 0; font-family: var(--font-display); font-size: 17px; }
+.updates-banner p, .updates-intro p, .updates-list p, .updates-footnote { color: var(--muted); line-height: 1.7; margin: 0; }
+.updates-banner .eyebrow { font-size: 8px; }
+.updates-intro { padding: 4px 0 24px; }
+.updates-intro h3 { font-family: var(--font-display); font-size: clamp(24px, 5vw, 32px); margin: 12px 0; letter-spacing: -1px; }
+.updates-list { display: grid; gap: 12px; }
+.updates-list article { display: flex; align-items: flex-start; gap: 15px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: color-mix(in srgb, var(--accent-soft) 20%, transparent); }
+.updates-list h4 { margin: 0 0 7px; font-family: var(--font-display); font-size: 14px; }
+.updates-list .text-button { display: inline-flex; margin-top: 10px; font-size: 11px; }
+.updates-footnote { font-size: 12px; padding: 22px 0; }
+.updates-footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; border-top: 1px solid var(--line); padding-top: 20px; }
+.updates-footer > span { color: var(--muted); font-size: 11px; }
+@media (max-width: 640px) {
+  .updates-banner { flex-wrap: wrap; padding: 20px; gap: 14px; }
+  .updates-banner > div { min-width: 180px; }
+  .updates-banner > button { width: 100%; }
+  .updates-list article { padding: 16px 12px; gap: 12px; }
+  .updates-list .updates-symbol { width: 35px; height: 35px; border-radius: 11px; }
+}

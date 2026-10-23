@@ -78,7 +78,16 @@ export default function Agenda() {
         />
         <SearchBox value={search} onChange={setSearch} label="Buscar reunião ou pauta" />
       </div>
-      <div className="agenda-layout">
+      <div className="refresh-list-caption" aria-live="polite">
+        <span>
+          {list.length} encontro{list.length === 1 ? '' : 's'}
+          {day ? ` em ${day.split('-').reverse().join('/')}` : ''}
+        </span>
+        <span>
+          <CalendarDays size={13} /> Horários de Brasília
+        </span>
+      </div>
+      <div className={`agenda-layout ${!list.length ? 'is-empty' : ''}`}>
         <AgendaCalendar
           meetings={filtered}
           now={data.serverTime}
@@ -86,15 +95,6 @@ export default function Agenda() {
           onSelect={setDay}
         />
         <div className="agenda-results">
-          <div className="refresh-list-caption" aria-live="polite">
-            <span>
-              {list.length} encontro{list.length === 1 ? '' : 's'}
-              {day ? ` em ${day.split('-').reverse().join('/')}` : ''}
-            </span>
-            <span>
-              <CalendarDays size={13} /> Horários de Brasília
-            </span>
-          </div>
           <div className="event-grid">
             {list.length ? (
               list.map((m) => <MeetingCard key={m.id} meeting={m} />)

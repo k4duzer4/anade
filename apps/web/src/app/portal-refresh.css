@@ -546,7 +546,7 @@
 .refresh-polls-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+  align-items: stretch;
   gap: 20px;
 }
 .event-grid > .panel,
@@ -554,6 +554,8 @@
   grid-column: 1/-1;
 }
 .event-card {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   border: 1px solid var(--card-edge);
   border-radius: 22px;
@@ -765,6 +767,7 @@
   color: var(--muted);
 }
 .event-footer {
+  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -831,6 +834,8 @@
   margin: 10px 0 0;
 }
 .refresh-poll {
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--card-edge);
   padding: 28px;
   border-radius: 24px;
@@ -939,6 +944,7 @@
   color: var(--card-fill);
 }
 .refresh-poll .poll-card-bottom {
+  margin-top: auto;
   padding-top: 17px;
   gap: 12px;
   flex-wrap: wrap;
@@ -1326,6 +1332,51 @@
   grid-template-columns: 292px minmax(0, 1fr);
   align-items: start;
   gap: 26px;
+}
+.agenda-layout.is-empty {
+  align-items: stretch;
+}
+.agenda-layout.is-empty .agenda-calendar {
+  position: static;
+}
+.agenda-layout.is-empty .agenda-results,
+.agenda-layout.is-empty .event-grid {
+  display: flex;
+}
+.agenda-layout.is-empty .event-grid {
+  flex: 1;
+}
+.agenda-layout.is-empty .event-grid > .panel {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  margin: 0;
+}
+.profile-refresh .member-profile-columns {
+  align-items: stretch;
+}
+.profile-refresh .member-profile-main {
+  grid-template-rows: 1fr auto;
+}
+.profile-refresh .member-profile-main > .member-profile-section:first-child {
+  display: flex;
+  flex-direction: column;
+}
+.profile-refresh
+  .member-profile-main
+  > .member-profile-section:first-child
+  > .member-profile-facts {
+  margin-top: auto;
+}
+.profile-refresh .member-profile-contact {
+  display: flex;
+  flex-direction: column;
+}
+.profile-refresh .member-profile-contact > .member-profile-footnote {
+  margin-top: auto;
+}
+.people-refresh .members-grid {
+  align-items: stretch;
 }
 .agenda-results {
   min-width: 0;

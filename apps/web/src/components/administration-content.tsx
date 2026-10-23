@@ -3,34 +3,35 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ArrowUpRight,
-  CalendarDays,
   Check,
   ContactRound,
   Hash,
-  Landmark,
   LoaderCircle,
   Search,
   ShieldCheck,
   UserPlus,
-  Users,
-  Vote,
-  Clock3,
+  RefreshCw,
+  LayoutDashboard,
 } from 'lucide-react';
 import { usePortal } from './portal-provider';
-import { Badge, Empty, ErrorNotice, PageHeading, SubmitButton } from './ui';
-import { initials } from '@/lib/types';
+import { Empty, ErrorNotice, PageHeading, SubmitButton } from './ui';
 import { Form } from './form';
+import { AdminOverview } from './admin-overview';
+import { MemberAvatar } from './member-avatar';
 
 type Account = { id: string; discord: string; name: string; isAdmin: boolean };
 
 export default function AdministrationContent() {
-  const { data, mutate, notify } = usePortal();
+  const { data, mutate, notify, refresh } = usePortal();
+  const [tab, setTab] = useState<'overview' | 'access'>('overview');
+  const [version, setVersion] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [discordId, setDiscordId] = useState('');
   const [selected, setSelected] = useState<Account | null>(null);
   const [error, setError] = useState('');
+  const [accountsError, setAccountsError] = useState('');
   const [busy, setBusy] = useState(false);
 
   const loadAccounts = useCallback(async (signal?: AbortSignal) => {
@@ -46,16 +47,19 @@ export default function AdministrationContent() {
     const controller = new AbortController();
     loadAccounts(controller.signal)
       .then((result) => {
-        if (!controller.signal.aborted) setAccounts(result);
+        if (!controller.signal.aborted) {
+          setAccounts(result);
+          setAccountsError('');
+        }
       })
       .catch((failure) => {
-        if (!controller.signal.aborted) setError(failure.message);
+        if (!controller.signal.aborted) setAccountsError(failure.message);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [data?.user.admin, loadAccounts]);
+  }, [data?.user.admin, loadAccounts, version]);
 
   if (!data?.user.admin)
     return (
@@ -96,213 +100,206 @@ export default function AdministrationContent() {
       setBusy(false);
     }
   }
-  const actions = [
-    {
-      title: 'Consultar pontos',
-      description: 'Participação e comprovantes dos filiados.',
-      href: '/administracao/pontos',
-      Icon: Clock3,
-    },
-    {
-      title: 'Agenda do partido',
-      description: 'Reuniões, pautas e atas.',
-      href: '/agenda',
-      Icon: CalendarDays,
-    },
-    {
-      title: 'Votações internas',
-      description: 'Propostas e decisões coletivas.',
-      href: '/votacoes',
-      Icon: Vote,
-    },
-    {
-      title: 'Direção',
-      description: 'Composição e responsabilidades.',
-      href: '/direcao',
-      Icon: Landmark,
-    },
-  ];
   return (
-    <>
+    <div className="refresh-page admin-dashboard">
       <PageHeading
-        eyebrow="GESTÃO DO PORTAL"
-        title="ADMINISTRAÇÃO."
-        description="Organize o partido e gerencie quem pode cuidar deste espaço."
+        eyebrow="ADMINISTRAÇÃO · ANADE 10"
+        title="Centro de gestão."
+        description="Acompanhe a participação, organize as decisões e cuide da nossa aliança."
         action={
-          <Badge tone="gold">
-            <ShieldCheck size={14} /> Acesso administrativo
-          </Badge>
+          <button
+            className="button secondary"
+            type="button"
+            disabled={refreshing || loading}
+            onClick={async () => {
+              setRefreshing(true);
+              setLoading(true);
+              setError('');
+              setAccountsError('');
+              setVersion((v) => v + 1);
+              try {
+                await refresh();
+              } finally {
+                setRefreshing(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} className={refreshing ? 'spin' : ''} />
+            Atualizar painel
+          </button>
         }
       />
-      <section className="admin-overview" aria-label="Resumo do portal">
-        <div>
-          <span>
-            <Users size={18} /> FILIADOS CADASTRADOS
-          </span>
-          <strong>{data.members.length}</strong>
-          <small>fichas no diretório</small>
+      <div className="admin-navigation">
+        <div role="group" aria-label="Seções da administração" className="refresh-filters">
+          <button
+            type="button"
+            aria-pressed={tab === 'overview'}
+            onClick={() => setTab('overview')}
+          >
+            <LayoutDashboard size={15} />
+            Visão geral
+          </button>
+          <button type="button" aria-pressed={tab === 'access'} onClick={() => setTab('access')}>
+            <ShieldCheck size={15} />
+            Acessos e equipe
+          </button>
         </div>
-        <div>
-          <span>
-            <ShieldCheck size={18} /> ADMINISTRADORES LOCAIS
-          </span>
-          <strong>{loading ? '—' : admins.length}</strong>
-          <small>permissões gerenciadas no portal</small>
-        </div>
-        <div>
-          <span>
-            <Vote size={18} /> VOTAÇÕES EM ABERTO
-          </span>
-          <strong>
-            {
-              data.polls.filter(
-                (poll) => !poll.closed && Date.parse(poll.deadline) > Date.parse(data.serverTime),
-              ).length
-            }
-          </strong>
-          <small>decisões em andamento</small>
-        </div>
-      </section>
-      <section className="admin-shortcuts" aria-label="Ferramentas de administração">
-        {actions.map(({ title, description, href, Icon }) => (
-          <Link href={href} key={href}>
-            <span className="section-icon">
-              <Icon size={21} />
-            </span>
-            <span>
-              <strong>{title}</strong>
-              <small>{description}</small>
-            </span>
-            <ArrowUpRight size={18} />
-          </Link>
-        ))}
-      </section>
-      <div className="admin-columns">
-        <section className="panel admin-grant-panel">
-          <header className="admin-section-heading">
-            <span className="section-icon">
-              <UserPlus size={21} />
-            </span>
-            <div>
-              <span className="eyebrow">COMPARTILHAR A GESTÃO</span>
-              <h2>Adicionar administrador</h2>
-            </div>
-          </header>
-          <p className="admin-description">
-            Informe o ID do usuário no Discord e confira a conta antes de conceder a permissão.
-          </p>
-          <Form onSubmit={locate} className="admin-lookup-form">
-            <label className="field">
-              ID do usuário Discord
-              <div className="admin-id-input">
-                <Hash size={17} />
-                <input
-                  name="discordId"
-                  value={discordId}
-                  onChange={(event) => {
-                    setDiscordId(event.target.value);
-                    setSelected(null);
-                    setError('');
-                  }}
-                  placeholder="Ex.: 123456789012345678"
-                  inputMode="numeric"
-                  pattern="[0-9]{17,20}"
-                  minLength={17}
-                  maxLength={20}
-                  required
-                  disabled={busy || loading}
-                  autoComplete="off"
-                  aria-describedby="admin-id-help"
-                />
-              </div>
-              <small id="admin-id-help">
-                Use o ID da pessoa, não o ID de um cargo. Ela precisa ter entrado no portal pelo
-                menos uma vez.
-              </small>
-            </label>
-            <button type="submit" className="button secondary" disabled={busy || loading}>
-              {loading ? <LoaderCircle size={16} className="spin" /> : <Search size={16} />}{' '}
-              Localizar conta
-            </button>
-          </Form>
-          {selected && (
-            <div className="admin-account-preview">
-              <div className="admin-account-identity">
-                <span className="avatar large">{initials(selected.name || selected.discord)}</span>
-                <div>
-                  <strong>{selected.name || selected.discord}</strong>
-                  <span>@{selected.discord}</span>
-                  <code>{selected.id}</code>
-                </div>
-              </div>
-              {selected.isAdmin ? (
-                <p className="admin-already-granted">
-                  <Check size={17} /> Esta conta já é administradora.
-                </p>
-              ) : (
-                <>
-                  <p>
-                    Essa pessoa poderá gerenciar reuniões, votações, direção e conceder
-                    administração a outras contas.
-                  </p>
-                  <Form
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void grant();
-                    }}
-                  >
-                    <SubmitButton busy={busy}>
-                      <ShieldCheck size={16} /> Conceder administração
-                    </SubmitButton>
-                  </Form>
-                </>
-              )}
-            </div>
-          )}
-          <ErrorNotice message={error} />
-        </section>
-        <section className="panel admin-list-panel">
-          <header className="admin-section-heading">
-            <span className="section-icon">
-              <ShieldCheck size={21} />
-            </span>
-            <div>
-              <span className="eyebrow">QUEM CUIDA DO PORTAL</span>
-              <h2>Administradores locais</h2>
-            </div>
-          </header>
-          {loading ? (
-            <div className="admin-loading" role="status">
-              <LoaderCircle className="spin" size={21} /> Carregando contas…
-            </div>
-          ) : admins.length ? (
-            <ul className="admin-account-list">
-              {admins.map((account) => (
-                <li key={account.id}>
-                  <span className="avatar">{initials(account.name || account.discord)}</span>
-                  <div>
-                    <strong>
-                      {account.name || account.discord}
-                      {account.id === data.user.id && <small>Você</small>}
-                    </strong>
-                    <span>@{account.discord}</span>
-                    <code>{account.id}</code>
-                  </div>
-                  <ShieldCheck size={17} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Empty>
-              <ContactRound size={25} />
-              <p>
-                Nenhuma conta com administração local. Acesso também pode ser concedido por um cargo
-                configurado no Discord.
-              </p>
-            </Empty>
-          )}
-        </section>
+        <span>
+          <ShieldCheck size={14} />
+          Exclusivo da administração
+        </span>
       </div>
-    </>
+      {tab === 'overview' ? (
+        <>
+          <ErrorNotice message={accountsError} />
+          <AdminOverview
+            adminsCount={loading || accountsError ? null : admins.length}
+            refreshVersion={version}
+            onManageAccess={() => setTab('access')}
+          />
+        </>
+      ) : (
+        <>
+          <ErrorNotice message={accountsError} />
+          <div className="admin-columns">
+            <section className="panel admin-grant-panel">
+              <header className="admin-section-heading">
+                <span className="section-icon">
+                  <UserPlus size={21} />
+                </span>
+                <div>
+                  <span className="eyebrow">COMPARTILHAR A GESTÃO</span>
+                  <h2>Adicionar administrador</h2>
+                </div>
+              </header>
+              <p className="admin-description">
+                Informe o ID do usuário no Discord e confira a conta antes de conceder a permissão.
+              </p>
+              <Form onSubmit={locate} className="admin-lookup-form">
+                <label className="field">
+                  ID do usuário Discord
+                  <div className="admin-id-input">
+                    <Hash size={17} />
+                    <input
+                      name="discordId"
+                      value={discordId}
+                      onChange={(event) => {
+                        setDiscordId(event.target.value);
+                        setSelected(null);
+                        setError('');
+                      }}
+                      placeholder="Ex.: 123456789012345678"
+                      inputMode="numeric"
+                      pattern="[0-9]{17,20}"
+                      minLength={17}
+                      maxLength={20}
+                      required
+                      disabled={busy || loading || !!accountsError}
+                      autoComplete="off"
+                      aria-describedby="admin-id-help"
+                    />
+                  </div>
+                  <small id="admin-id-help">
+                    Use o ID da pessoa, não o ID de um cargo. Ela precisa ter entrado no portal pelo
+                    menos uma vez.
+                  </small>
+                </label>
+                <button
+                  type="submit"
+                  className="button secondary"
+                  disabled={busy || loading || !!accountsError}
+                >
+                  {loading ? <LoaderCircle size={16} className="spin" /> : <Search size={16} />}{' '}
+                  Localizar conta
+                </button>
+              </Form>
+              {selected && (
+                <div className="admin-account-preview">
+                  <div className="admin-account-identity">
+                    <MemberAvatar
+                      className="avatar large"
+                      name={selected.name || selected.discord}
+                      src={data.members.find((m) => m.id === selected.id)?.avatarUrl}
+                    />
+                    <div>
+                      <strong>{selected.name || selected.discord}</strong>
+                      <span>@{selected.discord}</span>
+                      <code>{selected.id}</code>
+                    </div>
+                  </div>
+                  {selected.isAdmin ? (
+                    <p className="admin-already-granted">
+                      <Check size={17} /> Esta conta já é administradora.
+                    </p>
+                  ) : (
+                    <>
+                      <p>
+                        Essa pessoa poderá gerenciar reuniões, votações, direção e conceder
+                        administração a outras contas.
+                      </p>
+                      <Form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void grant();
+                        }}
+                      >
+                        <SubmitButton busy={busy}>
+                          <ShieldCheck size={16} /> Conceder administração
+                        </SubmitButton>
+                      </Form>
+                    </>
+                  )}
+                </div>
+              )}
+              <ErrorNotice message={error} />
+            </section>
+            <section className="panel admin-list-panel">
+              <header className="admin-section-heading">
+                <span className="section-icon">
+                  <ShieldCheck size={21} />
+                </span>
+                <div>
+                  <span className="eyebrow">QUEM CUIDA DO PORTAL</span>
+                  <h2>Administradores locais</h2>
+                </div>
+              </header>
+              {loading ? (
+                <div className="admin-loading" role="status">
+                  <LoaderCircle className="spin" size={21} /> Carregando contas…
+                </div>
+              ) : admins.length ? (
+                <ul className="admin-account-list">
+                  {admins.map((account) => (
+                    <li key={account.id}>
+                      <MemberAvatar
+                        name={account.name || account.discord}
+                        src={data.members.find((m) => m.id === account.id)?.avatarUrl}
+                      />
+                      <div>
+                        <strong>
+                          {account.name || account.discord}
+                          {account.id === data.user.id && <small>Você</small>}
+                        </strong>
+                        <span>@{account.discord}</span>
+                        <code>{account.id}</code>
+                      </div>
+                      <ShieldCheck size={17} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <Empty>
+                  <ContactRound size={25} />
+                  <p>
+                    Nenhuma conta com administração local. Acesso também pode ser concedido por um
+                    cargo configurado no Discord.
+                  </p>
+                </Empty>
+              )}
+            </section>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

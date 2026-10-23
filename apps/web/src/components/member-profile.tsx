@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -18,11 +19,33 @@ import {
   Sparkles,
   UserRound,
   Copy,
+  CalendarDays,
 } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { Badge, Empty, PageHeading } from './ui';
 import { MemberAvatar } from './member-avatar';
 import { ProfileImageControl } from './profile-media-editor';
+
+function Biography({ text = '' }: { text?: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <>
+      <p className={`member-profile-bio ${!expanded && text.length > 420 ? 'is-collapsed' : ''}`}>
+        {text || 'Este personagem ainda não compartilhou sua biografia.'}
+      </p>
+      {text.length > 420 && (
+        <button
+          className="text-button bio-toggle"
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? 'Ler menos' : 'Ler trajetória completa'} <ArrowUpRight size={14} />
+        </button>
+      )}
+    </>
+  );
+}
 
 function CopyContact({ value, label }: { value: string; label: string }) {
   const { notify } = usePortal();
@@ -174,6 +197,25 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
               <span aria-hidden="true">/</span>
               {member.season}
             </p>
+            <div className="profile-identity-links">
+              {member.blue && (
+                <a href="#perfil-contatos">
+                  <AtSign size={13} />
+                  {member.blue.replace(/^@/, '')}
+                </a>
+              )}
+              {member.joinedAt && (
+                <span>
+                  <CalendarDays size={13} />
+                  No portal desde{' '}
+                  {new Intl.DateTimeFormat('pt-BR', {
+                    month: 'short',
+                    year: 'numeric',
+                    timeZone: 'America/Sao_Paulo',
+                  }).format(new Date(member.joinedAt))}
+                </span>
+              )}
+            </div>
           </div>
           <Badge tone="green">
             <ShieldCheck size={13} /> Filiado ANADE
@@ -221,9 +263,7 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
                 <h2>{own ? 'Minha trajetória' : 'Trajetória'}</h2>
               </div>
             </header>
-            <p className="member-profile-bio">
-              {member.bio || 'Este personagem ainda não compartilhou sua biografia.'}
-            </p>
+            <Biography text={member.bio} />
             <dl className="member-profile-facts">
               <div>
                 <dt>Profissão</dt>

@@ -1,5 +1,27 @@
 'use client';
 import { Search, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+export function PagePulse({
+  items,
+}: {
+  items: { label: string; value: number | string; Icon: LucideIcon }[];
+}) {
+  return (
+    <div className="page-pulse">
+      {items.map(({ label, value, Icon }) => (
+        <div key={label}>
+          <span className="pulse-icon">
+            <Icon size={21} />
+          </span>
+          <span>
+            <strong>{value}</strong>
+            <small>{label}</small>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 export function SearchBox({
   value,
   onChange,

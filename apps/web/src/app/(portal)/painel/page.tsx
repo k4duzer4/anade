@@ -12,6 +12,7 @@ import {
   ContactRound,
   Flag,
   Clock3,
+  MapPin,
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { Badge, PageHeading, Empty } from '@/components/ui';
@@ -81,29 +82,46 @@ export default function Dashboard() {
           </span>
         }
       />
-      <section className="home-focus">
-        <div>
-          <span className="eyebrow">{focus.label}</span>
-          <h2>{focus.title}</h2>
-          <p>{focus.description}</p>
-          <Link href={focus.href} className="button primary">
-            {focus.action}
-            <ArrowRight size={15} />
-          </Link>
-        </div>
-        <div className="home-focus-art">
-          <Image
-            src="/brand/brasil.png"
-            alt="Ilustração da diversidade brasileira na ANADE"
-            fill
-            priority
-            sizes="(max-width:700px) 50vw, 30vw"
-          />
-          <span>
-            ANADE<strong>10</strong>
-          </span>
-        </div>
-      </section>
+      <div className={`home-intro ${me ? 'has-profile' : ''}`}>
+        <section className="home-focus">
+          <div>
+            <span className="eyebrow">{focus.label}</span>
+            <h2>{focus.title}</h2>
+            <p>{focus.description}</p>
+            <Link href={focus.href} className="button primary">
+              {focus.action}
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+          <div className="home-focus-art">
+            <Image
+              src="/brand/brasil.png"
+              alt="Ilustração da diversidade brasileira na ANADE"
+              fill
+              priority
+              sizes="(max-width:700px) 50vw, 30vw"
+            />
+            <span>
+              ANADE<strong>10</strong>
+            </span>
+          </div>
+        </section>
+        {me && (
+          <aside className="home-identity">
+            <span className="eyebrow">MINHA IDENTIDADE</span>
+            <MemberAvatar name={me.name} src={me.avatarUrl} />
+            <h2>{me.name}</h2>
+            <p>
+              <MapPin size={13} />
+              {[me.city, me.state].filter(Boolean).join(' · ')}
+            </p>
+            <span className="home-identity-ideology">{me.ideology}</span>
+            <Link href="/ficha" className="button secondary">
+              Meu perfil <ArrowUpRight size={15} />
+            </Link>
+          </aside>
+        )}
+      </div>
       <section className="home-shortcuts" aria-label="Acesso rápido">
         {[
           {
@@ -164,7 +182,7 @@ export default function Dashboard() {
           <header className="panel-heading">
             <div>
               <span className="eyebrow">NOSSA AGENDA</span>
-              <h2>PRÓXIMO ENCONTRO</h2>
+              <h2>Próximo encontro</h2>
             </div>
             <Link className="text-button" href="/agenda">
               Ver agenda
@@ -181,7 +199,7 @@ export default function Dashboard() {
           <header className="panel-heading">
             <div>
               <span className="eyebrow">DECISÕES COLETIVAS</span>
-              <h2>A PALAVRA É SUA</h2>
+              <h2>A palavra é sua</h2>
             </div>
             <Badge>
               {polls.length} aberta{polls.length === 1 ? '' : 's'}
@@ -206,7 +224,7 @@ export default function Dashboard() {
                 <p>
                   Até {formatDate(p.deadline)} · {p.total} votos
                 </p>
-                <Link href="/votacoes" className="text-button">
+                <Link href={`/votacoes#votacao-${p.id}`} className="text-button">
                   {p.hasVoted ? 'Acompanhar votação' : 'Participar da votação'}
                   <ArrowRight size={15} />
                 </Link>
@@ -221,7 +239,7 @@ export default function Dashboard() {
         <header className="panel-heading">
           <div>
             <span className="eyebrow">UMA ALIANÇA DE PESSOAS</span>
-            <h2>QUEM CONSTRÓI A ANADE</h2>
+            <h2>Quem constrói a ANADE</h2>
           </div>
           <Link href="/filiados" className="text-button">
             Conhecer filiados

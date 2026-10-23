@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { Plus, ShieldCheck } from 'lucide-react';
+import { Plus, ShieldCheck, Vote, CheckCheck, Archive } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, Modal, SubmitButton, ErrorNotice, Empty } from '@/components/ui';
 import { PollCard } from '@/components/poll-card';
 import { Select } from '@/components/select';
 import { DateTimePicker } from '@/components/date-time-picker';
 import { Form } from '@/components/form';
-import { SearchBox, ViewFilters } from '@/components/portal-tools';
+import { SearchBox, ViewFilters, PagePulse } from '@/components/portal-tools';
 import { searchText } from '@/lib/types';
 export default function Polls() {
   const { data, mutate, notify } = usePortal();
@@ -77,6 +77,21 @@ export default function Polls() {
           )
         }
       />
+      <PagePulse
+        items={[
+          { label: 'aguardando seu voto', value: pending.length, Icon: Vote },
+          {
+            label: 'votos em decisões abertas',
+            value: active.length - pending.length,
+            Icon: CheckCheck,
+          },
+          {
+            label: 'resultados disponíveis',
+            value: data.polls.length - active.length,
+            Icon: Archive,
+          },
+        ]}
+      />
       <div className="refresh-toolbar">
         <ViewFilters
           label="Filtrar votações"
@@ -90,7 +105,7 @@ export default function Polls() {
         />
         <SearchBox value={search} onChange={setSearch} label="Buscar votação" />
       </div>
-      <div className="refresh-list-caption">
+      <div className="refresh-list-caption" aria-live="polite">
         <span>
           {list.length} votaç{list.length === 1 ? 'ão' : 'ões'}
         </span>

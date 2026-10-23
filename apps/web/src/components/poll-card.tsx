@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Users,
   MinusCircle,
+  Check,
 } from 'lucide-react';
 import { m } from 'motion/react';
 import { usePortal } from './portal-provider';
@@ -71,6 +72,17 @@ export function PollCard({ poll: p }: { poll: Poll }) {
         {p.closed ? 'Encerramento' : 'Vote até'} {formatDate(p.deadline)}
       </div>
       {!p.closed && !p.hasVoted && (
+        <div className="vote-steps" aria-label="Etapas do voto">
+          <span className="is-current">
+            <b>1</b> Escolha
+          </span>
+          <i />
+          <span className={selection !== null ? 'is-current' : ''}>
+            <b>2</b> Revise e confirme
+          </span>
+        </div>
+      )}
+      {!p.closed && !p.hasVoted && (
         <fieldset className="poll-options">
           <legend>Escolha uma alternativa</legend>
           {p.options.map((o, i) => (
@@ -91,11 +103,12 @@ export function PollCard({ poll: p }: { poll: Poll }) {
                 {o}
               </span>
               {o === 'Abstenção' && <MinusCircle size={16} />}{' '}
-              {selection === i && (
-                <m.span className="choice-check" layoutId={`choice-${p.id}`}>
-                  <CheckCircle2 size={17} />
-                </m.span>
-              )}
+              <span
+                className={`choice-indicator ${selection === i ? 'is-selected' : ''}`}
+                aria-hidden="true"
+              >
+                {selection === i && <Check size={14} />}
+              </span>
             </label>
           ))}
         </fieldset>
@@ -183,6 +196,11 @@ export function PollCard({ poll: p }: { poll: Poll }) {
           </button>
         )}
       </div>
+      {!p.closed && !p.hasVoted && selection !== null && (
+        <p className="vote-selection-note" role="status">
+          Escolha selecionada. Seu voto só será enviado após a confirmação.
+        </p>
+      )}
       {data.user.admin && !p.closed && (
         <button
           className="text-button danger close-poll"

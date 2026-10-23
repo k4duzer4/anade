@@ -11,18 +11,23 @@ import {
   ShieldCheck,
   BriefcaseBusiness,
   X,
+  LayoutGrid,
+  List,
+  Sparkles,
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, Badge, Empty } from '@/components/ui';
 import { MemberAvatar } from '@/components/member-avatar';
 import { Select } from '@/components/select';
 import { searchText } from '@/lib/types';
+import { PagePulse } from '@/components/portal-tools';
 export default function Members() {
   const { data, config } = usePortal();
   const [search, setSearch] = useState(''),
     [state, setState] = useState('');
   const [sort, setSort] = useState('name');
   const [ideology, setIdeology] = useState('');
+  const [view, setView] = useState<'grid' | 'list'>('grid');
   if (!data) return null;
   const list = data.members
     .filter(
@@ -45,6 +50,21 @@ export default function Members() {
         title="Nossa aliança tem nome."
         description="Encontre filiados, conheça suas trajetórias e faça parte da conversa."
         action={<Badge tone="gold">{data.members.length} filiados no portal</Badge>}
+      />
+      <PagePulse
+        items={[
+          { label: 'filiados na aliança', value: data.members.length, Icon: Users },
+          {
+            label: 'estados representados',
+            value: new Set(data.members.map((m) => m.state).filter(Boolean)).size,
+            Icon: MapPin,
+          },
+          {
+            label: 'ideologias declaradas',
+            value: new Set(data.members.map((m) => m.ideology).filter(Boolean)).size,
+            Icon: Sparkles,
+          },
+        ]}
       />
       <div className="members-toolbar">
         <label className="search-field">
@@ -106,7 +126,30 @@ export default function Members() {
           </button>
         )}
       </div>
-      <div className="members-grid">
+      <div className="people-results-bar">
+        <span aria-live="polite">
+          {list.length} {list.length === 1 ? 'pessoa encontrada' : 'pessoas encontradas'}
+        </span>
+        <div className="view-switch" role="group" aria-label="Visualização dos filiados">
+          <button
+            type="button"
+            aria-label="Exibir em cartões"
+            aria-pressed={view === 'grid'}
+            onClick={() => setView('grid')}
+          >
+            <LayoutGrid size={17} />
+          </button>
+          <button
+            type="button"
+            aria-label="Exibir em lista"
+            aria-pressed={view === 'list'}
+            onClick={() => setView('list')}
+          >
+            <List size={18} />
+          </button>
+        </div>
+      </div>
+      <div className={`members-grid ${view === 'list' ? 'is-list' : ''}`}>
         {list.length ? (
           list.map((m) => (
             <Link

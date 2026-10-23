@@ -5,6 +5,7 @@ import { Provider as TooltipProvider } from '@radix-ui/react-tooltip';
 import Agenda from '../src/app/(portal)/agenda/page';
 import Polls from '../src/app/(portal)/votacoes/page';
 import Members from '../src/app/(portal)/filiados/page';
+import { meetingDay } from '../src/components/agenda-calendar';
 const portal = vi.hoisted(() => ({
   data: {
     user: { id: 'a', admin: false },
@@ -160,10 +161,29 @@ it('votações distinguem pendentes e encerradas e revisam abstenção sem regis
 it('filiados aceita busca sem acentos e limpa estados sem alterar cadastros', async () => {
   const user = userEvent.setup();
   render(<Members />);
+  await user.click(screen.getByRole('button', { name: 'Exibir em lista' }));
+  expect(screen.getByRole('button', { name: 'Exibir em lista' }).getAttribute('aria-pressed')).toBe(
+    'true',
+  );
   await user.type(screen.getByRole('textbox', { name: 'Buscar filiados' }), 'sao');
   expect(screen.getByRole('link', { name: 'Ver perfil de Maria São Silva' })).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Ver perfil de João Alves' })).toBeNull();
   await user.click(screen.getByRole('button', { name: 'Limpar filtros' }));
   expect(screen.getByRole('link', { name: 'Ver perfil de João Alves' })).toBeTruthy();
+  expect(portal.mutate).not.toHaveBeenCalled();
+});
+it('calendário usa Brasília na virada do mês e a seleção do dia não perde reuniões ao navegar', async () => {
+  expect(meetingDay('2026-11-01T01:00:00Z')).toBe('2026-10-31');
+  expect(meetingDay('2026-11-01T03:00:00Z')).toBe('2026-11-01');
+  const user = userEvent.setup();
+  render(<Agenda />);
+  await user.click(screen.getByRole('button', { name: /24 de outubro de 2026 · 1 encontro/ }));
+  expect(screen.getByText('Reunião de São Paulo')).toBeTruthy();
+  expect(screen.queryByText('Diretório nacional')).toBeNull();
+  await user.click(screen.getByRole('button', { name: 'Próximo mês' }));
+  expect(screen.getByRole('heading', { name: 'novembro de 2026' })).toBeTruthy();
+  expect(screen.getByText('Diretório nacional')).toBeTruthy();
+  await user.click(screen.getByRole('button', { name: 'Este mês' }));
+  expect(screen.getByRole('heading', { name: 'outubro de 2026' })).toBeTruthy();
   expect(portal.mutate).not.toHaveBeenCalled();
 });

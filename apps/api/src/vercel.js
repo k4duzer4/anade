@@ -31,7 +31,11 @@ export function createVercelHandler({
     if (!env.DATABASE_URL || !/^postgres(ql)?:\/\//.test(env.DATABASE_URL))
       throw configError('DATABASE_URL');
     if (!pool) {
-      pool = poolFactory(env.DATABASE_URL, { max: 2, idleTimeoutMillis: 5000 });
+      pool = poolFactory(env.DATABASE_URL, {
+        max: 2,
+        idleTimeoutMillis: 5000,
+        transactionPooler: true,
+      });
       pool.on('error', () => console.error('Conexão PostgreSQL indisponível.'));
       attachPool(pool);
     }

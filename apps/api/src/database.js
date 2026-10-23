@@ -1,9 +1,20 @@
 import pg from 'pg';
 import { readFileSync } from 'node:fs';
-export function createPool(connectionString, { max = 8, idleTimeoutMillis = 30000 } = {}) {
+export function createPool(
+  connectionString,
+  { max = 8, idleTimeoutMillis = 30000, transactionPooler = false } = {},
+) {
   if (!connectionString)
     throw new Error('Defina DATABASE_URL do PostgreSQL/Supabase ou use npm run demo.');
   const url = new URL(connectionString);
+  // Funções serverless compartilham conexões por transação. A URI de sessão pode
+  // esgotar o limite do Supavisor mesmo com um pool pequeno em cada instância.
+  if (
+    transactionPooler &&
+    url.hostname.endsWith('.pooler.supabase.com') &&
+    (!url.port || url.port === '5432')
+  )
+    url.port = '6543';
   const local = ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
   const supabase =
     url.hostname.endsWith('.pooler.supabase.com') || url.hostname.endsWith('.supabase.co');

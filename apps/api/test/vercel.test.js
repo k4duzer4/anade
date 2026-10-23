@@ -46,7 +46,7 @@ test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e autorização 
     createVercelHandler({
       env,
       poolFactory: (_url, options) => {
-        assert.deepEqual(options, { max: 2, idleTimeoutMillis: 5000 });
+        assert.deepEqual(options, { max: 2, idleTimeoutMillis: 5000, transactionPooler: true });
         const pool = new Pool();
         const query = pool.query.bind(pool);
         // O emulador exige casts JSON explícitos nas consultas do connect-pg-simple.

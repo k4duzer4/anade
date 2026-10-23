@@ -327,14 +327,14 @@ export function CommunityHub({ kind }: { kind: Kind }) {
                           }
                         >
                           <Heart size={16} />
-                          {item.supports} apoios
+                          {item.supports} {item.supports === 1 ? 'apoio' : 'apoios'}
                         </button>
                         <button
                           className="text-button"
                           onClick={() => setDialog({ type: 'comments', item })}
                         >
                           <MessageCircle size={16} />
-                          {item.comments} comentários
+                          {item.comments} {item.comments === 1 ? 'comentário' : 'comentários'}
                         </button>
                       </>
                     ) : kind === 'announcement' ? (

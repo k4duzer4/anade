@@ -29,13 +29,19 @@ function dayLabel(day: string) {
 export function CheckinHistory({
   admin = false,
   revision = 0,
+  initialMemberId = '',
 }: {
   admin?: boolean;
   revision?: number;
+  initialMemberId?: string;
 }) {
   const { config } = usePortal();
   const [result, setResult] = useState<CheckinList | null>(null);
-  const [filters, setFilters] = useState({ day: '', memberId: '', office: '' });
+  const [filters, setFilters] = useState({
+    day: '',
+    memberId: admin ? initialMemberId : '',
+    office: '',
+  });
   const [page, setPage] = useState(0);
   const [version, setVersion] = useState(0);
   const [error, setError] = useState('');

@@ -14,6 +14,7 @@ import {
   LockKeyhole,
   Send,
   ShieldCheck,
+  Trophy,
 } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { ErrorNotice, SubmitButton } from './ui';
@@ -122,9 +123,14 @@ export default function CheckinContent() {
           <p>Dois prints. Sua participação do dia registrada.</p>
         </div>
         {data.user.admin && (
-          <Link className="checkin-admin-link" href="/administracao/pontos">
-            <ShieldCheck size={16} /> Consultar pontos <ArrowRight size={15} />
-          </Link>
+          <div className="checkin-admin-actions">
+            <Link className="checkin-admin-link" href="/administracao/pontos">
+              <ShieldCheck size={16} /> Consultar pontos <ArrowRight size={15} />
+            </Link>
+            <Link className="checkin-admin-link" href="/administracao/pontos/ranking">
+              <Trophy size={16} /> Ranking
+            </Link>
+          </div>
         )}
       </header>
       {status && !status.storageReady && (

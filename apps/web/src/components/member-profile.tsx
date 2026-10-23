@@ -17,10 +17,34 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  Copy,
 } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { Badge, Empty, PageHeading } from './ui';
 import { MemberAvatar } from './member-avatar';
+import { ProfileImageControl } from './profile-media-editor';
+
+function CopyContact({ value, label }: { value: string; label: string }) {
+  const { notify } = usePortal();
+  return (
+    <button
+      className="profile-copy"
+      type="button"
+      aria-label={`Copiar ${label}`}
+      title={`Copiar ${label}`}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(value);
+          notify(`${label} copiado.`);
+        } catch {
+          notify('Não foi possível copiar. Selecione o texto e tente novamente.');
+        }
+      }}
+    >
+      <Copy size={14} />
+    </button>
+  );
+}
 
 export default function MemberProfile({ memberId }: { memberId?: string }) {
   const { data } = usePortal();
@@ -29,6 +53,32 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
   const own = id === data.user.id;
   const member = data.members.find((person) => person.id === id);
   const positions = data.directors.filter((director) => director.memberId === id);
+  const renderCover = (src?: string) => (
+    <>
+      <Image
+        src={src || '/brand/filie-se.png'}
+        alt={src ? `Banner de ${member?.name}` : ''}
+        fill
+        sizes="(max-width: 800px) 100vw, 75vw"
+        unoptimized={!!src}
+      />
+      {!src && (
+        <>
+          <div className="member-profile-cover-copy">
+            <span>ALIANÇA NACIONAL DEMOCRÁTICA</span>
+            <strong>
+              Diferentes histórias.
+              <br />
+              Um projeto comum.
+            </strong>
+          </div>
+          <span className="member-profile-number" aria-hidden="true">
+            10
+          </span>
+        </>
+      )}
+    </>
+  );
 
   if (!member) {
     return (
@@ -70,9 +120,9 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
   }
 
   return (
-    <div className="member-profile">
+    <div className="member-profile refresh-page profile-refresh">
       <PageHeading
-        title={own ? 'MEU PERFIL.' : 'PERFIL DO FILIADO.'}
+        title={own ? 'Meu perfil.' : 'Conheça este filiado.'}
         description={
           own
             ? 'Sua identidade, sua trajetória e seu lugar na ANADE.'
@@ -92,35 +142,28 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
       />
       <section className="member-profile-hero" aria-labelledby="member-profile-name">
         <div className={`member-profile-cover ${member.bannerUrl ? 'has-custom-banner' : ''}`}>
-          <Image
-            src={member.bannerUrl || '/brand/filie-se.png'}
-            alt={member.bannerUrl ? `Banner de ${member.name}` : ''}
-            fill
-            sizes="(max-width: 800px) 100vw, 75vw"
-            unoptimized={!!member.bannerUrl}
-          />
-          {!member.bannerUrl && (
-            <>
-              <div className="member-profile-cover-copy">
-                <span>ALIANÇA NACIONAL DEMOCRÁTICA</span>
-                <strong>
-                  Diferentes histórias.
-                  <br />
-                  Um projeto comum.
-                </strong>
-              </div>
-              <span className="member-profile-number" aria-hidden="true">
-                10
-              </span>
-            </>
+          {own ? (
+            <ProfileImageControl kind="banner" current={member.bannerUrl}>
+              {renderCover}
+            </ProfileImageControl>
+          ) : (
+            renderCover(member.bannerUrl)
           )}
         </div>
         <div className="member-profile-identity">
-          <MemberAvatar
-            className="member-profile-avatar"
-            name={member.name}
-            src={member.avatarUrl}
-          />
+          {own ? (
+            <ProfileImageControl kind="avatar" current={member.avatarUrl}>
+              {(src) => (
+                <MemberAvatar className="member-profile-avatar" name={member.name} src={src} />
+              )}
+            </ProfileImageControl>
+          ) : (
+            <MemberAvatar
+              className="member-profile-avatar"
+              name={member.name}
+              src={member.avatarUrl}
+            />
+          )}
           <div className="member-profile-name">
             <span className="eyebrow">
               {own ? 'SEU PERSONAGEM NO LEGADO' : 'NOSSA ALIANÇA, NOSSA GENTE'}
@@ -160,9 +203,15 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
           </div>
         </dl>
       </section>
+      <nav className="profile-section-nav" aria-label="Seções do perfil">
+        <a href="#perfil-sobre">Sobre</a>
+        <a href="#perfil-formacao">Formação</a>
+        {positions.length > 0 && <a href="#perfil-direcao">Na direção</a>}
+        <a href="#perfil-contatos">Contatos</a>
+      </nav>
       <div className="member-profile-columns">
         <div className="member-profile-main">
-          <section className="panel member-profile-section">
+          <section className="panel member-profile-section" id="perfil-sobre">
             <header>
               <span className="section-icon">
                 <ContactRound size={20} />
@@ -186,7 +235,7 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
               </div>
             </dl>
           </section>
-          <section className="panel member-profile-section">
+          <section className="panel member-profile-section" id="perfil-formacao">
             <header>
               <span className="section-icon">
                 <GraduationCap size={21} />
@@ -218,7 +267,7 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
             )}
           </section>
           {positions.length > 0 && (
-            <section className="panel member-profile-section">
+            <section className="panel member-profile-section" id="perfil-direcao">
               <header>
                 <span className="section-icon">
                   <Landmark size={20} />
@@ -239,7 +288,7 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
             </section>
           )}
         </div>
-        <aside className="panel member-profile-section member-profile-contact">
+        <aside className="panel member-profile-section member-profile-contact" id="perfil-contatos">
           <header>
             <span className="section-icon">
               <AtSign size={20} />
@@ -254,13 +303,19 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
               <dt>
                 <AtSign size={16} /> Blue
               </dt>
-              <dd>{member.blue || 'Não informado'}</dd>
+              <dd>
+                {member.blue || 'Não informado'}
+                {member.blue && <CopyContact value={member.blue} label="Blue" />}
+              </dd>
             </div>
             <div>
               <dt>
                 <Phone size={16} /> LegApp
               </dt>
-              <dd>{member.legapp || (own ? 'Não informado' : 'Não compartilhado')}</dd>
+              <dd>
+                {member.legapp || (own ? 'Não informado' : 'Não compartilhado')}
+                {member.legapp && <CopyContact value={member.legapp} label="LegApp" />}
+              </dd>
               {own && member.legapp && !member.shareLegapp && (
                 <small>
                   <LockKeyhole size={12} /> Visível somente para você
@@ -271,7 +326,10 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
               <dt>
                 <ContactRound size={16} /> Discord vinculado
               </dt>
-              <dd>{member.discord}</dd>
+              <dd>
+                {member.discord || 'Vinculação pendente'}
+                {member.discord && <CopyContact value={member.discord} label="Discord" />}
+              </dd>
             </div>
           </dl>
           <div className="member-profile-footnote">

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { m } from 'motion/react';
 import { usePortal } from './portal-provider';
-import { StatusLabel, Modal, ErrorNotice, SubmitButton } from './ui';
+import { Modal, ErrorNotice, SubmitButton } from './ui';
 import { formatDate, type Poll } from '@/lib/types';
 export function PollCard({ poll: p }: { poll: Poll }) {
   const { data, mutate, notify } = usePortal();
@@ -41,16 +41,31 @@ export function PollCard({ poll: p }: { poll: Poll }) {
     }
   }
   return (
-    <m.article layout className="panel poll-card" transition={{ duration: 0.3 }}>
+    <m.article
+      layout
+      className="panel poll-card refresh-poll"
+      id={`votacao-${p.id}`}
+      transition={{ duration: 0.3 }}
+    >
       <div className="poll-card-top">
-        <StatusLabel kind={p.closed ? 'closed' : 'open'} />
+        <span className={`poll-stage ${p.closed ? 'is-closed' : ''}`}>
+          <span />
+          {p.closed ? 'Encerrada' : p.hasVoted ? 'Voto registrado' : 'Aguardando seu voto'}
+        </span>
         <span className="poll-privacy">
           {p.secret ? <LockKeyhole size={14} /> : <Vote size={14} />}Voto{' '}
           {p.secret ? 'secreto' : 'nominal'}
         </span>
       </div>
       <h2>{p.title}</h2>
-      <p className="poll-description">{p.description}</p>
+      {p.description.length > 220 ? (
+        <details className="poll-context">
+          <summary>Ler contexto da votação</summary>
+          <p>{p.description}</p>
+        </details>
+      ) : (
+        p.description && <p className="poll-description">{p.description}</p>
+      )}
       <div className="poll-deadline">
         <Clock3 size={14} />
         {p.closed ? 'Encerramento' : 'Vote até'} {formatDate(p.deadline)}
@@ -163,7 +178,7 @@ export function PollCard({ poll: p }: { poll: Poll }) {
               setDialog('vote');
             }}
           >
-            Registrar voto
+            Revisar voto
             <ArrowRight size={14} />
           </button>
         )}

@@ -10,28 +10,40 @@ import {
   Users,
   ShieldCheck,
   BriefcaseBusiness,
+  X,
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, Badge, Empty } from '@/components/ui';
 import { MemberAvatar } from '@/components/member-avatar';
 import { Select } from '@/components/select';
+import { searchText } from '@/lib/types';
 export default function Members() {
   const { data, config } = usePortal();
   const [search, setSearch] = useState(''),
     [state, setState] = useState('');
+  const [sort, setSort] = useState('name');
+  const [ideology, setIdeology] = useState('');
   if (!data) return null;
-  const list = data.members.filter(
-    (m) =>
-      (!state || m.state === state) &&
-      `${m.name} ${m.blue} ${m.ideology} ${m.office}`
-        .toLocaleLowerCase('pt-BR')
-        .includes(search.toLocaleLowerCase('pt-BR')),
-  );
+  const list = data.members
+    .filter(
+      (m) =>
+        (!state || m.state === state) &&
+        (!ideology || m.ideology === ideology) &&
+        searchText(`${m.name} ${m.blue} ${m.ideology} ${m.office} ${m.city} ${m.state}`).includes(
+          searchText(search),
+        ),
+    )
+    .sort((a, b) =>
+      sort === 'recent'
+        ? Date.parse(b.joinedAt) - Date.parse(a.joinedAt)
+        : a.name.localeCompare(b.name, 'pt-BR'),
+    );
   return (
-    <>
+    <div className="refresh-page people-refresh">
       <PageHeading
-        title="NOSSA FORÇA TEM NOME."
-        description="Diferentes trajetórias, a mesma vontade de construir um projeto comum."
+        eyebrow="QUEM CONSTRÓI · ANADE"
+        title="Nossa aliança tem nome."
+        description="Encontre filiados, conheça suas trajetórias e faça parte da conversa."
         action={<Badge tone="gold">{data.members.length} filiados no portal</Badge>}
       />
       <div className="members-toolbar">
@@ -59,6 +71,40 @@ export default function Members() {
         <span className="toolbar-hint">
           {list.length} resultado{list.length === 1 ? '' : 's'}
         </span>
+      </div>
+      <div className="people-filter-row">
+        <Select
+          aria-label="Filtrar por ideologia"
+          value={ideology || 'all'}
+          onValueChange={(value) => setIdeology(value === 'all' ? '' : value)}
+          options={[
+            { value: 'all', label: 'Todas as ideologias' },
+            ...(config?.ideologies || []).map((value) => ({ value, label: value })),
+          ]}
+        />
+        <Select
+          aria-label="Ordenar filiados"
+          value={sort}
+          onValueChange={setSort}
+          options={[
+            { value: 'name', label: 'Nome: A–Z' },
+            { value: 'recent', label: 'Mais recentes' },
+          ]}
+        />
+        {(search || state || ideology) && (
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => {
+              setSearch('');
+              setState('');
+              setIdeology('');
+            }}
+          >
+            <X size={13} />
+            Limpar filtros
+          </button>
+        )}
       </div>
       <div className="members-grid">
         {list.length ? (
@@ -98,6 +144,7 @@ export default function Members() {
                 <MemberAvatar className="avatar large" name={m.name} src={m.avatarUrl} />
                 <Badge tone="gray">{m.state}</Badge>
               </div>
+              {m.id === data.user.id && <span className="people-self">Seu perfil</span>}
               <h2>{m.name}</h2>
               <span className="blue-handle">
                 <AtSign size={13} />
@@ -121,7 +168,19 @@ export default function Members() {
           <section className="panel full">
             <Empty>
               <Users size={28} />
-              <p>Nenhum filiado encontrado com esses filtros.</p>
+              <h3>Ninguém por aqui com esses filtros.</h3>
+              <p>Experimente outro nome, estado ou ideologia.</p>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() => {
+                  setSearch('');
+                  setState('');
+                  setIdeology('');
+                }}
+              >
+                Ver todos os filiados
+              </button>
             </Empty>
           </section>
         )}
@@ -130,6 +189,6 @@ export default function Members() {
         <ShieldCheck size={14} /> As fichas são declaradas pelos jogadores. A lista reúne os
         cadastros do portal; o cargo no Discord é verificado no login.
       </p>
-    </>
+    </div>
   );
 }

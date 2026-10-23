@@ -93,6 +93,23 @@ export type CheckinList = {
   storageReady: boolean;
   members?: { id: string; name: string; discord: string }[];
 };
+export type CheckinRanking = {
+  records: {
+    memberId: string;
+    name: string;
+    discord: string;
+    avatarUrl: string;
+    points: number;
+    position: number;
+    lastDay: string;
+  }[];
+  summary: { points: number; participants: number };
+  period: '7' | '30' | 'all';
+  since: string | null;
+  until: string;
+  page: number;
+  hasMore: boolean;
+};
 export const formatDate = (value: string, full = false) =>
   new Intl.DateTimeFormat('pt-BR', {
     timeZone: 'America/Sao_Paulo',
@@ -107,3 +124,9 @@ export const initials = (name: string) =>
     .slice(0, 2)
     .map((s) => s[0])
     .join('');
+export const searchText = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt-BR')
+    .trim();

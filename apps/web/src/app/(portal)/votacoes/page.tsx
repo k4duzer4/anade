@@ -7,14 +7,29 @@ import { PollCard } from '@/components/poll-card';
 import { Select } from '@/components/select';
 import { DateTimePicker } from '@/components/date-time-picker';
 import { Form } from '@/components/form';
+import { SearchBox, ViewFilters } from '@/components/portal-tools';
+import { searchText } from '@/lib/types';
 export default function Polls() {
   const { data, mutate, notify } = usePortal();
   const [filter, setFilter] = useState('open'),
     [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const [search, setSearch] = useState('');
   if (!data) return null;
-  const list = data.polls.filter((p) => p.closed === (filter === 'closed')).toReversed();
+  const active = data.polls.filter((p) => !p.closed);
+  const pending = active.filter((p) => !p.hasVoted);
+  const list = data.polls
+    .filter((p) =>
+      filter === 'pending' ? !p.closed && !p.hasVoted : p.closed === (filter === 'closed'),
+    )
+    .filter((p) => searchText(`${p.title} ${p.description}`).includes(searchText(search)))
+    .sort((a, b) =>
+      filter === 'closed'
+        ? Date.parse(b.deadline) - Date.parse(a.deadline)
+        : Number(a.hasVoted) - Number(b.hasVoted) ||
+          Date.parse(a.deadline) - Date.parse(b.deadline),
+    );
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const input = Object.fromEntries(new FormData(event.currentTarget));
@@ -39,10 +54,15 @@ export default function Polls() {
     }
   }
   return (
-    <>
+    <div className="refresh-page votes-refresh">
       <PageHeading
-        title="A NOSSA VOZ DECIDE."
-        description="Um filiado, um voto. Participe dos caminhos da ANADE."
+        eyebrow="DEMOCRACIA INTERNA · ANADE"
+        title="Sua voz decide."
+        description={
+          pending.length
+            ? `${pending.length} ${pending.length === 1 ? 'decisão aguarda' : 'decisões aguardam'} sua participação. Escolha, revise e confirme.`
+            : 'Acompanhe as decisões e os resultados da nossa aliança.'
+        }
         action={
           data.user.admin && (
             <button
@@ -57,31 +77,59 @@ export default function Polls() {
           )
         }
       />
-      <div className="section-toolbar">
-        <div className="tabs" aria-label="Filtrar votações">
-          <button className={filter === 'open' ? 'active' : ''} onClick={() => setFilter('open')}>
-            Em votação <span>{data.polls.filter((p) => !p.closed).length}</span>
-          </button>
-          <button
-            className={filter === 'closed' ? 'active' : ''}
-            onClick={() => setFilter('closed')}
-          >
-            Encerradas <span>{data.polls.filter((p) => p.closed).length}</span>
-          </button>
-        </div>
-        <span className="toolbar-hint">
-          <ShieldCheck size={14} /> Voto único e definitivo
+      <div className="refresh-toolbar">
+        <ViewFilters
+          label="Filtrar votações"
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: 'open', label: 'Em andamento', count: active.length },
+            { value: 'pending', label: 'Para votar', count: pending.length },
+            { value: 'closed', label: 'Encerradas', count: data.polls.length - active.length },
+          ]}
+        />
+        <SearchBox value={search} onChange={setSearch} label="Buscar votação" />
+      </div>
+      <div className="refresh-list-caption">
+        <span>
+          {list.length} votaç{list.length === 1 ? 'ão' : 'ões'}
+        </span>
+        <span>
+          <ShieldCheck size={13} /> Voto único e definitivo
         </span>
       </div>
-      <div className="polls-grid">
+      <div className="refresh-polls-grid">
         {list.length ? (
           list.map((p) => <PollCard key={p.id} poll={p} />)
         ) : (
           <section className="panel">
             <Empty>
-              {filter === 'open'
-                ? 'Não há votações abertas neste momento.'
-                : 'As votações encerradas aparecerão aqui.'}
+              <ShieldCheck size={27} />
+              <h3>
+                {search
+                  ? 'Nenhuma votação encontrada.'
+                  : filter === 'pending'
+                    ? 'Tudo em dia com suas decisões.'
+                    : filter === 'open'
+                      ? 'Sem decisões abertas por enquanto.'
+                      : 'Os resultados aparecerão aqui.'}
+              </h3>
+              <p>
+                {search
+                  ? 'Experimente buscar por outro tema.'
+                  : 'Acompanhe as próximas votações da ANADE.'}
+              </p>
+              {(search || filter === 'pending') && (
+                <button
+                  className="button secondary"
+                  onClick={() => {
+                    setSearch('');
+                    setFilter('open');
+                  }}
+                >
+                  Ver votações em andamento
+                </button>
+              )}
             </Empty>
           </section>
         )}
@@ -156,6 +204,6 @@ export default function Polls() {
           </Form>
         </Modal>
       )}
-    </>
+    </div>
   );
 }

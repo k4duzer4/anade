@@ -2,6 +2,7 @@ import { assert, castVote } from './domain.js';
 import { randomUUID } from 'node:crypto';
 import { CHECKIN_PAGE_SIZE, presentCheckin } from './checkins.js';
 import { profileMediaUrl } from './profile-media.js';
+import { RANKING_PAGE_SIZE } from './checkin-ranking.js';
 export class PgRepository {
   constructor(pool) {
     this.pool = pool;
@@ -216,6 +217,42 @@ export class PgRepository {
     const record = rows[0];
     assert(record && (record.account_id === userId || admin), 'Comprovante não encontrado.', 404);
     return kind === 'actions' ? record.actions_path : record.blue_path;
+  }
+  async checkinRanking({ since, until, page }) {
+    const [ranking, summary] = await Promise.all([
+      this.pool.query(
+        `WITH totals AS (
+        SELECT account_id, count(*)::int AS points, max(day)::text AS last_day
+        FROM anade.checkins WHERE ($1::date IS NULL OR day >= $1::date) AND day <= $2::date GROUP BY account_id
+      ), ranked AS (SELECT *, rank() OVER (ORDER BY points DESC)::int AS position FROM totals)
+      SELECT r.*, coalesce(nullif(p.data->>'name',''),nullif(a.username,''),'Filiado sem ficha') AS name,
+        a.username AS discord, m.path AS avatar_path
+      FROM ranked r JOIN anade.accounts a ON a.id=r.account_id
+      LEFT JOIN anade.profiles p ON p.account_id=r.account_id
+      LEFT JOIN anade.profile_media m ON m.account_id=r.account_id AND m.kind='avatar'
+      ORDER BY r.points DESC, name, r.account_id LIMIT $3 OFFSET $4`,
+        [since, until, RANKING_PAGE_SIZE + 1, page * RANKING_PAGE_SIZE],
+      ),
+      this.pool.query(
+        'SELECT count(*)::int AS points, count(DISTINCT account_id)::int AS participants FROM anade.checkins WHERE ($1::date IS NULL OR day >= $1::date) AND day <= $2::date',
+        [since, until],
+      ),
+    ]);
+    return {
+      records: ranking.rows
+        .slice(0, RANKING_PAGE_SIZE)
+        .map((row) => ({
+          memberId: row.account_id,
+          name: row.name,
+          discord: row.discord,
+          points: row.points,
+          position: row.position,
+          lastDay: row.last_day,
+          avatarUrl: profileMediaUrl(row.account_id, 'avatar', row.avatar_path),
+        })),
+      hasMore: ranking.rows.length > RANKING_PAGE_SIZE,
+      summary: summary.rows[0],
+    };
   }
   async snapshot() {
     const [profiles, meetings, attendance, polls, options, votes, directors] = await Promise.all([
@@ -532,6 +569,44 @@ export class MemoryRepository {
     const row = this.checkins.find((record) => record.id === id);
     assert(row && (row.account_id === userId || admin), 'Comprovante não encontrado.', 404);
     return kind === 'actions' ? row.actions_path : row.blue_path;
+  }
+  async checkinRanking({ since, until, page }) {
+    const totals = new Map();
+    let points = 0;
+    for (const row of this.checkins) {
+      if ((since && row.day < since) || row.day > until) continue;
+      points++;
+      const current = totals.get(row.account_id) || { points: 0, lastDay: '' };
+      totals.set(row.account_id, {
+        points: current.points + 1,
+        lastDay: current.lastDay > row.day ? current.lastDay : row.day,
+      });
+    }
+    const records = Array.from(totals, ([memberId, value]) => ({
+      memberId,
+      ...value,
+      name:
+        this.data.members.find((m) => m.id === memberId)?.name ||
+        this.accounts.get(memberId) ||
+        'Filiado sem ficha',
+      discord: this.accounts.get(memberId) || '',
+      avatarUrl: profileMediaUrl(memberId, 'avatar', this.media.get(`${memberId}:avatar`)),
+      position: 0,
+    })).sort(
+      (a, b) =>
+        b.points - a.points || a.name.localeCompare(b.name) || a.memberId.localeCompare(b.memberId),
+    );
+    records.forEach((record, index) => {
+      record.position =
+        index > 0 && records[index - 1].points === record.points
+          ? records[index - 1].position
+          : index + 1;
+    });
+    return {
+      records: records.slice(page * RANKING_PAGE_SIZE, (page + 1) * RANKING_PAGE_SIZE),
+      hasMore: records.length > (page + 1) * RANKING_PAGE_SIZE,
+      summary: { points, participants: records.length },
+    };
   }
   async saveProfile(id, data) {
     const old = this.data.members.find((m) => m.id === id);

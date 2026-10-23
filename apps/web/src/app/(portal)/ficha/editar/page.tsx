@@ -19,7 +19,6 @@ import {
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, SubmitButton, ErrorNotice, Badge, RoleInsignia } from '@/components/ui';
 import { MemberAvatar } from '@/components/member-avatar';
-import { ProfileMediaEditor } from '@/components/profile-media-editor';
 export default function EditProfile() {
   const { data, config, mutate, notify } = usePortal();
   const router = useRouter();
@@ -59,7 +58,6 @@ export default function EditProfile() {
           </Link>
         }
       />
-      <ProfileMediaEditor member={me} />
       <div className="profile-layout">
         <aside className="profile-summary">
           <div className="profile-summary-top">

@@ -1,14 +1,22 @@
 'use client';
 import Image from 'next/image';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Camera, Crop, ImagePlus, LoaderCircle, Save, Trash2, Upload, X } from 'lucide-react';
 import { usePortal } from './portal-provider';
-import { ErrorNotice } from './ui';
+import { ErrorNotice, Modal } from './ui';
 import type { Member } from '@/lib/types';
 import { ProfileImageCropper } from './profile-image-cropper';
 import { centeredCrop, type CropPosition } from '@/lib/profile-crop';
 
-function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: string }) {
+function MediaField({
+  kind,
+  current,
+  renderImage,
+}: {
+  kind: 'avatar' | 'banner';
+  current?: string;
+  renderImage?: (src?: string) => ReactNode;
+}) {
   const { mutate, notify } = usePortal();
   const id = useId();
   const [file, setFile] = useState<File | null>(null);
@@ -19,6 +27,7 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
   const [editing, setEditing] = useState<{ source: File; position: CropPosition } | null>(null);
   const title = kind === 'avatar' ? 'Foto de perfil' : 'Banner do perfil';
   const src = (file && preview?.file === file ? preview.url : '') || current;
+  const inline = !!renderImage;
   useEffect(() => {
     if (!file) return;
     const url = URL.createObjectURL(file);
@@ -53,6 +62,7 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
       );
     } catch (failure) {
       setError((failure as Error).message);
+      if (inline) notify((failure as Error).message);
     } finally {
       setBusy(false);
     }
@@ -77,10 +87,143 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
       });
     } catch (failure) {
       setError((failure as Error).message);
+      if (inline) notify((failure as Error).message);
     } finally {
       setBusy(false);
     }
   }
+  const choose = (selected?: File) => {
+    if (!selected) return;
+    if (
+      !['image/png', 'image/jpeg', 'image/webp'].includes(selected.type) ||
+      selected.size === 0 ||
+      selected.size > 4 * 1024 * 1024
+    ) {
+      const message = 'Escolha uma imagem PNG, JPG ou WebP de até 4 MB.';
+      setError(message);
+      if (inline) notify(message);
+      return;
+    }
+    setError('');
+    setEditing({ source: selected, position: centeredCrop });
+  };
+  const cropper = editing && (
+    <ProfileImageCropper
+      file={editing.source}
+      kind={kind}
+      initial={editing.position}
+      onClose={() => setEditing(null)}
+      onApply={(cropped, position) => {
+        setFile(cropped);
+        setDraft({ source: editing.source, position });
+        setEditing(null);
+        setError('');
+      }}
+    />
+  );
+  const discard = () => {
+    setFile(null);
+    setDraft(null);
+    setError('');
+  };
+  if (renderImage)
+    return (
+      <div className={`profile-image-control is-${kind}`} data-has-image={!!src}>
+        {renderImage(src)}
+        <div
+          className="profile-image-toolbar"
+          role="group"
+          aria-label={`Alterar ${title.toLowerCase()}`}
+        >
+          <label className="profile-image-action" title={`Trocar ${title.toLowerCase()}`}>
+            <Camera size={17} />
+            <span className="profile-image-label">
+              Trocar {kind === 'avatar' ? 'foto' : 'banner'}
+            </span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              aria-label={`Trocar ${title.toLowerCase()}`}
+              disabled={busy}
+              onChange={(event) => {
+                choose(event.target.files?.[0]);
+                event.target.value = '';
+              }}
+            />
+          </label>
+          {current && (
+            <>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void adjust()}
+                title="Ajustar recorte"
+                aria-label={`Ajustar recorte ${kind === 'avatar' ? 'da foto' : 'do banner'}`}
+              >
+                <Crop size={16} />
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void save(true)}
+                title={`Retirar ${kind === 'avatar' ? 'foto' : 'banner'}`}
+                aria-label={`Retirar ${kind === 'avatar' ? 'foto de perfil' : 'banner'}`}
+              >
+                {busy ? <LoaderCircle size={16} className="spin" /> : <Trash2 size={16} />}
+              </button>
+            </>
+          )}
+        </div>
+        {file && !editing && preview?.file === file && (
+          <Modal
+            title={kind === 'avatar' ? 'Salvar foto de perfil' : 'Salvar banner'}
+            onClose={() => {
+              if (!busy) discard();
+            }}
+          >
+            <div className="profile-image-confirm">
+              <Image
+                src={preview.url}
+                alt={`Prévia: ${title}`}
+                width={kind === 'avatar' ? 512 : 1920}
+                height={kind === 'avatar' ? 512 : 640}
+                unoptimized
+              />
+              <p>Confira o recorte antes de atualizar seu perfil.</p>
+              <ErrorNotice message={error} />
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={discard}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => void adjust()}
+                >
+                  <Crop size={15} /> Ajustar
+                </button>
+                <button
+                  type="button"
+                  className="button primary"
+                  disabled={busy}
+                  onClick={() => void save()}
+                >
+                  {busy ? <LoaderCircle className="spin" size={15} /> : <Save size={15} />} Salvar{' '}
+                  {kind === 'avatar' ? 'foto' : 'banner'}
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
+        {cropper}
+      </div>
+    );
   return (
     <section className={`profile-media-field is-${kind}`} aria-label={title}>
       <div className="profile-media-preview" data-empty={!src}>
@@ -121,17 +264,7 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
             onChange={(event) => {
               const selected = event.target.files?.[0];
               event.target.value = '';
-              if (!selected) return;
-              if (
-                !['image/png', 'image/jpeg', 'image/webp'].includes(selected.type) ||
-                selected.size === 0 ||
-                selected.size > 4 * 1024 * 1024
-              ) {
-                setError('Escolha uma imagem PNG, JPG ou WebP de até 4 MB.');
-                return;
-              }
-              setError('');
-              setEditing({ source: selected, position: centeredCrop });
+              choose(selected);
             }}
           />
         </label>
@@ -185,22 +318,16 @@ function MediaField({ kind, current }: { kind: 'avatar' | 'banner'; current?: st
         )}
       </div>
       <ErrorNotice message={error} />
-      {editing && (
-        <ProfileImageCropper
-          file={editing.source}
-          kind={kind}
-          initial={editing.position}
-          onClose={() => setEditing(null)}
-          onApply={(cropped, position) => {
-            setFile(cropped);
-            setDraft({ source: editing.source, position });
-            setEditing(null);
-            setError('');
-          }}
-        />
-      )}
+      {cropper}
     </section>
   );
+}
+export function ProfileImageControl(props: {
+  kind: 'avatar' | 'banner';
+  current?: string;
+  children: (src?: string) => ReactNode;
+}) {
+  return <MediaField kind={props.kind} current={props.current} renderImage={props.children} />;
 }
 export function ProfileMediaEditor({ member }: { member?: Member }) {
   return (

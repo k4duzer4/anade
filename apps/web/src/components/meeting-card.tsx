@@ -1,207 +1,204 @@
 'use client';
 import { useState } from 'react';
 import {
-  CalendarDays,
-  MapPin,
-  Check,
-  ArrowRight,
-  FileText,
-  Users,
-  CheckCircle2,
-  Video,
   ArrowUpRight,
-  Settings2,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  FileText,
   ListOrdered,
+  LoaderCircle,
+  MapPin,
+  Settings2,
+  Users,
+  Video,
 } from 'lucide-react';
 import { usePortal } from './portal-provider';
-import { StatusLabel, Modal, ErrorNotice } from './ui';
+import { ErrorNotice, Modal } from './ui';
 import { MeetingForm } from './meeting-form';
-import { initials, type Meeting } from '@/lib/types';
-import { MeetingDate } from './meeting-date';
-import { Tooltip } from './floating-ui';
-export function MeetingCard({
-  meeting: m,
-  compact = false,
-}: {
-  meeting: Meeting;
-  compact?: boolean;
-}) {
+import { MemberAvatar } from './member-avatar';
+import type { Meeting } from '@/lib/types';
+
+export function MeetingCard({ meeting, compact = false }: { meeting: Meeting; compact?: boolean }) {
   const { data, mutate, notify } = usePortal();
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
-    [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [editing, setEditing] = useState(false);
   if (!data) return null;
-  const future = Date.parse(m.date) > Date.parse(data.serverTime),
-    confirmed = m.attendance.includes(data.user.id);
+  const future = Date.parse(meeting.date) > Date.parse(data.serverTime);
+  const confirmed = meeting.attendance.includes(data.user.id);
+  const date = new Date(meeting.date);
+  const moment = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat('pt-BR', { ...options, timeZone: 'America/Sao_Paulo' }).format(date);
   async function attend() {
     setBusy(true);
     setError('');
     try {
-      await mutate(`/api/meetings/${m.id}/attendance`, 'POST', { confirm: !confirmed });
+      await mutate(`/api/meetings/${meeting.id}/attendance`, 'POST', { confirm: !confirmed });
       notify(confirmed ? 'Presença cancelada.' : 'Presença confirmada. Nos vemos lá!');
-    } catch (e) {
-      setError((e as Error).message);
+    } catch (failure) {
+      setError((failure as Error).message);
     } finally {
       setBusy(false);
     }
   }
   return (
-    <article className={`meeting-card ${compact ? 'compact' : ''}`}>
-      <MeetingDate date={m.date} future={future} />
-      <div className="meeting-top">
-        <div className="meeting-intro">
-          <StatusLabel kind={future ? 'scheduled' : 'completed'} />
-          <h3>{m.title}</h3>
-          <div className="meeting-meta">
-            <span>
-              <MapPin size={13} />
-              {m.location}
+    <article className={`event-card ${compact ? 'is-compact' : ''}`} id={`encontro-${meeting.id}`}>
+      <header className="event-heading">
+        <time
+          className="event-date"
+          dateTime={meeting.date}
+          aria-label={moment({ dateStyle: 'full', timeStyle: 'short' })}
+        >
+          <span>{moment({ month: 'short' }).replace('.', '')}</span>
+          <strong>{moment({ day: '2-digit' })}</strong>
+          <small>{moment({ weekday: 'short' }).replace('.', '')}</small>
+        </time>
+        <div className="event-title">
+          <div className="event-kicker">
+            <span className={future ? 'is-upcoming' : ''}>
+              {future ? 'Próximo encontro' : 'Realizada'}
             </span>
+            <span>{moment({ hour: '2-digit', minute: '2-digit' })} · Brasília</span>
           </div>
+          <h3>{meeting.title}</h3>
+          <p>
+            <MapPin size={13} />
+            {meeting.location}
+          </p>
         </div>
-      </div>
-      <div className="meeting-agenda">
-        <div className="meeting-section-label">
-          <span>
-            <ListOrdered size={15} />
-            Pautas do encontro
+        {data.user.admin && (
+          <button
+            type="button"
+            className="event-manage"
+            aria-label={`Gerenciar reunião: ${meeting.title}`}
+            title="Gerenciar reunião"
+            onClick={() => {
+              setError('');
+              setEditing(true);
+            }}
+          >
+            <Settings2 size={16} />
+          </button>
+        )}
+      </header>
+      <div className="event-resources">
+        {meeting.meetUrl ? (
+          <a
+            className={`button ${future ? 'primary' : 'secondary'}`}
+            href={meeting.meetUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Video size={16} />
+            {future ? 'Entrar no Meet' : 'Abrir Meet'}
+            <ArrowUpRight size={13} />
+          </a>
+        ) : (
+          <span className="event-pending">
+            <Video size={15} /> Meet ainda não vinculado
           </span>
-          <b>{String(m.agenda.length).padStart(2, '0')}</b>
-        </div>
+        )}
+        {meeting.docsUrl ? (
+          <a
+            className="event-docs"
+            href={meeting.docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <FileText size={15} />
+            Ver ata
+            <ArrowUpRight size={13} />
+          </a>
+        ) : (
+          <span className="event-pending">
+            <FileText size={15} /> Ata pendente
+          </span>
+        )}
+      </div>
+      <details className="event-details">
+        <summary>
+          <ListOrdered size={15} />
+          <strong>Pautas do encontro</strong>
+          <span>
+            {meeting.agenda.length} assunto{meeting.agenda.length === 1 ? '' : 's'}
+          </span>
+          <ChevronDown size={15} />
+        </summary>
         <ol>
-          {m.agenda.map((item, i) => (
-            <li key={i}>
-              <span>{String(i + 1).padStart(2, '0')}</span>
+          {meeting.agenda.map((item, index) => (
+            <li key={index}>
+              <span>{String(index + 1).padStart(2, '0')}</span>
               {item}
             </li>
           ))}
         </ol>
-      </div>
-      <div className="meeting-resources">
-        {m.meetUrl ? (
-          <a
-            className="meeting-resource meet-resource"
-            href={m.meetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="resource-icon">
-              <Video size={19} />
-            </span>
-            <span>
-              <strong>{future ? 'Entrar no Google Meet' : 'Abrir chamada no Meet'}</strong>
-              <small>Chamada da reunião</small>
-            </span>
-            <ArrowUpRight size={16} />
-          </a>
-        ) : (
-          <div className="meeting-resource pending-resource">
-            <span className="resource-icon">
-              <Video size={19} />
-            </span>
-            <span>
-              <strong>Link do Meet pendente</strong>
-              <small>A administração vai vincular a chamada.</small>
-            </span>
-          </div>
-        )}
-        {m.docsUrl ? (
-          <a
-            className="meeting-resource docs-resource"
-            href={m.docsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="resource-icon">
-              <FileText size={19} />
-            </span>
-            <span>
-              <strong>Abrir ata no Google Docs</strong>
-              <small>Documento da reunião</small>
-            </span>
-            <ArrowUpRight size={16} />
-          </a>
-        ) : (
-          <div className="meeting-resource pending-resource">
-            <span className="resource-icon">
-              <FileText size={19} />
-            </span>
-            <span>
-              <strong>Ata ainda não vinculada</strong>
-              <small>O documento aparecerá aqui.</small>
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="meeting-actions">
+      </details>
+      {meeting.minutes && (
+        <details className="event-details event-notes">
+          <summary>
+            <FileText size={15} />
+            <strong>Notas e encaminhamentos</strong>
+            <ChevronDown size={15} />
+          </summary>
+          <p>{meeting.minutes}</p>
+        </details>
+      )}
+      <footer className="event-footer">
         {future ? (
           <button
-            className={`button ${confirmed ? 'outline' : 'primary'} small-button`}
+            type="button"
+            className={`event-attend ${confirmed ? 'is-confirmed' : ''}`}
             disabled={busy}
-            onClick={attend}
+            aria-pressed={confirmed}
+            onClick={() => void attend()}
           >
-            {confirmed ? <Check size={15} /> : <CalendarDays size={15} />}{' '}
+            {busy ? (
+              <LoaderCircle size={15} className="spin" />
+            ) : confirmed ? (
+              <Check size={15} />
+            ) : (
+              <CalendarDays size={15} />
+            )}{' '}
             {confirmed ? 'Presença confirmada' : 'Confirmar presença'}
-            {!confirmed && <ArrowRight size={14} />}
           </button>
         ) : (
-          <span className="muted">
-            <CheckCircle2 size={15} /> Encontro realizado
+          <span className="event-finished">
+            <Check size={14} />
+            Encontro realizado
           </span>
         )}
-        <span className="attendance-count">
-          {m.attendance.length > 0 ? (
-            <span className="attendee-stack">
-              {m.attendance.slice(0, 3).map((id) => (
-                <Tooltip
-                  key={id}
-                  content={data.members.find((member) => member.id === id)?.name || 'Filiado'}
-                >
-                  <span
-                    tabIndex={0}
-                    aria-label={data.members.find((member) => member.id === id)?.name || 'Filiado'}
-                  >
-                    {initials(data.members.find((member) => member.id === id)?.name || 'Filiado')}
-                  </span>
-                </Tooltip>
-              ))}
+        <div className="event-attendance">
+          {meeting.attendance.length ? (
+            <span className="event-avatars">
+              {meeting.attendance.slice(0, 3).map((id) => {
+                const person = data.members.find((member) => member.id === id);
+                return (
+                  <MemberAvatar
+                    key={id}
+                    className="event-avatar"
+                    name={person?.name || 'Filiado'}
+                    src={person?.avatarUrl}
+                  />
+                );
+              })}
             </span>
           ) : (
             <Users size={14} />
           )}
-          {m.attendance.length} {m.attendance.length === 1 ? 'confirmação' : 'confirmações'}
-        </span>
-      </div>
-      {confirmed && future && !compact && (
-        <p className="field-hint">Clique em “Presença confirmada” para cancelar sua confirmação.</p>
-      )}
-      {m.minutes && (
-        <details className="minutes-details">
-          <summary>
-            <FileText size={15} /> Notas e encaminhamentos
-          </summary>
-          <p>{m.minutes}</p>
-        </details>
-      )}
-      {data.user.admin && (
-        <button
-          className="text-button"
-          data-card-action="manage"
-          onClick={() => {
-            setError('');
-            setEditing(true);
-          }}
-        >
-          <Settings2 size={14} />
-          Gerenciar reunião
-          <ArrowRight size={13} />
-        </button>
+          <span>
+            {meeting.attendance.length} confirmaç{meeting.attendance.length === 1 ? 'ão' : 'ões'}
+          </span>
+        </div>
+      </footer>
+      {confirmed && future && (
+        <p className="event-cancel-hint">Clique na confirmação para cancelar sua presença.</p>
       )}
       <ErrorNotice message={error} />
       {editing && (
         <Modal title="Gerenciar reunião" onClose={() => setEditing(false)}>
           <MeetingForm
-            meeting={m}
+            meeting={meeting}
             onSaved={() => setEditing(false)}
             onCancel={() => setEditing(false)}
           />

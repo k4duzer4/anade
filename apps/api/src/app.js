@@ -13,6 +13,7 @@ import {
   optimizeProof,
 } from './checkins.js';
 import { MemoryProofStorage, SupabaseProofStorage } from './proof-storage.js';
+import { rankingFilters } from './checkin-ranking.js';
 import { MAX_PROFILE_IMAGE_BYTES, PROFILE_BUCKET, profileMediaRoutes } from './profile-media.js';
 import {
   assert,
@@ -318,6 +319,10 @@ export function createApp({
       today: brasiliaDay(now()),
       storageReady: storage.configured,
     });
+  });
+  app.get('/api/admin/checkins/ranking', admin, async (req, res) => {
+    const filters = rankingFilters(req.query, brasiliaDay(now()));
+    res.json({ ...(await repo.checkinRanking(filters)), ...filters });
   });
   const proofUpload = multer({
     storage: multer.memoryStorage(),

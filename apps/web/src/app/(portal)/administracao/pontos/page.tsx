@@ -1,13 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Trophy } from 'lucide-react';
 import { requireMember } from '@/lib/member-access';
 import { PageHeading } from '@/components/ui';
 import { CheckinHistory } from '@/components/checkin-history';
 
 export const metadata: Metadata = { title: 'Consulta de pontos' };
-export default async function CheckinAdministrationPage() {
+export default async function CheckinAdministrationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ memberId?: string | string[] }>;
+}) {
   await requireMember({ adminOnly: true });
+  const query = await searchParams;
+  const memberId =
+    typeof query.memberId === 'string' && query.memberId.length <= 100 ? query.memberId : '';
   return (
     <>
       <PageHeading
@@ -20,7 +27,15 @@ export default async function CheckinAdministrationPage() {
           </Link>
         }
       />
-      <CheckinHistory admin />
+      <Link className="ranking-entry" href="/administracao/pontos/ranking">
+        <Trophy size={21} />
+        <span>
+          <strong>Ranking de participação</strong>
+          <small>Veja quem registrou mais dias de atividade.</small>
+        </span>
+        <span aria-hidden="true">→</span>
+      </Link>
+      <CheckinHistory key={memberId} admin initialMemberId={memberId} />
     </>
   );
 }

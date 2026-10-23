@@ -97,7 +97,7 @@ A migração `003_abstention.sql` amplia o limite de alternativas e acrescenta A
 
 ## Foto e banner do perfil
 
-Em **Meu perfil → Editar meu perfil**, cada filiado pode enviar, trocar ou remover sua foto e seu banner. Cada arquivo pode ter até **4 MB**, em PNG, JPG ou WebP estático. O editor permite arrastar a imagem com mouse ou toque, mover com as setas, ajustar o zoom e centralizar novamente. A foto mantém recorte quadrado e o banner, proporção 3:1. **Usar recorte** prepara a prévia local; **Salvar foto/banner** publica. **Ajustar recorte** também abre uma imagem já salva. Cancelar não altera o perfil. O servidor valida o conteúdo real, remove metadados e converte para WebP, com foto de 512 × 512 e banner de até 1920 × 640. Foto e banner são enviados separadamente.
+Em **Meu perfil**, passe o mouse sobre sua foto ou banner para trocar, recortar ou retirar a imagem; os controles também aparecem ao navegar por teclado e ficam visíveis em telas de toque. Somente o dono vê essas ações. Cada arquivo pode ter até **4 MB**, em PNG, JPG ou WebP estático. O editor permite arrastar a imagem com mouse ou toque, mover com as setas, ajustar o zoom e centralizar novamente. A foto mantém recorte quadrado e o banner, proporção 3:1. **Usar recorte** abre uma confirmação com prévia; **Salvar foto/banner** publica. **Ajustar recorte** também abre uma imagem já salva. Cancelar mantém a imagem atual. O servidor valida o conteúdo real, remove metadados e converte para WebP, com foto de 512 × 512 e banner de até 1920 × 640. Foto e banner são enviados separadamente.
 
 A migração `010_profile_media.sql` guarda apenas referências aos arquivos. O bucket **anade-profiles** é privado, usa as mesmas variáveis do Supabase já configuradas e é preparado automaticamente. Somente o próprio dono pode alterar as imagens; a leitura exige sessão de filiado. Alterar os dados da ficha preserva as imagens. Falha no upload mantém a imagem anterior; substituir ou remover limpa os objetos antigos.
 
@@ -110,6 +110,10 @@ Administradores acessam **Administração → Consultar pontos** (`/administraca
 A migração `009_checkins.sql` cria a tabela privada com RLS e revoga a Data API. Os prints são validados pelo Sharp, sem SVG ou animação, sem metadados e regravados em WebP no bucket **privado** do Supabase Storage. Consulte [a configuração de Production](DEPLOY.md) para `SUPABASE_URL` e `SUPABASE_SECRET_KEY` (também aceita `SUPABASE_SERVICE_ROLE_KEY` legada). O bucket é preparado automaticamente no primeiro envio. Falhas não produzem pontos incompletos e a API tenta remover os arquivos parciais. O envio não interpreta o conteúdo do print nem confirma atividades diretamente no jogo; os comprovantes ficam disponíveis para consulta humana.
 
 ## Controles e elementos flutuantes
+
+### Ranking de participação
+
+Em **Bater ponto → Ranking**, administradores consultam `/administracao/pontos/ranking`. A página e a API `/api/admin/checkins/ranking` verificam a permissão administrativa; a classificação não entra em `/api/state`. O ranking conta dias com registro (um ponto por dia), com períodos de 7 dias, 30 dias ou todo o período, paginação, última participação e acesso aos comprovantes filtrados por filiado. Empates têm a mesma colocação. O dia corrente e os limites dos períodos usam Brasília. A participação permanece opcional; não há pontuação extra por voto, foto ou cargo.
 
 Selects da ficha, direção, modalidade de voto e filtro de estados usam o mesmo componente ANADE, com busca por digitação, navegação por teclado e indicação da opção selecionada. Os calendários de reuniões e votações têm meses em português, navegação por mês/ano, horário com precisão de minutos e ações Hoje, Limpar e Aplicar. Fechar o calendário sem aplicar descarta o rascunho. A data continua usando o horário local do dispositivo e é convertida para ISO no envio à API, como antes.
 

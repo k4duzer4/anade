@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { createHmac } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import session from 'express-session';
 import sharp from 'sharp';
 import { createApp } from '../src/app.js';
@@ -87,6 +87,77 @@ function submission({ actions = png, blue = png, office = '', confirmed = 'true'
   if (blue) form.set('blue', new Blob([blue], { type: 'image/png' }), 'blue.png');
   return form;
 }
+test('ranking é exclusivo de administradores, conta dias, respeita Brasília e compartilha colocações em empate', async (t) => {
+  const { call, repo } = await setup(t);
+  const add = async (accountId, day) =>
+    repo.createCheckin(
+      {
+        id: randomUUID(),
+        accountId,
+        day,
+        createdAt: `${day}T15:00:00Z`,
+        office: '',
+        actionsPath: randomUUID(),
+        bluePath: randomUUID(),
+      },
+      async () => {},
+    );
+  for (const day of ['2026-10-22', '2026-10-21', '2025-09-01']) await add(ids.member, day);
+  for (const day of ['2026-10-22', '2026-10-16', '2026-10-01']) await add(ids.other, day);
+  assert.equal((await call('/api/admin/checkins/ranking')).status, 401);
+  assert.equal((await call('/api/admin/checkins/ranking', 'member')).status, 403);
+  const week = await (await call('/api/admin/checkins/ranking?period=7', 'admin')).json();
+  assert.equal(week.until, '2026-10-22');
+  assert.equal(week.since, '2026-10-16');
+  assert.deepEqual(week.summary, { points: 4, participants: 2 });
+  assert.deepEqual(
+    week.records.map((r) => r.points),
+    [2, 2],
+  );
+  assert.deepEqual(
+    week.records.map((r) => r.position),
+    [1, 1],
+  );
+  assert.equal(JSON.stringify(week).includes('PRIVATE-LEGAPP'), false);
+  assert.equal(JSON.stringify(week).includes('proofs'), false);
+  const month = await (await call('/api/admin/checkins/ranking?period=30', 'admin')).json();
+  assert.equal(month.summary.points, 5);
+  assert.equal(month.records[0].memberId, ids.other);
+  const all = await (await call('/api/admin/checkins/ranking?period=all', 'admin')).json();
+  assert.equal(all.summary.points, 6);
+  assert.equal(all.since, null);
+  for (const query of ['period=8', 'period=7&period=30', 'page=-1', 'page=abc'])
+    assert.equal((await call(`/api/admin/checkins/ranking?${query}`, 'admin')).status, 400);
+  assert.equal('ranking' in (await (await call('/api/state', 'member')).json()), false);
+});
+test('ranking pagina sem omitir filiados empatados nem alterar a colocação entre páginas', async (t) => {
+  const { call, repo } = await setup(t);
+  for (let i = 0; i < 25; i++) {
+    const accountId = `ranking-${String(i).padStart(2, '0')}`;
+    await repo.account(accountId, accountId);
+    await repo.createCheckin(
+      {
+        id: randomUUID(),
+        accountId,
+        day: '2026-10-22',
+        createdAt: '2026-10-22T15:00:00Z',
+        office: '',
+        actionsPath: randomUUID(),
+        bluePath: randomUUID(),
+      },
+      async () => {},
+    );
+  }
+  const first = await (await call('/api/admin/checkins/ranking?page=0', 'admin')).json();
+  const second = await (await call('/api/admin/checkins/ranking?page=1', 'admin')).json();
+  assert.equal(first.records.length, 20);
+  assert.equal(second.records.length, 5);
+  assert.equal(first.hasMore, true);
+  assert.equal(second.hasMore, false);
+  assert.equal(new Set([...first.records, ...second.records].map((row) => row.memberId)).size, 25);
+  assert.ok([...first.records, ...second.records].every((row) => row.position === 1));
+  assert.deepEqual(second.summary, { points: 25, participants: 25 });
+});
 
 test('ponto opcional de qualquer filiado: dois prints, privacidade, cargo opcional, CSRF e um registro por dia em Brasília', async (t) => {
   const { call, storage, setNow } = await setup(t);

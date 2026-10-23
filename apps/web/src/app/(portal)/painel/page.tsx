@@ -11,15 +11,13 @@ import {
   CheckCircle2,
   ContactRound,
   Flag,
+  Clock3,
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { Badge, PageHeading, Empty } from '@/components/ui';
 import { MeetingCard } from '@/components/meeting-card';
 import { formatDate } from '@/lib/types';
 import { MemberAvatar } from '@/components/member-avatar';
-import { AnimatedNumber } from '@/components/animated-number';
-import { Spotlight } from '@/components/spotlight';
-import { m } from 'motion/react';
 export default function Dashboard() {
   const { data } = usePortal();
   if (!data) return null;
@@ -27,13 +25,51 @@ export default function Dashboard() {
     meetings = data.meetings
       .filter((m) => Date.parse(m.date) > Date.parse(data.serverTime))
       .sort((a, b) => Date.parse(a.date) - Date.parse(b.date)),
-    polls = data.polls.filter((p) => !p.closed);
+    polls = data.polls
+      .filter((p) => !p.closed)
+      .sort(
+        (a, b) =>
+          Number(a.hasVoted) - Number(b.hasVoted) ||
+          Date.parse(a.deadline) - Date.parse(b.deadline),
+      );
+  const pending = polls.filter((p) => !p.hasVoted);
+  const focus = !me
+    ? {
+        label: 'SUA IDENTIDADE NA ANADE',
+        title: 'Sua história começa com você.',
+        description: 'Complete a ficha do seu personagem para participar da nossa aliança.',
+        href: '/ficha/editar',
+        action: 'Criar meu perfil',
+      }
+    : pending[0]
+      ? {
+          label: 'SUA PARTICIPAÇÃO FAZ DIFERENÇA',
+          title: pending[0].title,
+          description: `Uma decisão aguarda seu voto. Participe até ${formatDate(pending[0].deadline)}.`,
+          href: `/votacoes#votacao-${pending[0].id}`,
+          action: 'Participar da votação',
+        }
+      : meetings[0]
+        ? {
+            label: 'NOSSO PRÓXIMO ENCONTRO',
+            title: meetings[0].title,
+            description: `Reserve na agenda: ${formatDate(meetings[0].date)} · Brasília.`,
+            href: `/agenda#encontro-${meetings[0].id}`,
+            action: 'Ver encontro',
+          }
+        : {
+            label: 'SEU ESPAÇO NA ANADE',
+            title: 'Cada participação constrói a nossa aliança.',
+            description: 'Registre suas atividades do dia e acompanhe o que acontece no partido.',
+            href: '/ponto',
+            action: 'Bater ponto',
+          };
   return (
-    <>
+    <div className="refresh-page home-refresh">
       <PageHeading
         eyebrow="DIRETÓRIO DIGITAL · ANADE 10"
-        title={`BOM TER VOCÊ AQUI${me ? `, ${me.name.split(' ')[0].toLocaleUpperCase('pt-BR')}` : ''}.`}
-        description="Acompanhe o partido. Participe das decisões. Construa com a gente."
+        title={`Bom ter você aqui${me ? `, ${me.name.split(' ')[0]}` : ''}.`}
+        description="Seu dia no partido começa aqui."
         action={
           <span className="today-label">
             <CalendarDays size={15} />
@@ -45,84 +81,69 @@ export default function Dashboard() {
           </span>
         }
       />
-      <Spotlight className="dashboard-hero">
-        <Image
-          src="/brand/brasil.png"
-          alt="Ilustração da ANADE celebrando a diversidade brasileira"
-          fill
-          priority
-          sizes="(max-width: 700px) 100vw, 80vw"
-        />
-        <div className="hero-overlay" />
-        <div className="hero-content">
-          <span className="eyebrow">DIFERENTES CORRENTES.</span>
-          <h2>
-            UM PROJETO
-            <br />
-            <em>COMUM.</em>
-          </h2>
-          <p>
-            Nossa força está nas pessoas.
-            <br />E as próximas decisões começam com você.
-          </p>
-          <Link href="/partido">
-            Conheça o nosso projeto
-            <ArrowUpRight size={16} />
+      <section className="home-focus">
+        <div>
+          <span className="eyebrow">{focus.label}</span>
+          <h2>{focus.title}</h2>
+          <p>{focus.description}</p>
+          <Link href={focus.href} className="button primary">
+            {focus.action}
+            <ArrowRight size={15} />
           </Link>
         </div>
-        <div className="hero-signature">
-          ANADE<span>10</span>
+        <div className="home-focus-art">
+          <Image
+            src="/brand/brasil.png"
+            alt="Ilustração da diversidade brasileira na ANADE"
+            fill
+            priority
+            sizes="(max-width:700px) 50vw, 30vw"
+          />
+          <span>
+            ANADE<strong>10</strong>
+          </span>
         </div>
-      </Spotlight>
-      <section className="stats-grid" aria-label="Resumo do partido">
+      </section>
+      <section className="home-shortcuts" aria-label="Acesso rápido">
         {[
           {
-            name: 'Filiados no portal',
-            value: data.members.length,
-            label: 'Pessoas que constroem a aliança',
-            icon: Users,
-            href: '/filiados',
-          },
-          {
-            name: 'Próximos encontros',
-            value: meetings.length,
-            label: 'Espaços para organizar e debater',
-            icon: CalendarDays,
             href: '/agenda',
+            name: 'Agenda',
+            value: meetings.length,
+            label: 'próximos encontros',
+            Icon: CalendarDays,
           },
           {
-            name: 'Votações abertas',
-            value: polls.length,
-            label: 'Sua participação faz a diferença',
-            icon: Vote,
             href: '/votacoes',
+            name: 'Votações',
+            value: pending.length,
+            label: 'aguardando seu voto',
+            Icon: Vote,
           },
-        ].map((stat, index) => (
-          <m.div
-            key={stat.name}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08, duration: 0.45 }}
-            className="stat-motion"
-          >
-            <Link href={stat.href} className="stat-card" data-metric={index}>
-              <stat.icon size={98} className="metric-watermark" aria-hidden="true" />
-              <div>
-                <span>{stat.name}</span>
-                <strong>
-                  <AnimatedNumber value={stat.value} />
-                </strong>
-                <small>{stat.label}</small>
-              </div>
-              <span className="stat-icon">
-                <stat.icon size={20} />
-              </span>
-              <span className="metric-action">
-                {['Conhecer filiados', 'Explorar agenda', 'Participar'][index]}
-                <ArrowUpRight size={14} />
-              </span>
-            </Link>
-          </m.div>
+          {
+            href: '/ponto',
+            name: 'Bater ponto',
+            value: 'Diário',
+            label: 'participação opcional',
+            Icon: Clock3,
+          },
+          {
+            href: '/filiados',
+            name: 'Filiados',
+            value: data.members.length,
+            label: 'pessoas na aliança',
+            Icon: Users,
+          },
+        ].map((item) => (
+          <Link href={item.href} key={item.href}>
+            <span>
+              <item.Icon size={19} />
+              {item.name}
+              <ArrowUpRight size={14} />
+            </span>
+            <strong>{item.value}</strong>
+            <small>{item.label}</small>
+          </Link>
         ))}
       </section>
       {!me && (
@@ -231,6 +252,6 @@ export default function Dashboard() {
         <i />
         <span>DESENVOLVIMENTO</span>
       </div>
-    </>
+    </div>
   );
 }

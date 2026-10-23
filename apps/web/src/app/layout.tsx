@@ -18,6 +18,7 @@ import './profile.css';
 import './administration.css';
 import './controls.css';
 import './checkins.css';
+import './portal-refresh.css';
 import { PortalProvider } from '@/components/portal-provider';
 import { ExperienceProvider } from '@/components/experience-provider';
 export const metadata: Metadata = {

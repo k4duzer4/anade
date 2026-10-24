@@ -18,6 +18,15 @@ import { communityRoutes } from './community.js';
 import { organizationRoutes } from './organization.js';
 import { OrganizationStore, seesMeeting, seesPoll } from './organization-store.js';
 import { votingRules } from './governance.js';
+import {
+  assignmentDetails,
+  partyFunctions,
+  emptyAssignment,
+  isLegal,
+  isFinance,
+  hasFunction,
+  officeForGroup,
+} from './assignments.js';
 import { MAX_PROFILE_IMAGE_BYTES, PROFILE_BUCKET, profileMediaRoutes } from './profile-media.js';
 import {
   assert,
@@ -186,6 +195,7 @@ export function createApp({
       degrees,
       states,
       electoralOffices,
+      partyFunctions,
     }),
   );
   const checkOrigin = (req, _res, next) => {
@@ -298,7 +308,7 @@ export function createApp({
         403,
       );
     }
-    res.locals.user = user;
+    res.locals.user = { ...user, assignment: await repo.memberAssignment(user.id) };
     next();
   });
   const admin = (req, _res, next) => {
@@ -311,6 +321,13 @@ export function createApp({
   });
   app.get('/api/admin/accounts', admin, async (_req, res) => {
     res.json({ accounts: await repo.adminAccounts() });
+  });
+  app.get('/api/admin/assignments/:id', admin, async (req, res) =>
+    res.json({ assignment: await repo.memberAssignment(req.params.id) }),
+  );
+  app.put('/api/admin/assignments/:id', admin, async (req, res) => {
+    await repo.saveAssignment(req.params.id, assignmentDetails(req.body), res.locals.user.id);
+    res.json({ ok: true });
   });
   app.get('/api/checkins', async (req, res) => {
     const today = brasiliaDay(now());
@@ -379,7 +396,7 @@ export function createApp({
         );
       }),
     async (req, res) => {
-      const fields = checkinFields(req.body);
+      const fields = checkinFields({ ...req.body, office: res.locals.user.assignment.office });
       assert(
         req.files?.actions?.length === 1 && req.files?.blue?.length === 1,
         'Envie o print das três ações e o print do post no Blue.',
@@ -450,14 +467,35 @@ export function createApp({
     const groups = await organization.list('group');
     res.json({
       serverTime: new Date().toISOString(),
-      user: { id: user.id, discord: user.discord, admin: user.admin, member: true },
+      user: {
+        id: user.id,
+        discord: user.discord,
+        admin: user.admin,
+        member: true,
+        assignment: user.assignment || emptyAssignment(),
+        permissions: {
+          legal: isLegal(user),
+          finance: isFinance(user),
+          communications: user.admin || hasFunction(user, 'Comunicação'),
+        },
+      },
       csrf: req.session.csrf,
       members: data.members.map((m) => publicMember(m, user.id)),
       meetings: data.meetings.filter((m) => seesMeeting(m, user, groups)),
       directors: data.directors,
       polls: data.polls
         .filter((p) => seesPoll(p, user, groups))
-        .map((p) => presentPoll(p, user.id)),
+        .map((p) => {
+          const result = presentPoll(p, user.id);
+          const required =
+            officeForGroup(groups.find((g) => g.id === p.governance?.groupId)?.type) ||
+            p.governance?.requiredOffice;
+          if (required) {
+            result.canVote = result.canVote && user.assignment.office === required;
+            result.governance = { ...result.governance, requiredOffice: required };
+          }
+          return result;
+        }),
     });
   });
   app.post('/api/logout', (req, res, next) =>

@@ -1,4 +1,5 @@
 export type Group = {
+  membershipMode?: 'assignment';
   id: string;
   name: string;
   type: string;
@@ -45,6 +46,7 @@ export type Entry = {
   createdAt: string;
 };
 export type LegalCase = {
+  visibility?: 'members' | 'legal_team' | 'restricted';
   id: string;
   title: string;
   body: string;
@@ -62,6 +64,7 @@ export type LegalCase = {
   authorId: string;
 };
 export type GameEvent = {
+  gameDay?:number;
   id: string;
   title: string;
   body?: string;

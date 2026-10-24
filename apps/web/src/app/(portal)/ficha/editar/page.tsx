@@ -19,6 +19,7 @@ import {
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, SubmitButton, ErrorNotice, Badge, RoleInsignia } from '@/components/ui';
 import { MemberAvatar } from '@/components/member-avatar';
+import { MemberAssignments } from '@/components/member-assignments';
 export default function EditProfile() {
   const { data, config, mutate, notify } = usePortal();
   const router = useRouter();
@@ -96,205 +97,199 @@ export default function EditProfile() {
             <ArrowUpRight size={14} />
           </a>
         </aside>
-        <Form className="profile-form" onSubmit={save}>
-          <section className="panel form-section">
-            <header>
-              <span className="section-icon">
-                <ContactRound size={18} />
-              </span>
-              <div>
-                <h2>IDENTIDADE DO PERSONAGEM</h2>
-                <p>Os dados da sua vida política no Legado.</p>
-              </div>
-              <Badge tone="gray">{me ? 'Cadastrada' : 'Novo cadastro'}</Badge>
-            </header>
-            <div className="form-grid">
-              <label className="field">
-                Nome e sobrenome
-                <input
-                  name="name"
-                  defaultValue={me?.name}
-                  required
-                  maxLength={120}
-                  placeholder="Nome do personagem"
-                />
-              </label>
-              <label className="field">
-                Temporada
-                <input
-                  name="season"
-                  defaultValue={me?.season}
-                  required
-                  maxLength={120}
-                  placeholder="Ex.: Temporada 1"
-                />
-              </label>
-              <label className="field">
-                Idade do personagem
-                <NumberInput
-                  name="age"
-                  label="Idade do personagem"
-                  min={18}
-                  max={120}
-                  defaultValue={me?.age}
-                  required
-                  placeholder="Idade no jogo"
-                />
-              </label>
-              <label className="field">
-                Domicílio eleitoral
-                <Select
-                  name="state"
-                  aria-label="Estado"
-                  defaultValue={me?.state || ''}
-                  required
-                  placeholder="Selecione o estado"
-                  options={config.states.map((state) => ({ value: state, label: state }))}
-                />
-              </label>
-              <label className="field full">
-                Ideologia declarada
-                <Select
-                  name="ideology"
-                  aria-label="Ideologia declarada"
-                  defaultValue={me?.ideology || ''}
-                  required
-                  placeholder="Selecione a ideologia do personagem"
-                  options={config.ideologies.map((ideology) => ({
-                    value: ideology,
-                    label: ideology,
-                  }))}
-                />
-                <small>
-                  As oito ideologias do Legado. A ideologia percebida depende das ações no jogo.
-                </small>
-              </label>
-              <label className="field">
-                Cargo atual no RPG
-                <input
-                  name="office"
-                  maxLength={120}
-                  defaultValue={me?.office}
-                  placeholder="Ex.: Deputado federal"
-                />
-              </label>
-              <label className="field">
-                Profissão
-                <input
-                  name="profession"
-                  maxLength={120}
-                  defaultValue={me?.profession}
-                  placeholder="Ex.: Advogado"
-                />
-              </label>
-              <label className="field full">
-                Cidade onde mora
-                <input
-                  name="city"
-                  maxLength={120}
-                  defaultValue={me?.city}
-                  placeholder="Cidade do personagem"
-                />
-              </label>
-              <label className="field full">
-                Biografia
-                <textarea
-                  name="bio"
-                  defaultValue={me?.bio}
-                  maxLength={280}
-                  rows={4}
-                  placeholder="Conte um pouco da história do seu personagem…"
-                />
-                <small>Até 280 caracteres, conforme a ficha do Legado.</small>
-              </label>
-            </div>
-          </section>
-          <section className="panel form-section">
-            <header>
-              <span className="section-icon">
-                <AtSign size={18} />
-              </span>
-              <div>
-                <h2>CONTATOS NO LEGADO</h2>
-                <p>Para manter o diálogo dentro e fora das reuniões.</p>
-              </div>
-            </header>
-            <div className="form-grid">
-              <label className="field">
-                @ do Blue
-                <input
-                  name="blue"
-                  maxLength={41}
-                  defaultValue={me?.blue}
-                  placeholder="@seu.personagem"
-                />
-              </label>
-              <label className="field">
-                Número do LegApp
-                <input
-                  name="legapp"
-                  maxLength={16}
-                  defaultValue={me?.legapp}
-                  placeholder="(11) 423-653"
-                />
-                <small>DDD + seis dígitos. Use o número fictício do jogo.</small>
-              </label>
-              <label className="privacy-toggle full">
-                <input type="checkbox" name="shareLegapp" defaultChecked={me?.shareLegapp} />
-                <span>
-                  <strong>Compartilhar meu LegApp com os filiados</strong>
-                  <small>Desmarcado, o número fica visível apenas para você no portal.</small>
+        <div className="profile-form">
+          <MemberAssignments member={me} admin={data.user.admin} />
+          <Form onSubmit={save}>
+            <section className="panel form-section">
+              <header>
+                <span className="section-icon">
+                  <ContactRound size={18} />
                 </span>
-                <LockKeyhole size={18} />
-              </label>
-            </div>
-          </section>
-          <section className="panel form-section">
-            <header>
-              <span className="section-icon">
-                <GraduationCap size={19} />
-              </span>
-              <div>
-                <h2>FORMAÇÃO E ATUAÇÃO</h2>
-                <p>As áreas que fazem parte da sua trajetória.</p>
-              </div>
-            </header>
-            <p className="field-hint">Selecione até duas faculdades do personagem.</p>
-            <div className="degree-grid">
-              {config.degrees.map((d) => (
-                <label key={d}>
+                <div>
+                  <h2>IDENTIDADE DO PERSONAGEM</h2>
+                  <p>Os dados da sua vida política no Legado.</p>
+                </div>
+                <Badge tone="gray">{me ? 'Cadastrada' : 'Novo cadastro'}</Badge>
+              </header>
+              <div className="form-grid">
+                <label className="field">
+                  Nome e sobrenome
                   <input
-                    type="checkbox"
-                    name="degrees"
-                    value={d}
-                    defaultChecked={me?.degrees.includes(d)}
+                    name="name"
+                    defaultValue={me?.name}
+                    required
+                    maxLength={120}
+                    placeholder="Nome do personagem"
                   />
-                  <span>{d}</span>
-                  <Check size={14} />
                 </label>
-              ))}
+                <label className="field">
+                  Temporada
+                  <input
+                    name="season"
+                    defaultValue={me?.season}
+                    required
+                    maxLength={120}
+                    placeholder="Ex.: Temporada 1"
+                  />
+                </label>
+                <label className="field">
+                  Idade do personagem
+                  <NumberInput
+                    name="age"
+                    label="Idade do personagem"
+                    min={18}
+                    max={120}
+                    defaultValue={me?.age}
+                    required
+                    placeholder="Idade no jogo"
+                  />
+                </label>
+                <label className="field">
+                  Domicílio eleitoral
+                  <Select
+                    name="state"
+                    aria-label="Estado"
+                    defaultValue={me?.state || ''}
+                    required
+                    placeholder="Selecione o estado"
+                    options={config.states.map((state) => ({ value: state, label: state }))}
+                  />
+                </label>
+                <label className="field full">
+                  Ideologia declarada
+                  <Select
+                    name="ideology"
+                    aria-label="Ideologia declarada"
+                    defaultValue={me?.ideology || ''}
+                    required
+                    placeholder="Selecione a ideologia do personagem"
+                    options={config.ideologies.map((ideology) => ({
+                      value: ideology,
+                      label: ideology,
+                    }))}
+                  />
+                  <small>
+                    As oito ideologias do Legado. A ideologia percebida depende das ações no jogo.
+                  </small>
+                </label>
+                <label className="field">
+                  Profissão
+                  <input
+                    name="profession"
+                    maxLength={120}
+                    defaultValue={me?.profession}
+                    placeholder="Ex.: Advogado"
+                  />
+                </label>
+                <label className="field full">
+                  Cidade onde mora
+                  <input
+                    name="city"
+                    maxLength={120}
+                    defaultValue={me?.city}
+                    placeholder="Cidade do personagem"
+                  />
+                </label>
+                <label className="field full">
+                  Biografia
+                  <textarea
+                    name="bio"
+                    defaultValue={me?.bio}
+                    maxLength={280}
+                    rows={4}
+                    placeholder="Conte um pouco da história do seu personagem…"
+                  />
+                  <small>Até 280 caracteres, conforme a ficha do Legado.</small>
+                </label>
+              </div>
+            </section>
+            <section className="panel form-section">
+              <header>
+                <span className="section-icon">
+                  <AtSign size={18} />
+                </span>
+                <div>
+                  <h2>CONTATOS NO LEGADO</h2>
+                  <p>Para manter o diálogo dentro e fora das reuniões.</p>
+                </div>
+              </header>
+              <div className="form-grid">
+                <label className="field">
+                  @ do Blue
+                  <input
+                    name="blue"
+                    maxLength={41}
+                    defaultValue={me?.blue}
+                    placeholder="@seu.personagem"
+                  />
+                </label>
+                <label className="field">
+                  Número do LegApp
+                  <input
+                    name="legapp"
+                    maxLength={16}
+                    defaultValue={me?.legapp}
+                    placeholder="(11) 423-653"
+                  />
+                  <small>DDD + seis dígitos. Use o número fictício do jogo.</small>
+                </label>
+                <label className="privacy-toggle full">
+                  <input type="checkbox" name="shareLegapp" defaultChecked={me?.shareLegapp} />
+                  <span>
+                    <strong>Compartilhar meu LegApp com os filiados</strong>
+                    <small>Desmarcado, o número fica visível apenas para você no portal.</small>
+                  </span>
+                  <LockKeyhole size={18} />
+                </label>
+              </div>
+            </section>
+            <section className="panel form-section">
+              <header>
+                <span className="section-icon">
+                  <GraduationCap size={19} />
+                </span>
+                <div>
+                  <h2>FORMAÇÃO E ATUAÇÃO</h2>
+                  <p>As áreas que fazem parte da sua trajetória.</p>
+                </div>
+              </header>
+              <p className="field-hint">Selecione até duas faculdades do personagem.</p>
+              <div className="degree-grid">
+                {config.degrees.map((d) => (
+                  <label key={d}>
+                    <input
+                      type="checkbox"
+                      name="degrees"
+                      value={d}
+                      defaultChecked={me?.degrees.includes(d)}
+                    />
+                    <span>{d}</span>
+                    <Check size={14} />
+                  </label>
+                ))}
+              </div>
+              <label className="field oab-field">
+                Número da OAB no RPG <small>Opcional</small>
+                <input
+                  name="oab"
+                  maxLength={120}
+                  defaultValue={me?.oab}
+                  placeholder="Número da inscrição no jogo"
+                />
+              </label>
+            </section>
+            <div className="form-bottom">
+              <p>
+                <LockKeyhole size={15} /> Dados declarados por você. Este cadastro não altera sua
+                conta no Legado.
+              </p>
+              <SubmitButton busy={busy}>
+                <Save size={16} /> Salvar minha ficha
+              </SubmitButton>
             </div>
-            <label className="field oab-field">
-              Número da OAB no RPG <small>Opcional</small>
-              <input
-                name="oab"
-                maxLength={120}
-                defaultValue={me?.oab}
-                placeholder="Número da inscrição no jogo"
-              />
-            </label>
-          </section>
-          <div className="form-bottom">
-            <p>
-              <LockKeyhole size={15} /> Dados declarados por você. Este cadastro não altera sua
-              conta no Legado.
-            </p>
-            <SubmitButton busy={busy}>
-              <Save size={16} /> Salvar minha ficha
-            </SubmitButton>
-          </div>
-          <ErrorNotice message={error} />
-        </Form>
+            <ErrorNotice message={error} />
+          </Form>
+        </div>
       </div>
     </>
   );

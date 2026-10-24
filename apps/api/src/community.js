@@ -3,6 +3,7 @@ import { electoralOffices } from './checkins.js';
 import { CommunityStore } from './community-store.js';
 import { OrganizationStore, seesMeeting, seesPoll } from './organization-store.js';
 import { votingRules } from './governance.js';
+import { hasFunction } from './assignments.js';
 
 const validId = (id) =>
   assert(
@@ -158,11 +159,19 @@ export function communityRoutes(app, repo, admin) {
     res.status(201).json({ id });
   });
   app.get('/api/announcements', (req, res) => list('announcement', req, res));
-  app.post('/api/announcements', admin, async (req, res) => {
+  const communications = (req, res, next) => {
+    assert(
+      actor(res).admin || hasFunction(actor(res), 'Comunicação'),
+      'Somente a administração e a comunicação podem publicar avisos.',
+      403,
+    );
+    next();
+  };
+  app.post('/api/announcements', communications, async (req, res) => {
     const id = await store.save('announcement', actor(res).id, details('announcement', req.body));
     res.status(201).json({ id });
   });
-  app.put('/api/announcements/:id', admin, async (req, res) => {
+  app.put('/api/announcements/:id', communications, async (req, res) => {
     validId(req.params.id);
     const data = details('announcement', req.body);
     await store.atomic(async (s) => {

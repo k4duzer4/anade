@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { assert, text, states } from './domain.js';
 import { OrganizationStore, belongs, seesMeeting, seesPoll } from './organization-store.js';
 import { legadoCalendar, publicSeason } from './legado-calendar.js';
+import { isLegal, isFinance } from './assignments.js';
 
 const groupTypes = [
   'camara',
@@ -64,7 +65,11 @@ const page = (records, query) => {
   };
 };
 const author = (res) => res.locals.user;
-const permitted = (record, user) => user.admin || record.memberIds.includes(user.id);
+const permitted = (record, user) =>
+  user.admin || isFinance(user) || record.memberIds.includes(user.id);
+const legalVisible = (item, user) =>
+  item.visibility === 'members' ||
+  (isLegal(user) && (item.visibility === 'legal_team' || item.memberIds.includes(user.id)));
 export function walletTotals(entries) {
   const balance = entries.reduce(
     (a, e) =>
@@ -90,12 +95,23 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
     assert(belongs(g, user), 'Este grupo é restrito aos participantes.', 403);
     return g;
   };
-  const legalTeam = async (user, s = store) =>
-    user.admin ||
-    (await s.list('group')).some((g) => g.type === 'juridico' && g.memberIds.includes(user.id));
+  const liveUser = async (user, s = store) => ({
+    ...user,
+    assignment: await repo.memberAssignment(user.id, s.sql),
+  });
+  const legalTeam = async (user, s = store) => isLegal(await liveUser(user, s));
+  const financeTeam = async (req, res, next) => {
+    assert(
+      isFinance(await liveUser(author(res))),
+      'Somente a equipe financeira pode realizar esta ação.',
+      403,
+    );
+    next();
+  };
   const caseAccess = async (s, id, user, edit = false) => {
     const item = await s.get('legal', id);
-    assert(permitted(item, user), 'Caso não encontrado.', 404);
+    const live = await liveUser(user, s);
+    assert(legalVisible(item, live), 'Caso não encontrado.', 404);
     if (edit) assert(await legalTeam(user, s), 'A edição é restrita à equipe jurídica.', 403);
     return item;
   };
@@ -202,6 +218,7 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
       wallets = (await store.list('wallet')).filter((w) => permitted(w, user));
     const entries = await store.list('entry');
     res.json({
+      canManage: isFinance(user),
       wallets: wallets.map((w) => ({
         ...w,
         ...walletTotals(entries.filter((e) => e.walletId === w.id)),
@@ -228,11 +245,16 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
     });
     res.status(req.params.id ? 200 : 201).json({ id });
   };
-  app.post('/api/finance/wallets', admin, saveWallet);
-  app.put('/api/finance/wallets/:id', admin, saveWallet);
-  app.post('/api/finance/entries', async (req, res) => {
+  app.post('/api/finance/wallets', financeTeam, saveWallet);
+  app.put('/api/finance/wallets/:id', financeTeam, saveWallet);
+  app.post('/api/finance/entries', financeTeam, async (req, res) => {
     const user = author(res);
     const id = await store.atomic(async (s) => {
+      assert(
+        isFinance(await liveUser(user, s)),
+        'Somente a equipe financeira pode lançar movimentações.',
+        403,
+      );
       const w = await s.get('wallet', req.body.walletId);
       assert(permitted(w, user), 'Caixa não encontrado.', 404);
       const type = enumOf(req.body.type, ['receita', 'despesa', 'reserva', 'liberacao']);
@@ -268,7 +290,7 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
     const user = author(res);
     res.json({
       ...page(
-        (await store.list('legal')).filter((x) => permitted(x, user)),
+        (await store.list('legal')).filter((x) => legalVisible(x, user)),
         req.query,
       ),
       canCreate: await legalTeam(user),
@@ -281,10 +303,25 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
     const id = await store.atomic(async (s) => {
       assert(await legalTeam(user, s), 'Somente a equipe jurídica pode registrar casos.', 403);
       const previous = req.params.id ? await caseAccess(s, req.params.id, user, true) : null;
-      const members = ids(req.body.memberIds, available),
+      const visibility = enumOf(req.body.visibility || 'legal_team', [
+        'legal_team',
+        'members',
+        'restricted',
+      ]);
+      const members = ids(req.body.memberIds || [], available),
         assignedId = text(req.body.assignedId ?? '', 30, false);
-      assert(!assignedId || members.includes(assignedId), 'O responsável deve ter acesso ao caso.');
-      assert(user.admin || members.includes(user.id), 'Mantenha seu próprio acesso ao caso.');
+      const lawyers = (await s.assignmentMembers())
+        .filter((m) => m.functions.includes('Jurídico'))
+        .map((m) => m.id);
+      assert(
+        !assignedId || lawyers.includes(assignedId),
+        'O responsável precisa ter a função Jurídico.',
+      );
+      assert(
+        visibility !== 'restricted' ||
+          (members.includes(user.id) && members.every((id) => lawyers.includes(id))),
+        'Escolha apenas integrantes do jurídico e mantenha seu próprio acesso.',
+      );
       const start = day(req.body.start),
         end = day(req.body.end);
       assert(!start || !end || end >= start, 'Vigência final anterior ao início.');
@@ -294,6 +331,7 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
         'Valor inválido.',
       );
       const item = {
+        visibility,
         title: text(req.body.title, 200),
         body: text(req.body.body ?? '', 6000, false),
         type: enumOf(req.body.type, ['contrato', 'servico', 'processo', 'intimacao']),
@@ -377,11 +415,31 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
   app.post('/api/legado/events', admin, saveEvent);
   app.put('/api/legado/events/:id', admin, saveEvent);
   async function fileParent(s, kind, id, user, edit = false) {
-    if (kind === 'legal') return caseAccess(s, id, user, edit);
+    if (kind === 'legal') {
+      const item = await caseAccess(s, id, user, edit);
+      const members = await s.assignmentMembers();
+      return {
+        ...item,
+        memberIds: members
+          .filter(
+            (m) =>
+              item.visibility === 'members' ||
+              (m.functions.includes('Jurídico') &&
+                (item.visibility === 'legal_team' || item.memberIds.includes(m.id))),
+          )
+          .map((m) => m.id),
+      };
+    }
     assert(kind === 'entry', 'Tipo de anexo inválido.');
     const entry = await s.get('entry', id),
       wallet = await s.get('wallet', entry.walletId);
     assert(permitted(wallet, user), 'Registro não encontrado.', 404);
+    if (edit)
+      assert(
+        isFinance(await liveUser(user, s)),
+        'Somente a equipe financeira pode adicionar comprovantes.',
+        403,
+      );
     return wallet;
   }
   app.get('/api/organization/:kind/:id/files', async (req, res) => {
@@ -392,7 +450,8 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
         (f) =>
           f.parentKind === req.params.kind &&
           f.parentId === req.params.id &&
-          (user.admin || f.memberIds.includes(user.id)),
+          ((f.parentKind === 'entry' && (user.admin || isFinance(user))) ||
+            f.memberIds.includes(user.id)),
       )
       .map(({ path, ...f }) => ({ ...f, url: `/api/organization/files/${f.id}` }));
     res.json({ records });
@@ -486,7 +545,12 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
     const file = await store.get('file', req.params.id),
       user = author(res);
     await fileParent(store, file.parentKind, file.parentId, user);
-    assert(user.admin || file.memberIds.includes(user.id), 'Arquivo não encontrado.', 404);
+    assert(
+      (file.parentKind === 'entry' && (user.admin || isFinance(user))) ||
+        file.memberIds.includes(user.id),
+      'Arquivo não encontrado.',
+      404,
+    );
     res
       .type(file.mime)
       .set(
@@ -506,7 +570,7 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
         const item = notes.find((x) => x.id === n.resourceId);
         return item && groups.some((g) => g.id === item.groupId && belongs(g, user));
       }
-      return legal.some((x) => x.id === n.resourceId && permitted(x, user));
+      return legal.some((x) => x.id === n.resourceId && legalVisible(x, user));
     };
     const records = [];
     for (const n of await store.list('notification'))
@@ -548,7 +612,7 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
           `/grupos/${n.groupId}`,
         );
     for (const item of legal)
-      if (item.status !== 'concluido' && item.dueDate && permitted(item, user))
+      if (item.status !== 'concluido' && item.dueDate && legalVisible(item, user))
         due(
           `legal:${item.id}:${item.dueDate}`,
           `Prazo jurídico: ${item.title}`,
@@ -556,7 +620,7 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
           '/juridico',
         );
     for (const item of legal)
-      if (item.status !== 'concluido' && item.end && permitted(item, user))
+      if (item.status !== 'concluido' && item.end && legalVisible(item, user))
         due(
           `legal-end:${item.id}:${item.end}`,
           `Fim da vigência: ${item.title}`,

@@ -1,0 +1,163 @@
+.assignment-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--line);
+  background: var(--accent-soft);
+  color: var(--soft-text);
+  padding: 17px 20px;
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 20px 0;
+}
+.assignment-admin-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1.5fr);
+  gap: 24px;
+  align-items: start;
+}
+.assignment-accounts {
+  padding: 18px;
+  border-radius: 20px;
+}
+.assignment-accounts > div {
+  max-height: 650px;
+  overflow: auto;
+  margin-top: 12px;
+}
+.assignment-accounts button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 10px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  margin-bottom: 5px;
+}
+.assignment-accounts button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.assignment-accounts strong {
+  font-size: 12px;
+}
+.assignment-accounts small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.assignment-accounts .avatar {
+  min-width: 34px;
+  width: 34px;
+  height: 34px;
+}
+.assignment-editor {
+  padding: 28px;
+  border-radius: 22px;
+}
+.assignment-editor > header h2 {
+  font:
+    600 24px 'Sora',
+    sans-serif;
+  margin: 12px 0;
+}
+.assignment-editor > header p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 25px;
+}
+.assignment-functions {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  margin: 12px 0;
+}
+.assignment-functions legend {
+  font-weight: 700;
+  padding: 0 8px;
+}
+.assignment-functions > p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.assignment-functions > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  font-size: 12px;
+}
+.assignment-functions input {
+  accent-color: var(--accent);
+  width: 17px;
+  height: 17px;
+}
+.assignment-summary {
+  padding: 24px;
+  margin: 24px 0;
+  border-radius: 20px;
+}
+.assignment-summary header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.assignment-summary h2 {
+  font:
+    600 17px 'Sora',
+    sans-serif;
+  margin: 0;
+  flex: 1;
+}
+.assignment-summary dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin: 0;
+}
+.assignment-summary dt {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 9px;
+}
+.assignment-summary dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.assignment-summary dd > span {
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  background: var(--accent-soft);
+  border-radius: 9px;
+  font-size: 11px;
+}
+.assignment-summary > p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin: 20px 0 0;
+}
+@media (max-width: 800px) {
+  .assignment-admin-layout {
+    grid-template-columns: 1fr;
+  }
+  .assignment-accounts > div {
+    max-height: 250px;
+  }
+  .assignment-summary dl {
+    grid-template-columns: 1fr;
+  }
+  .assignment-editor {
+    padding: 22px;
+  }
+}

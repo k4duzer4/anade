@@ -130,6 +130,10 @@ export default function AdministrationContent() {
         }
       />
       <div className="admin-navigation">
+        <Link href="/administracao/cargos" className="button secondary">
+          <ContactRound size={16} />
+          Cargos e funções
+        </Link>
         <div role="group" aria-label="Seções da administração" className="refresh-filters">
           <button
             type="button"

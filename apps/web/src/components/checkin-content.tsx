@@ -10,7 +10,6 @@ import {
   CheckCheck,
   Clock3,
   FileImage,
-  Landmark,
   LockKeyhole,
   Send,
   ShieldCheck,
@@ -19,14 +18,13 @@ import {
 import { usePortal } from './portal-provider';
 import { ErrorNotice, SubmitButton } from './ui';
 import { Form } from './form';
-import { Select } from './select';
 import { ProofUpload } from './proof-upload';
 import { CheckinHistory } from './checkin-history';
 import { loadCheckins, prepareCheckinProof } from '@/lib/checkin-upload';
 import type { CheckinList } from '@/lib/types';
 
 export default function CheckinContent() {
-  const { data, config, mutate, notify } = usePortal();
+  const { data, mutate, notify } = usePortal();
   const [status, setStatus] = useState<CheckinList | null>(null);
   const [actions, setActions] = useState<File | null>(null);
   const [blue, setBlue] = useState<File | null>(null);
@@ -61,7 +59,6 @@ export default function CheckinContent() {
       return;
     }
     const form = event.currentTarget;
-    const fields = new FormData(form);
     setBusy(true);
     setStage('preparing');
     setError('');
@@ -71,8 +68,7 @@ export default function CheckinContent() {
         prepareCheckinProof(blue),
       ]);
       const payload = new FormData();
-      const office = String(fields.get('office') || 'none');
-      payload.set('office', office === 'none' ? '' : office);
+      payload.set('office', data?.user.assignment?.office || '');
       payload.set('confirmed', 'true');
       payload.set('actions', actionsBlob, 'acoes.webp');
       payload.set('blue', blueBlob, 'blue.webp');
@@ -191,29 +187,11 @@ export default function CheckinContent() {
                     onChange={setBlue}
                   />
                 </div>
-                <details className="checkin-election">
-                  <summary>
-                    <Landmark size={16} />
-                    <span>Está concorrendo a uma eleição?</span>
-                    <small>Opcional</small>
-                    <ArrowDown size={14} />
-                  </summary>
-                  <label className="field checkin-office">
-                    Cargo pretendido
-                    <Select
-                      name="office"
-                      aria-label="Cargo pretendido"
-                      defaultValue="none"
-                      options={[
-                        { value: 'none', label: 'Não informar / não sou candidato' },
-                        ...(config?.electoralOffices || []).map((office) => ({
-                          value: office,
-                          label: office,
-                        })),
-                      ]}
-                    />
-                  </label>
-                </details>
+                <p className="form-description">
+                  Cargo registrado pela administração:{' '}
+                  <strong>{data.user.assignment?.office || 'Membro comum'}</strong>. Qualquer
+                  filiado pode bater ponto.
+                </p>
               </div>
               <aside
                 className={`checkin-summary ${ready ? 'is-ready' : ''}`}

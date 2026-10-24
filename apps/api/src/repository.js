@@ -4,6 +4,7 @@ import { CHECKIN_PAGE_SIZE, presentCheckin } from './checkins.js';
 import { profileMediaUrl } from './profile-media.js';
 import { RANKING_PAGE_SIZE } from './checkin-ranking.js';
 import { assertElector } from './governance.js';
+import { emptyAssignment, assertParliamentaryOffice } from './assignments.js';
 export class PgRepository {
   constructor(pool) {
     this.pool = pool;
@@ -70,6 +71,42 @@ export class PgRepository {
   async isAdmin(id) {
     const { rows } = await this.pool.query('SELECT is_admin FROM anade.accounts WHERE id=$1', [id]);
     return rows[0]?.is_admin === true;
+  }
+  async memberAssignment(id, client = this.pool) {
+    const { rows } = await client.query(
+      'SELECT office,office_state,functions,function_state FROM anade.member_assignments WHERE account_id=$1',
+      [id],
+    );
+    return rows[0]
+      ? {
+          office: rows[0].office,
+          officeState: rows[0].office_state,
+          functions: rows[0].functions,
+          functionState: rows[0].function_state,
+        }
+      : emptyAssignment();
+  }
+  async saveAssignment(id, data, actorId) {
+    return this.transaction(async (c) => {
+      const account = await c.query('SELECT id FROM anade.accounts WHERE id=$1 FOR UPDATE', [id]);
+      assert(account.rowCount, 'Conta não encontrada.', 404);
+      const previous = await this.memberAssignment(id, c);
+      await c.query(
+        'INSERT INTO anade.member_assignments(account_id,office,office_state,functions,function_state,updated_by) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(account_id) DO UPDATE SET office=EXCLUDED.office,office_state=EXCLUDED.office_state,functions=EXCLUDED.functions,function_state=EXCLUDED.function_state,updated_by=EXCLUDED.updated_by,updated_at=now()',
+        [
+          id,
+          data.office,
+          data.officeState,
+          JSON.stringify(data.functions),
+          data.functionState,
+          actorId,
+        ],
+      );
+      await c.query(
+        'INSERT INTO anade.assignment_history(id,actor_id,account_id,previous,current) VALUES($1,$2,$3,$4,$5)',
+        [randomUUID(), actorId, id, JSON.stringify(previous), JSON.stringify(data)],
+      );
+    });
   }
   async adminAccounts() {
     const { rows } = await this.pool.query(
@@ -256,7 +293,7 @@ export class PgRepository {
   async snapshot() {
     const [profiles, meetings, attendance, polls, options, votes, directors] = await Promise.all([
       this.pool.query(
-        "SELECT p.account_id, p.data, p.created_at, a.username, avatar.path AS avatar_path, banner.path AS banner_path FROM anade.profiles p JOIN anade.accounts a ON a.id=p.account_id LEFT JOIN anade.profile_media avatar ON avatar.account_id=a.id AND avatar.kind='avatar' LEFT JOIN anade.profile_media banner ON banner.account_id=a.id AND banner.kind='banner' ORDER BY p.created_at",
+        "SELECT p.account_id, p.data, p.created_at, a.username, r.office AS assigned_office,r.office_state,r.functions,r.function_state, avatar.path AS avatar_path, banner.path AS banner_path FROM anade.profiles p JOIN anade.accounts a ON a.id=p.account_id LEFT JOIN anade.member_assignments r ON r.account_id=a.id LEFT JOIN anade.profile_media avatar ON avatar.account_id=a.id AND avatar.kind='avatar' LEFT JOIN anade.profile_media banner ON banner.account_id=a.id AND banner.kind='banner' ORDER BY p.created_at",
       ),
       this.pool.query('SELECT * FROM anade.meetings ORDER BY starts_at'),
       this.pool.query('SELECT * FROM anade.attendance'),
@@ -275,6 +312,10 @@ export class PgRepository {
       })),
       members: profiles.rows.map((p) => ({
         ...p.data,
+        office: p.assigned_office || '',
+        officeState: p.office_state || '',
+        functions: p.functions || [],
+        functionState: p.function_state || '',
         avatarUrl: profileMediaUrl(p.account_id, 'avatar', p.avatar_path),
         bannerUrl: profileMediaUrl(p.account_id, 'banner', p.banner_path),
         id: p.account_id,
@@ -437,6 +478,23 @@ export class PgRepository {
         assert(rows.length, 'Votação não encontrada.', 404);
         const p = rows[0];
         assertElector(p.governance, userId);
+        if (p.governance?.groupId || p.governance?.requiredOffice) {
+          const group = p.governance.groupId
+            ? await c.query(
+                "SELECT data->>'type' AS type FROM anade.organization_records WHERE id=$1 AND kind='group'",
+                [p.governance.groupId],
+              )
+            : { rows: [] };
+          await c.query(
+            'SELECT account_id FROM anade.member_assignments WHERE account_id=$1 FOR SHARE',
+            [userId],
+          );
+          assertParliamentaryOffice(
+            p.governance,
+            await this.memberAssignment(userId, c),
+            group.rows[0]?.type,
+          );
+        }
         assert(
           !p.closed && new Date(p.deadline).getTime() > Date.now(),
           'Esta votação está encerrada.',
@@ -479,6 +537,21 @@ export class MemoryRepository {
     this.checkinLocks = new Set();
     this.media = new Map();
     this.mediaLocks = new Map();
+    this.assignments = new Map();
+    this.assignmentHistory = [];
+  }
+  async memberAssignment(id) {
+    return structuredClone(this.assignments.get(id) || emptyAssignment());
+  }
+  async saveAssignment(id, data, actorId) {
+    assert(this.accounts.has(id), 'Conta não encontrada.', 404);
+    this.assignmentHistory.push({
+      accountId: id,
+      actorId,
+      previous: await this.memberAssignment(id),
+      current: structuredClone(data),
+    });
+    this.assignments.set(id, structuredClone(data));
   }
   async account(id, username) {
     this.accounts.set(id, username);
@@ -509,6 +582,7 @@ export class MemoryRepository {
     const data = structuredClone(this.data);
     data.members = data.members.map((member) => ({
       ...member,
+      ...(this.assignments.get(member.id) || emptyAssignment()),
       avatarUrl: profileMediaUrl(member.id, 'avatar', this.media.get(`${member.id}:avatar`)),
       bannerUrl: profileMediaUrl(member.id, 'banner', this.media.get(`${member.id}:banner`)),
     }));
@@ -700,7 +774,10 @@ export class MemoryRepository {
     return p;
   }
   async vote(id, userId, option) {
-    castVote(this.poll(id), userId, option);
+    const p = this.poll(id),
+      group = this.organization?.records.get(p.governance?.groupId);
+    assertParliamentaryOffice(p.governance, await this.memberAssignment(userId), group?.type);
+    castVote(p, userId, option);
   }
   async closePoll(id) {
     this.poll(id).closed = true;

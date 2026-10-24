@@ -35,6 +35,21 @@ async function setup(t) {
     cookies[id] = `anade.sid=${encodeURIComponent(`s:${sid}.${signature}`)}`;
   }
   repo.admins.add('admin');
+  await repo.saveAssignment(
+    'admin',
+    { office: '', officeState: '', functions: ['Jurídico', 'Financeiro'], functionState: '' },
+    'admin',
+  );
+  await repo.saveAssignment(
+    'deputy',
+    { office: '', officeState: '', functions: ['Financeiro'], functionState: '' },
+    'admin',
+  );
+  await repo.saveAssignment(
+    'lawyer',
+    { office: '', officeState: '', functions: ['Jurídico'], functionState: '' },
+    'admin',
+  );
   const proof = new MemoryProofStorage();
   const server = createApp({
     repo,
@@ -57,14 +72,25 @@ async function setup(t) {
       },
       ...(body ? { body: body instanceof FormData ? body : JSON.stringify(body) } : {}),
     });
-  const group = (memberIds = ['deputy'], id = chamber, type = 'camara') =>
-    call(`/api/groups/${id}`, 'admin', 'PUT', {
+  const group = async (memberIds = ['deputy'], id = chamber, type = 'camara') => {
+    if (type === 'camara')
+      for (const accountId of ['deputy', 'other'])
+        await repo.saveAssignment(
+          accountId,
+          {
+            ...(await repo.memberAssignment(accountId)),
+            office: memberIds.includes(accountId) ? 'Deputado federal' : '',
+          },
+          'admin',
+        );
+    return call(`/api/groups/${id}`, 'admin', 'PUT', {
       name: type === 'camara' ? 'Câmara' : 'Jurídico',
       type,
       description: 'Equipe de teste',
       memberIds,
       leaderId: memberIds[0] || '',
     });
+  };
   return { repo, call, group, proof };
 }
 test('grupos: somente admin define participantes; notas, menções e reuniões não vazam pela API ou busca', async (t) => {
@@ -211,7 +237,7 @@ test('financeiro: caixa privado, centavos, reservas, liberação e gastos concor
   });
   assert.equal(
     (await call('/api/finance/entries', 'other', 'POST', entry('receita', 10000))).status,
-    404,
+    403,
   );
   assert.equal(
     (await call('/api/finance/entries', 'deputy', 'POST', entry('receita', 0.5))).status,
@@ -244,32 +270,27 @@ test('financeiro: caixa privado, centavos, reservas, liberação e gastos concor
   assert.equal(w.available, 1000);
   assert.equal(w.reserved, 0);
   assert.equal(
-    (await call('/api/finance/wallets', 'deputy', 'POST', { name: 'forged' })).status,
+    (await call('/api/finance/wallets', 'other', 'POST', { name: 'forged' })).status,
     403,
   );
 });
-test('jurídico: equipe não ganha acesso a todo caso; documento tem lista própria e revogação imediata', async (t) => {
-  const { call, group, proof } = await setup(t);
-  await group(['lawyer'], legalGroup, 'juridico');
+test('jurídico: sigilo por função, publicação aos filiados e documentos revalidam visibilidade', async (t) => {
+  const { call, repo, proof } = await setup(t);
   assert.equal((await call('/api/legal', 'deputy', 'POST', { title: 'forjado' })).status, 403);
   const input = {
-    title: 'Processo sigiloso',
+    title: 'Processo',
     type: 'processo',
-    memberIds: ['lawyer', 'deputy'],
+    visibility: 'legal_team',
+    memberIds: [],
     assignedId: 'lawyer',
-    start: '2026-10-24',
-    end: '2026-11-01',
-    dueDate: '2026-10-25',
   };
-  const { id } = await (await call('/api/legal', 'admin', 'POST', input)).json();
+  const created = await call('/api/legal', 'lawyer', 'POST', input);
+  assert.equal(created.status, 201);
+  const { id } = await created.json();
   assert.equal((await (await call('/api/legal', 'other')).json()).records.length, 0);
   const fd = new FormData();
   fd.set('file', new Blob(['%PDF-1.7\nTeste'], { type: 'application/pdf' }), 'intimacao.pdf');
-  fd.set('memberIds', JSON.stringify(['lawyer']));
-  assert.equal(
-    (await call(`/api/organization/legal/${id}/files`, 'other', 'POST', fd)).status,
-    404,
-  );
+  fd.set('memberIds', '["lawyer"]');
   assert.equal(
     (await call(`/api/organization/legal/${id}/files`, 'lawyer', 'POST', fd)).status,
     201,
@@ -277,27 +298,31 @@ test('jurídico: equipe não ganha acesso a todo caso; documento tem lista próp
   const files = await (await call(`/api/organization/legal/${id}/files`, 'lawyer')).json();
   assert.equal(files.records.length, 1);
   assert.equal(files.records[0].path, undefined);
+  assert.equal((await call(files.records[0].url, 'other')).status, 404);
   assert.equal(
-    (await (await call(`/api/organization/legal/${id}/files`, 'deputy')).json()).records.length,
-    0,
+    (await call(`/api/legal/${id}`, 'lawyer', 'PUT', { ...input, visibility: 'members' })).status,
+    200,
   );
-  assert.equal((await call(files.records[0].url, 'deputy')).status, 404);
-  assert.equal((await call(files.records[0].url, 'lawyer')).status, 200);
-  assert.equal(proof.objects.size, 1);
+  assert.equal((await (await call('/api/legal', 'other')).json()).records.length, 1);
   assert.equal(
-    (
-      await call(`/api/legal/${id}`, 'admin', 'PUT', {
-        ...input,
-        memberIds: ['deputy'],
-        assignedId: '',
-      })
-    ).status,
+    (await call(`/api/legal/${id}`, 'other', 'PUT', { ...input, visibility: 'members' })).status,
+    403,
+  );
+  assert.equal((await call(files.records[0].url, 'other')).status, 404);
+  await repo.saveAssignment(
+    'lawyer',
+    { office: '', officeState: '', functions: [], functionState: '' },
+    'admin',
+  );
+  assert.equal((await call(`/api/legal/${id}`, 'lawyer', 'PUT', input)).status, 403);
+  assert.equal(
+    (await call(`/api/legal/${id}`, 'admin', 'PUT', { ...input, assignedId: '' })).status,
     200,
   );
   assert.equal((await call(files.records[0].url, 'lawyer')).status, 404);
-  assert.equal((await call(files.records[0].url, 'admin')).status, 200);
-  assert.equal((await (await call('/api/legal', 'lawyer')).json()).records.length, 0);
+  assert.equal(proof.objects.size, 1);
 });
+
 test('documentos: revogação durante o upload impede publicação e remove o objeto pendente', async (t) => {
   const { call, group, proof, repo } = await setup(t);
   await group(['lawyer'], legalGroup, 'juridico');
@@ -305,7 +330,8 @@ test('documentos: revogação durante o upload impede publicação e remove o ob
     await call('/api/legal', 'admin', 'POST', {
       title: 'Contrato',
       type: 'contrato',
-      memberIds: ['lawyer', 'deputy'],
+      visibility: 'restricted',
+      memberIds: ['lawyer', 'admin'],
       assignedId: 'lawyer',
     })
   ).json();
@@ -323,6 +349,92 @@ test('documentos: revogação durante o upload impede publicação e remove o ob
   );
   assert.equal(proof.objects.size, 0);
   assert.equal([...repo.organization.records.values()].filter((r) => r.kind === 'file').length, 0);
+});
+test('atribuições oficiais: só ADM altera, ficha não promove, cargos controlam bancadas e funções controlam equipes', async (t) => {
+  const { call, repo } = await setup(t);
+  const roles = {
+    office: 'Deputado federal',
+    officeState: 'SP',
+    functions: ['Líder da bancada da Câmara'],
+    functionState: '',
+  };
+  assert.equal((await call('/api/admin/assignments/other', 'other', 'PUT', roles)).status, 403);
+  assert.equal(
+    (
+      await call('/api/profile', 'other', 'PUT', {
+        name: 'Other',
+        age: 35,
+        state: 'SP',
+        ideology: 'Centro',
+        season: '1',
+        degrees: [],
+        office: 'Deputado federal',
+        functions: ['Jurídico', 'Financeiro'],
+      })
+    ).status,
+    200,
+  );
+  let member = (await (await call('/api/state', 'other')).json()).members.find(
+    (m) => m.id === 'other',
+  );
+  assert.equal(member.office, '');
+  assert.deepEqual(member.functions, []);
+  assert.equal((await call('/api/admin/assignments/other', 'admin', 'PUT', roles)).status, 200);
+  member = (await (await call('/api/state', 'other')).json()).members.find((m) => m.id === 'other');
+  assert.equal(member.office, 'Deputado federal');
+  assert.deepEqual(member.functions, roles.functions);
+  const groups = (await (await call('/api/groups', 'other')).json()).records;
+  assert.ok(groups.find((g) => g.id === chamber).memberIds.includes('other'));
+  assert.equal(groups.find((g) => g.id === chamber).leaderId, 'other');
+  const poll = {
+    title: 'Liderança',
+    options: ['A', 'B'],
+    deadline: new Date(Date.now() + 3600000).toISOString(),
+    groupId: chamber,
+    electorIds: ['other'],
+    secret: true,
+  };
+  assert.equal((await call('/api/polls', 'admin', 'POST', poll)).status, 201);
+  const id = repo.data.polls.at(-1).id;
+  assert.equal(
+    (
+      await call('/api/admin/assignments/other', 'admin', 'PUT', {
+        office: 'Senador',
+        officeState: 'SP',
+        functions: [],
+        functionState: '',
+      })
+    ).status,
+    200,
+  );
+  assert.equal((await call(`/api/polls/${id}/vote`, 'other', 'POST', { option: 0 })).status, 403);
+  assert.ok(repo.assignmentHistory.some((h) => h.accountId === 'other' && h.actorId === 'admin'));
+  await repo.saveAssignment(
+    'admin',
+    { office: '', officeState: '', functions: [], functionState: '' },
+    'admin',
+  );
+  assert.equal(
+    (await call('/api/legal', 'admin', 'POST', { title: 'Não permitido', type: 'processo' }))
+      .status,
+    403,
+  );
+  assert.equal(
+    (
+      await call('/api/finance/entries', 'admin', 'POST', {
+        walletId: '20000000-0000-4000-8000-000000000001',
+      })
+    ).status,
+    403,
+  );
+  const privateCase = await call('/api/legal', 'lawyer', 'POST', {
+    title: 'Reservado ao jurídico',
+    type: 'processo',
+    visibility: 'legal_team',
+    memberIds: [],
+  });
+  assert.equal(privateCase.status, 201);
+  assert.equal((await (await call('/api/legal', 'admin')).json()).records.length, 0);
 });
 test('calendário usa Brasília e tick das 8h; importação que exige login não sobrescreve a temporada', async (t) => {
   const before = legadoCalendar(

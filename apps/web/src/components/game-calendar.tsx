@@ -9,6 +9,7 @@ import { DateTimePicker } from './date-time-picker';
 import { OrganizationForm, OrganizationLoading, useOrganization } from './organization-ui';
 import { eventNames, options, type GameCalendar, type GameEvent } from '@/lib/organization';
 import { formatDate } from '@/lib/types';
+import { SeasonCountdown } from './season-countdown';
 export function GameCalendarPanel({ compact = false }: { compact?: boolean }) {
   const { data, mutate } = usePortal();
   const [version, setVersion] = useState(0),
@@ -35,6 +36,7 @@ export function GameCalendarPanel({ compact = false }: { compact?: boolean }) {
         )
         .sort((a, b) => a.date.localeCompare(b.date))
     : [];
+  if (compact && value?.config.startDate) return <SeasonCountdown calendar={value} compact />;
   if (compact)
     return (
       <section className="panel org-calendar-mini">
@@ -87,38 +89,44 @@ export function GameCalendarPanel({ compact = false }: { compact?: boolean }) {
       {!value && <OrganizationLoading />}
       {value && (
         <>
-          <div className="org-calendar-stats">
-            <article className="panel">
-              <span className="eyebrow">HOJE NO MUNDO REAL</span>
-              <strong>
-                {new Intl.DateTimeFormat('pt-BR', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                  timeZone: 'America/Sao_Paulo',
-                }).format(new Date(value.serverTime))}
-              </strong>
-              <small>Horário de Brasília</small>
-            </article>
-            <article className="panel">
-              <span className="eyebrow">DIA DO JOGO</span>
-              <strong>
-                {value.day === null
-                  ? 'A configurar'
-                  : value.day < 1
-                    ? 'Em breve'
-                    : value.day > (value.config.duration || 90)
-                      ? 'Encerrada'
-                      : `Dia ${value.day}`}
-              </strong>
-              <small>{value.gameDate}</small>
-            </article>
-            <article className="panel">
-              <span className="eyebrow">PRÓXIMO TICK PREVISTO</span>
-              <strong>{formatDate(value.nextTick)}</strong>
-              <small>Tick diário às 8h · referência da wiki</small>
-            </article>
-          </div>
+          {value.config.startDate ? (
+            <SeasonCountdown calendar={value} />
+          ) : (
+            <>
+              <div className="org-calendar-stats">
+                <article className="panel">
+                  <span className="eyebrow">HOJE NO MUNDO REAL</span>
+                  <strong>
+                    {new Intl.DateTimeFormat('pt-BR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      timeZone: 'America/Sao_Paulo',
+                    }).format(new Date(value.serverTime))}
+                  </strong>
+                  <small>Horário de Brasília</small>
+                </article>
+                <article className="panel">
+                  <span className="eyebrow">DIA DO JOGO</span>
+                  <strong>
+                    {value.day === null
+                      ? 'A configurar'
+                      : value.day < 1
+                        ? 'Em breve'
+                        : value.day > (value.config.duration || 90)
+                          ? 'Encerrada'
+                          : `Dia ${value.day}`}
+                  </strong>
+                  <small>{value.gameDate}</small>
+                </article>
+                <article className="panel">
+                  <span className="eyebrow">PRÓXIMO TICK PREVISTO</span>
+                  <strong>{formatDate(value.nextTick)}</strong>
+                  <small>Tick diário às 8h · referência da wiki</small>
+                </article>
+              </div>
+            </>
+          )}
           <section className="org-calendar-source">
             <Clock3 size={20} />
             <div>

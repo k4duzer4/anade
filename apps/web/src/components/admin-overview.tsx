@@ -75,6 +75,13 @@ export function AdminOverview({
   const stateList = [...states.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   const tools = [
     {
+      title: 'Cargos e funções',
+      description: 'Defina cargos eletivos, funções partidárias e permissões.',
+      href: '/administracao/cargos',
+      Icon: ShieldCheck,
+      detail: 'Atribuições oficiais',
+    },
+    {
       title: 'Grupos e diretórios',
       description: 'Participantes, lideranças e trabalho por equipe.',
       href: '/grupos',

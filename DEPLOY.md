@@ -95,6 +95,12 @@ O backend cria automaticamente o bucket privado **anade-checkins** no primeiro e
 
 PNG, JPG e WebP de até 10 MB são preparados no navegador; o upload aceita até 2 MB por print e salva até 1 MB por comprovante. Os dois arquivos passam juntos pela API dentro do limite de payload da Vercel. Uma falha de upload impede o ponto e tenta remover arquivos parciais. Sem as variáveis, o restante do portal continua funcionando e somente o envio de ponto fica indisponível. A demonstração usa arquivos em memória, descartados ao reiniciar.
 
+## Cargos, funções e calendário
+
+Antes de publicar, execute `npm run db:migrate` para aplicar `013_assignments.sql`. A migração cria atribuições oficiais e histórico privado, sem promover dados declarados pelos jogadores. Não exige novas variáveis. Depois, use **Administração → Cargos e funções** para confirmar os cargos e funções dos filiados existentes. Câmara/Senado e equipes passam a derivar dessas atribuições. Administração do site não substitui as funções Jurídico e Financeiro/Tesoureiro nas ações dessas áreas.
+
+A configuração da temporada é persistida no banco: início em 15/10/2026 e duração de 90 dias, conforme referência confirmada. O próximo tick é calculado diariamente às 8h de Brasília; a contagem regressiva atualiza a cada segundo. Mudanças oficiais podem ser corrigidas em **Calendário → Configurar temporada**.
+
 ## Verificação local
 
 ```powershell

@@ -43,7 +43,7 @@ export function FinanceHub() {
     wallet?: Wallet;
     entry?: Entry;
   } | null>(null);
-  const { value, error } = useOrganization<Page<Entry> & { wallets: Wallet[] }>(
+  const { value, error } = useOrganization<Page<Entry> & { wallets: Wallet[]; canManage: boolean }>(
     `/api/finance?page=${page}${wallet === 'all' ? '' : `&wallet=${wallet}`}`,
     `${version}:${data?.serverTime}`,
   );
@@ -62,13 +62,13 @@ export function FinanceHub() {
         description="Controle interno dos recursos do RPG, separado por caixa, fundo eleitoral e campanha."
         action={
           <div className="org-actions">
-            {data.user.admin && (
+            {value?.canManage && (
               <button className="button secondary" onClick={() => setDialog({ type: 'wallet' })}>
                 <Plus size={16} />
                 Criar caixa
               </button>
             )}
-            {!!value?.wallets.length && (
+            {value?.canManage && !!value?.wallets.length && (
               <button className="button primary" onClick={() => setDialog({ type: 'entry' })}>
                 <Plus size={17} />
                 Registrar movimentação
@@ -87,7 +87,7 @@ export function FinanceHub() {
                 <WalletIcon size={22} />
               </span>
               <Badge>{walletNames[w.type]}</Badge>
-              {data.user.admin && (
+              {value?.canManage && (
                 <button
                   className="icon-button"
                   aria-label={`Editar ${w.name}`}
@@ -261,7 +261,7 @@ export function FinanceHub() {
             kind="entry"
             id={dialog.entry.id}
             memberIds={value?.wallets.find((w) => w.id === dialog.entry?.walletId)?.memberIds || []}
-            canEdit
+            canEdit={!!value?.canManage}
           />
         </Modal>
       )}

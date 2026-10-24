@@ -1,4 +1,6 @@
 'use client';
+import { officialDirection } from '@/lib/official-direction';
+import { MemberAssignments } from './member-assignments';
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -76,7 +78,9 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
   const id = memberId ?? data.user.id;
   const own = id === data.user.id;
   const member = data.members.find((person) => person.id === id);
-  const positions = data.directors.filter((director) => director.memberId === id);
+  const positions = officialDirection(data.members, data.directors).filter(
+    (director) => director.memberId === id,
+  );
   const renderCover = (src?: string) => (
     <>
       <Image
@@ -240,12 +244,13 @@ export default function MemberProfile({ memberId }: { memberId?: string }) {
           </div>
           <div>
             <dt>
-              <BriefcaseBusiness size={15} /> Cargo no RPG
+              <BriefcaseBusiness size={15} /> Cargo eletivo
             </dt>
-            <dd>{member.office || 'Não informado'}</dd>
+            <dd>{member.office || 'Membro comum'}</dd>
           </div>
         </dl>
       </section>
+      <MemberAssignments member={member} admin={data.user.admin} />
       <nav className="profile-section-nav" aria-label="Seções do perfil">
         <a href="#perfil-sobre">Sobre</a>
         <a href="#perfil-formacao">Formação</a>

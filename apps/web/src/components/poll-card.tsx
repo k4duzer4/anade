@@ -88,6 +88,12 @@ export function PollCard({ poll: p }: { poll: Poll }) {
             . Abstenções contam para participação e não apoiam alternativas.
           </p>
           <p>Abertura: {formatDate(p.governance.opensAt)}. Eleitores definidos na publicação:</p>
+          {p.governance.requiredOffice && (
+            <p>
+              Cargo obrigatório ao votar: {p.governance.requiredOffice}, confirmado pela
+              administração. A perda do cargo retira a autorização para novos votos.
+            </p>
+          )}
           <p>
             {p.governance.electorIds
               .map((id) => data.members.find((m) => m.id === id)?.name || 'Filiado sem ficha')

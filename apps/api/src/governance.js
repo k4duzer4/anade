@@ -1,4 +1,5 @@
 import { assert } from './domain.js';
+import { officeForGroup } from './assignments.js';
 
 export function votingRules(input, availableIds, group) {
   const ids = input.electorIds ?? availableIds;
@@ -29,6 +30,7 @@ export function votingRules(input, availableIds, group) {
     quorumPercent,
     rule,
     opensAt: new Date(opensAt).toISOString(),
+    requiredOffice: officeForGroup(group?.type),
   };
 }
 export function assertElector(governance, id) {

@@ -159,8 +159,8 @@ test('ranking pagina sem omitir filiados empatados nem alterar a colocação ent
   assert.deepEqual(second.summary, { points: 25, participants: 25 });
 });
 
-test('ponto opcional de qualquer filiado: dois prints, privacidade, cargo opcional, CSRF e um registro por dia em Brasília', async (t) => {
-  const { call, storage, setNow } = await setup(t);
+test('ponto opcional de qualquer filiado: dois prints, privacidade, cargo oficial, CSRF e um registro por dia em Brasília', async (t) => {
+  const { call, repo, storage, setNow } = await setup(t);
   assert.equal((await call('/api/checkins')).status, 401);
   assert.equal((await call('/api/admin/checkins', 'member')).status, 403);
   assert.equal(
@@ -211,6 +211,11 @@ test('ponto opcional de qualquer filiado: dois prints, privacidade, cargo opcion
   assert.equal((await call('/api/checkins', 'member', { body: submission() })).status, 409);
   assert.equal(storage.objects.size, 2);
   setNow('2026-10-23T03:00:01Z');
+  await repo.saveAssignment(
+    ids.member,
+    { office: 'Senador', officeState: 'SP', functions: [], functionState: '' },
+    ids.admin,
+  );
   assert.equal((await (await call('/api/checkins', 'member')).json()).todayRecord, null);
   assert.equal(
     (await call('/api/checkins', 'member', { body: submission({ office: 'Senador' }) })).status,
@@ -262,14 +267,13 @@ test('consulta pagina todos os pontos e mantém filtro de dono em cada página',
   assert.equal(filtered.records.length, 1);
 });
 
-test('ponto rejeita ausência de print, imagem forjada, SVG, falta de confirmação, cargo inválido e arquivo extra', async (t) => {
+test('ponto rejeita ausência de print, imagem forjada, SVG, falta de confirmação e arquivo extra', async (t) => {
   const { call, repo, storage } = await setup(t);
   const invalid = [
     submission({ actions: null }),
     submission({ actions: Buffer.from('not-an-image') }),
     submission({ actions: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>') }),
     submission({ confirmed: 'false' }),
-    submission({ office: 'Inventado' }),
   ];
   const extra = submission();
   extra.set('extra', new Blob([png]), 'extra.png');

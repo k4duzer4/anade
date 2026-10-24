@@ -101,7 +101,11 @@ export function CommunityHub({ kind }: { kind: Kind }) {
   };
   const own = result?.mine || result?.records.find((item) => item.ownerId === data.user.id);
   const canCreate =
-    kind === 'announcement' ? data.user.admin : kind === 'campaign' ? result?.open && !own : true;
+    kind === 'announcement'
+      ? (data.user.permissions?.communications ?? data.user.admin)
+      : kind === 'campaign'
+        ? result?.open && !own
+        : true;
   const records =
     result?.records.filter((item) =>
       searchText(
@@ -374,7 +378,8 @@ export function CommunityHub({ kind }: { kind: Kind }) {
                   </footer>
                   <div className="community-management">
                     {((kind === 'proposal' && isOwn && !item.pollId) ||
-                      (kind === 'announcement' && data.user.admin) ||
+                      (kind === 'announcement' &&
+                        (data.user.permissions?.communications ?? data.user.admin)) ||
                       (kind === 'campaign' && isOwn && result?.open)) && (
                       <button
                         className="text-button"

@@ -18,7 +18,8 @@ export function PollElectorate({ initialGroupId }: { initialGroupId?: string }) 
       <h3>Eleitorado e regras</h3>
       <p className="form-description">
         Revise antes de publicar. Eleitores, abertura, prazo, modalidade e regras ficam fixos nesta
-        votação, mesmo se o grupo mudar depois.
+        votação, mesmo se o grupo mudar depois. Nas bancadas, o cargo eletivo oficial também é
+        verificado na confirmação do voto.
       </p>
       <ErrorNotice message={error} />
       <div className="form-grid">

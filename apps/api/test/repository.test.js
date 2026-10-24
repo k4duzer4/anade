@@ -5,7 +5,9 @@ import { randomUUID } from 'node:crypto';
 import { newDb, DataType } from 'pg-mem';
 import { PgRepository } from '../src/repository.js';
 import { newPoll, profile } from '../src/domain.js';
+import { assignmentsFixture } from './helpers/assignments.js';
 async function directorsTable(db) {
+  await assignmentsFixture(db);
   // pg-mem não implementa RLS nem os papéis do Supabase; valida o DDL e as consultas.
   const migration = await readFile(new URL('../db/005_directors.sql', import.meta.url), 'utf8');
   db.public.registerFunction({
@@ -111,6 +113,25 @@ test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do vot
     assert.equal(snapshot.members.length, 1);
     assert.equal(snapshot.members[0].city, 'Salvador');
     assert.equal(snapshot.members[0].discord, 'filiado');
+    const official = {
+      office: 'Deputado federal',
+      officeState: 'BA',
+      functions: ['Comunicação'],
+      functionState: '',
+    };
+    await repo.saveAssignment('b', official, 'a');
+    assert.deepEqual(await repo.memberAssignment('b'), official);
+    await repo.saveProfile('b', { ...person, office: 'Presidente', functions: ['Jurídico'] });
+    const assigned = (await repo.snapshot()).members.find((m) => m.id === 'b');
+    assert.equal(assigned.office, 'Deputado federal');
+    assert.deepEqual(assigned.functions, ['Comunicação']);
+    const audit = (
+      await pool.query('SELECT * FROM anade.assignment_history WHERE account_id=$1', ['b'])
+    ).rows;
+    assert.equal(audit.length, 1);
+    assert.equal(audit[0].actor_id, 'a');
+    assert.equal(audit[0].previous.office, '');
+    assert.equal(audit[0].current.office, 'Deputado federal');
     const director = {
       id: randomUUID(),
       memberId: 'b',
@@ -216,6 +237,11 @@ test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do vot
       opensAt: new Date().toISOString(),
     };
     await repo.createPoll(restricted);
+    await repo.saveAssignment(
+      'b',
+      { office: 'Deputado federal', officeState: 'SP', functions: [], functionState: '' },
+      'a',
+    );
     await assert.rejects(repo.vote(restricted.id, 'a', 0), /não faz parte do eleitorado/);
     await repo.vote(restricted.id, 'b', 0);
     assert.deepEqual(

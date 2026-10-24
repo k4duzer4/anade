@@ -27,6 +27,7 @@ import { SearchBox } from './portal-tools';
 import { searchText } from '@/lib/types';
 export function LegalHub() {
   const { data } = usePortal();
+  const [visibility, setVisibility] = useState('legal_team');
   const [version, setVersion] = useState(0),
     [page, setPage] = useState(0),
     [search, setSearch] = useState('');
@@ -50,7 +51,10 @@ export function LegalHub() {
         description="Contratos, serviços, processos e intimações do RPG com responsáveis, vigência e prazos."
         action={
           value?.canCreate && (
-            <button className="button primary" onClick={() => setDialog({ type: 'edit' })}>
+            <button
+              className="button primary"
+              onClick={() => (setVisibility('legal_team'), setDialog({ type: 'edit' }))}
+            >
               <Plus size={17} />
               Novo registro jurídico
             </button>
@@ -75,6 +79,9 @@ export function LegalHub() {
             <article className="panel org-legal-card" key={c.id}>
               <div className="org-card-heading">
                 <Badge>{legalNames[c.type]}</Badge>
+                <Badge tone={c.visibility === 'members' ? 'green' : 'gold'}>
+                  {c.visibility === 'members' ? 'Disponível aos filiados' : 'Sigiloso · jurídico'}
+                </Badge>
                 <span className={`org-status ${c.status === 'concluido' ? 'done' : ''}`}>
                   {statusNames[c.status]}
                 </span>
@@ -120,7 +127,10 @@ export function LegalHub() {
             {value?.canCreate && (
               <button
                 className="text-button"
-                onClick={() => setDialog({ type: 'edit', item: dialog.item })}
+                onClick={() => (
+                  setVisibility(dialog.item?.visibility || 'restricted'),
+                  setDialog({ type: 'edit', item: dialog.item })
+                )}
               >
                 Editar registro
               </button>
@@ -149,16 +159,25 @@ export function LegalHub() {
             ))}
           </dl>
           <p className="form-description">
-            Participantes:{' '}
-            {dialog.item.memberIds
-              .map((id) => data.members.find((m) => m.id === id)?.name || id)
-              .join(', ') || 'Apenas administradores'}
-            . O status de pagamento é um registro de acompanhamento, sem movimentar caixas.
+            {dialog.item.visibility === 'members'
+              ? 'Disponível para os filiados.'
+              : dialog.item.visibility === 'legal_team'
+                ? 'Sigiloso: acesso somente à equipe jurídica.'
+                : 'Sigiloso: acesso aos integrantes do jurídico selecionados.'}{' '}
+            O pagamento é um registro de acompanhamento, sem movimentar caixas.
           </p>
           <OrganizationFiles
             kind="legal"
             id={dialog.item.id}
-            memberIds={dialog.item.memberIds}
+            memberIds={data.members
+              .filter(
+                (m) =>
+                  dialog.item?.visibility === 'members' ||
+                  (m.functions?.includes('Jurídico') &&
+                    (dialog.item?.visibility === 'legal_team' ||
+                      dialog.item?.memberIds.includes(m.id))),
+              )
+              .map((m) => m.id)}
             canEdit={!!value?.canCreate}
           />
         </Modal>
@@ -177,10 +196,28 @@ export function LegalHub() {
               ...v,
               amountCents: cents(v.amount),
               assignedId: v.assignedId === 'none' ? '' : v.assignedId,
-              memberIds: raw.getAll('memberIds'),
+              memberIds: visibility === 'restricted' ? raw.getAll('memberIds') : [],
             })}
           >
             <div className="form-grid">
+              <label className="field full">
+                Quem pode consultar
+                <Select
+                  name="visibility"
+                  aria-label="Visibilidade jurídica"
+                  value={visibility}
+                  onValueChange={setVisibility}
+                  options={[
+                    { value: 'legal_team', label: 'Sigiloso · somente equipe jurídica' },
+                    { value: 'members', label: 'Disponível para todos os filiados' },
+                    { value: 'restricted', label: 'Sigiloso · pessoas do jurídico selecionadas' },
+                  ]}
+                />
+                <small>
+                  Somente a função Jurídico permite criar ou editar, mesmo em registros disponíveis
+                  aos filiados.
+                </small>
+              </label>
               <label className="field full">
                 Título
                 <input name="title" required maxLength={200} defaultValue={dialog.item?.title} />
@@ -257,7 +294,9 @@ export function LegalHub() {
                   defaultValue={dialog.item?.assignedId || 'none'}
                   options={[
                     { value: 'none', label: 'Sem responsável' },
-                    ...data.members.map((m) => ({ value: m.id, label: m.name })),
+                    ...data.members
+                      .filter((m) => m.functions?.includes('Jurídico'))
+                      .map((m) => ({ value: m.id, label: m.name })),
                   ]}
                 />
               </label>
@@ -283,17 +322,21 @@ export function LegalHub() {
                   pattern="[0-9]+([.,][0-9]{1,2})?"
                 />
               </label>
-              <div className="full">
-                <MembersPicker
-                  label="Pessoas com acesso ao caso"
-                  members={data.members}
-                  selected={dialog.item?.memberIds || [data.user.id]}
-                />
-              </div>
+              {visibility === 'restricted' && (
+                <>
+                  {' '}
+                  <div className="full">
+                    <MembersPicker
+                      label="Pessoas do jurídico com acesso ao caso"
+                      members={data.members.filter((m) => m.functions?.includes('Jurídico'))}
+                      selected={dialog.item?.memberIds || [data.user.id]}
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <p className="form-description">
-              Administradores também têm acesso. O responsável precisa estar selecionado entre os
-              participantes. A equipe jurídica só edita casos aos quais tem acesso.
+              O cargo de administrador não abre registros sigilosos nem substitui a função Jurídico.
             </p>
           </OrganizationForm>
         </Modal>

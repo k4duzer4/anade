@@ -55,7 +55,6 @@ export function profile(input) {
     'legapp',
     'state',
     'ideology',
-    'office',
     'profession',
     'city',
     'season',

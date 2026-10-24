@@ -9,6 +9,9 @@ export type Member = {
   state: string;
   ideology: string;
   office: string;
+  officeState?: string;
+  functions?: string[];
+  functionState?: string;
   profession: string;
   city: string;
   season: string;
@@ -35,6 +38,7 @@ export type Poll = {
   id: string;
   canVote?: boolean;
   governance?: {
+    requiredOffice?:string;
     groupId: string;
     groupName: string;
     electorIds: string[];
@@ -67,7 +71,18 @@ export type Poll = {
 };
 export type PortalState = {
   serverTime: string;
-  user: { id: string; discord: string; admin: boolean };
+  user: {
+    id: string;
+    discord: string;
+    admin: boolean;
+    assignment?: {
+      office: string;
+      officeState: string;
+      functions: string[];
+      functionState: string;
+    };
+    permissions?: { legal: boolean; finance: boolean; communications: boolean };
+  };
   csrf: string;
   members: Member[];
   meetings: Meeting[];
@@ -91,6 +106,7 @@ export type Config = {
   degrees: string[];
   states: string[];
   electoralOffices: string[];
+  partyFunctions: string[];
 };
 export type Checkin = {
   id: string;

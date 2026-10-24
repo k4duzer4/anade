@@ -6,6 +6,7 @@ import express from 'express';
 import { newDb, DataType } from 'pg-mem';
 import { createVercelHandler } from '../src/vercel.js';
 import { membershipFixture } from './helpers/memberships.js';
+import { assignmentsFixture } from './helpers/assignments.js';
 
 async function serve(t, handler) {
   const app = express();
@@ -23,6 +24,7 @@ test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e autorização 
   db.public.none(migration.replace('expire timestamp', 'expire timestamptz'));
   db.public.none(await readFile(new URL('../db/007_account_admin.sql', import.meta.url), 'utf8'));
   await membershipFixture(db);
+  await assignmentsFixture(db);
   db.public.registerFunction({
     name: 'to_timestamp',
     args: [DataType.float],

@@ -95,8 +95,10 @@ export function OrganizationFiles({
             selected={memberIds}
           />
           <p className="form-description">
-            Administradores também podem consultar. A seleção de um arquivo não altera o acesso ao
-            restante do caso.
+            {kind === 'legal'
+              ? 'O sigilo do caso também é verificado em cada download.'
+              : 'Administradores e a equipe financeira podem consultar.'}{' '}
+            A seleção do arquivo não altera o acesso ao restante do registro.
           </p>
           <SubmitButton busy={busy}>Salvar documento</SubmitButton>
         </form>

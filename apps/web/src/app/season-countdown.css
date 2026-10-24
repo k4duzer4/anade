@@ -1,0 +1,200 @@
+.season-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+.season-phase {
+  padding: 28px;
+  border-radius: 22px;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-soft) 50%, transparent), transparent),
+    var(--white);
+}
+.season-phase h2 {
+  font:
+    600 clamp(30px, 4vw, 46px)/1.3 'Sora',
+    sans-serif;
+  margin: 16px 0 10px;
+  letter-spacing: -1.5px;
+}
+.season-phase > p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.season-counters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 25px 0;
+}
+.season-counters > div {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper-dark);
+}
+.season-counters span {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+.season-counters strong {
+  display: block;
+  font:
+    600 24px 'Sora',
+    sans-serif;
+  margin-top: 12px;
+}
+.season-counters small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.season-tick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 15px 0;
+}
+.season-tick > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.season-tick > strong {
+  font:
+    600 23px 'Sora',
+    sans-serif;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.season-progress {
+  height: 7px;
+  border-radius: 10px;
+  background: var(--line);
+  overflow: hidden;
+  margin-top: 17px;
+}
+.season-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 10px;
+}
+.season-phase > footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 13px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.season-milestones {
+  border-radius: 22px;
+  padding: 24px;
+}
+.season-milestones > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.season-milestones h2 {
+  font:
+    600 18px 'Sora',
+    sans-serif;
+  margin: 0;
+}
+.season-milestones > article {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  margin-bottom: 18px;
+}
+.season-milestones article > div {
+  width: 47px;
+  min-width: 47px;
+  height: 53px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.season-milestones article > div.is-election {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+.season-milestones article > div > strong {
+  font:
+    600 19px 'Sora',
+    sans-serif;
+}
+.season-milestones article > div > small {
+  font-size: 9px;
+}
+.season-milestones h3 {
+  font:
+    600 12px/1.6 'Sora',
+    sans-serif;
+  margin: 0 0 5px;
+}
+.season-milestones article p {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 0 0 5px;
+}
+.season-milestones article section > span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.season-milestones time {
+  display: block;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  margin-top: 4px;
+}
+.season-reference {
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--muted);
+  display: block;
+  border-top: 1px solid var(--line);
+  padding-top: 13px;
+}
+.season-dashboard.is-compact .season-phase h2 {
+  font-size: 34px;
+}
+.season-dashboard.is-compact .season-milestones article {
+  margin-bottom: 15px;
+}
+@media (max-width: 1100px) {
+  .season-dashboard {
+    grid-template-columns: 1fr;
+  }
+  .season-phase {
+    padding: 24px;
+  }
+  .season-milestones {
+    padding: 22px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .season-progress > span {
+    transition: none;
+  }
+}

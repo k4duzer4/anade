@@ -375,22 +375,31 @@ function GroupEditor({
             defaultValue={group?.description}
           />
         </label>
-        <label className="field full">
-          Liderança
-          <Select
-            name="leaderId"
-            aria-label="Liderança"
-            defaultValue={group?.leaderId || 'none'}
-            options={[
-              { value: 'none', label: 'Ainda não definida' },
-              ...data.members.map((m) => ({ value: m.id, label: m.name })),
-            ]}
-          />
-          <small>A liderança precisa estar marcada entre os participantes.</small>
-        </label>
-        <div className="full">
-          <MembersPicker members={data.members} selected={group?.memberIds} />
-        </div>
+        {['camara', 'senado', 'direcao', 'juridico', 'tesouraria', 'comunicacao'].includes(type) ? (
+          <p className="assignment-notice full">
+            Participantes e liderança são definidos pelos cargos e funções oficiais. Gerencie essas
+            atribuições em Administração → Cargos e funções.
+          </p>
+        ) : (
+          <>
+            <label className="field full">
+              Liderança
+              <Select
+                name="leaderId"
+                aria-label="Liderança"
+                defaultValue={group?.leaderId || 'none'}
+                options={[
+                  { value: 'none', label: 'Ainda não definida' },
+                  ...data.members.map((m) => ({ value: m.id, label: m.name })),
+                ]}
+              />
+              <small>A liderança precisa estar marcada entre os participantes.</small>
+            </label>
+            <div className="full">
+              <MembersPicker members={data.members} selected={group?.memberIds} />
+            </div>
+          </>
+        )}
       </div>
     </OrganizationForm>
   );

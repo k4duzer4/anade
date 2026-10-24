@@ -1,10 +1,9 @@
 'use client';
-import { useState } from 'react';
-import { Landmark, Plus, Pencil, Trash2, ShieldCheck, Users } from 'lucide-react';
+import { Landmark, Plus, Pencil, ShieldCheck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePortal } from './portal-provider';
-import { PageHeading, Modal, Empty, ErrorNotice, SubmitButton } from './ui';
-import { DirectorForm } from './director-form';
+import { PageHeading, Empty } from './ui';
+import { officialDirection } from '@/lib/official-direction';
 import { type Director } from '@/lib/types';
 import { MemberAvatar } from './member-avatar';
 const stateNames: Record<string, string> = {
@@ -14,35 +13,11 @@ const stateNames: Record<string, string> = {
   BA: 'Bahia',
 };
 export default function DirectionContent() {
-  const { data, mutate, notify } = usePortal();
-  const [editing, setEditing] = useState<Director | 'new' | null>(null);
-  const [removing, setRemoving] = useState<Director | null>(null);
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState('');
+  const { data } = usePortal();
   if (!data) return null;
-  const directors = [...(data.directors || [])].sort(
-    (a, b) =>
-      a.position - b.position ||
-      a.title.localeCompare(b.title, 'pt-BR') ||
-      a.id.localeCompare(b.id),
-  );
+  const directors = officialDirection(data.members, data.directors);
   const members = data.members;
   const isAdmin = data.user.admin;
-  async function remove(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!removing) return;
-    setBusy(true);
-    setError('');
-    try {
-      await mutate(`/api/directors/${removing.id}`, 'DELETE', {});
-      setRemoving(null);
-      notify('Diretor removido da composição.');
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
   function renderDirector(director: Director, featured = false) {
     const member = members.find((m) => m.id === director.memberId);
     const name = member?.name || 'Ficha indisponível';
@@ -62,24 +37,13 @@ export default function DirectionContent() {
         </Link>
         {isAdmin && (
           <div className="director-management">
-            <button
-              type="button"
-              onClick={() => setEditing(director)}
-              aria-label={`Editar ${director.title} — ${name}`}
+            <Link
+              href={`/administracao/cargos?membro=${director.memberId}`}
+              aria-label={`Editar funções de ${name}`}
             >
-              <Pencil size={13} /> Editar
-            </button>
-            <button
-              type="button"
-              className="director-remove"
-              aria-label={`Remover ${director.title} — ${name}`}
-              onClick={() => {
-                setError('');
-                setRemoving(director);
-              }}
-            >
-              <Trash2 size={13} /> Remover
-            </button>
+              <Pencil size={13} />
+              Gerenciar funções
+            </Link>
           </div>
         )}
       </article>
@@ -93,9 +57,9 @@ export default function DirectionContent() {
         description="Quem organiza nossa aliança e transforma decisões em ação coletiva."
         action={
           data.user.admin && (
-            <button className="button primary" onClick={() => setEditing('new')}>
-              <Plus size={17} /> Adicionar diretor
-            </button>
+            <Link href="/administracao/cargos" className="button primary">
+              <Plus size={17} /> Cargos e funções
+            </Link>
           )
         }
       />
@@ -126,8 +90,7 @@ export default function DirectionContent() {
       <div className="direction-section-title">
         <span className="eyebrow">COMPOSIÇÃO DO DIRETÓRIO</span>
         <span>
-          {directors.length} cargo{directors.length === 1 ? '' : 's'} ocupado
-          {directors.length === 1 ? '' : 's'}
+          {directors.length} {directors.length === 1 ? 'função atribuída' : 'funções atribuídas'}
         </span>
       </div>
       {directors.length ? (
@@ -156,13 +119,13 @@ export default function DirectionContent() {
             <h3>A direção será apresentada aqui.</h3>
             <p>
               {data.user.admin
-                ? 'Adicione os filiados que ocupam cargos na organização do partido.'
+                ? 'Defina as funções partidárias dos filiados na administração.'
                 : 'A administração ainda não publicou a composição do diretório.'}
             </p>
             {data.user.admin && (
-              <button className="button primary" onClick={() => setEditing('new')}>
-                <Plus size={16} /> Adicionar primeiro diretor
-              </button>
+              <Link href="/administracao/cargos" className="button primary">
+                <Plus size={16} /> Definir funções partidárias
+              </Link>
             )}
           </Empty>
         </section>
@@ -171,50 +134,6 @@ export default function DirectionContent() {
         <ShieldCheck size={15} /> Composição publicada pela administração · Visível apenas aos
         filiados.
       </p>
-      {editing && (
-        <Modal
-          title={editing === 'new' ? 'ADICIONAR DIRETOR' : 'EDITAR DIRETOR'}
-          onClose={() => setEditing(null)}
-        >
-          <DirectorForm
-            director={editing === 'new' ? undefined : editing}
-            onClose={() => setEditing(null)}
-          />
-        </Modal>
-      )}
-      {removing && (
-        <Modal
-          title="REMOVER DA DIREÇÃO"
-          onClose={() => {
-            if (!busy) setRemoving(null);
-          }}
-        >
-          <form onSubmit={remove}>
-            <p className="form-description">
-              Remover{' '}
-              <strong>
-                {data.members.find((m) => m.id === removing.memberId)?.name || 'este filiado'}
-              </strong>{' '}
-              do cargo de <strong>{removing.title}</strong>?
-            </p>
-            <p className="form-description">
-              A ficha e a filiação serão mantidas. Você poderá adicionar esse diretor novamente.
-            </p>
-            <ErrorNotice message={error} />
-            <div className="form-actions">
-              <button
-                type="button"
-                className="button secondary"
-                disabled={busy}
-                onClick={() => setRemoving(null)}
-              >
-                Cancelar
-              </button>
-              <SubmitButton busy={busy}>Remover diretor</SubmitButton>
-            </div>
-          </form>
-        </Modal>
-      )}
     </>
   );
 }

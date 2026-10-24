@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { assert } from './domain.js';
+import { emptyAssignment, groupAssignment } from './assignments.js';
 
 const defaults = [
   'Bancada da Câmara',
@@ -65,23 +66,49 @@ export class OrganizationStore {
     return task;
   }
   async list(kind) {
-    if (!this.sql)
-      return structuredClone(
+    if (!this.sql) {
+      const records = structuredClone(
         [...this.repo.organization.records.values()]
           .filter((x) => x.kind === kind)
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id)),
       );
+      return kind === 'group'
+        ? records.map((g) =>
+            groupAssignment(
+              g,
+              this.repo.data.members.map((m) => ({
+                id: m.id,
+                ...(this.repo.assignments.get(m.id) || emptyAssignment()),
+              })),
+            ),
+          )
+        : records;
+    }
     const { rows } = await this.sql.query(
       'SELECT * FROM anade.organization_records WHERE kind=$1 ORDER BY created_at DESC,id',
       [kind],
     );
-    return rows.map((x) => ({
+    const records = rows.map((x) => ({
       ...x.data,
       id: x.id,
       kind: x.kind,
       createdAt: new Date(x.created_at).toISOString(),
       updatedAt: new Date(x.updated_at).toISOString(),
     }));
+    if (kind !== 'group') return records;
+    const members = await this.assignmentMembers();
+    return records.map((g) => groupAssignment(g, members));
+  }
+  async assignmentMembers() {
+    if (!this.sql)
+      return this.repo.data.members.map((m) => ({
+        id: m.id,
+        ...(this.repo.assignments.get(m.id) || emptyAssignment()),
+      }));
+    const { rows } = await this.sql.query(
+      `SELECT p.account_id AS id,coalesce(a.office,'') AS office,coalesce(a.functions,'[]'::jsonb) AS functions,coalesce(a.function_state,'') AS "functionState" FROM anade.profiles p LEFT JOIN anade.member_assignments a ON a.account_id=p.account_id`,
+    );
+    return rows;
   }
   async get(kind, id) {
     const record = (await this.list(kind)).find((x) => x.id === id);

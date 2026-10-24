@@ -21,11 +21,13 @@ export function legadoCalendar(config = {}, now = new Date()) {
   const start = new Date(`${config.startDate}T08:00:00-03:00`).getTime();
   const day = Math.floor((now.getTime() - start) / DAY) + 1;
   const milestones = [];
-  const add = (d, h, title, type) =>
+  const add = (d, h, title, type, body = '') =>
     milestones.push({
       id: `wiki-${d}-${h}-${type}`,
       title,
       type,
+      gameDay: d,
+      body,
       date: new Date(start + (d - 1) * DAY + (h - 8) * 3600000).toISOString(),
       estimated: true,
     });
@@ -35,9 +37,52 @@ export function legadoCalendar(config = {}, now = new Date()) {
     add(first, 10, `1º turno · eleição ${cycle + 1}`, 'eleicao');
     add(first, 18, `Fim da votação · 1º turno ${cycle + 1}`, 'eleicao');
     add(first + 2, 23, `Fim da campanha · 2º turno ${cycle + 1}`, 'campanha');
-    add(first + 3, 10, `2º turno · eleição ${cycle + 1}`, 'eleicao');
+    add(
+      first + 3,
+      10,
+      `2º turno · eleição ${cycle + 1}`,
+      'eleicao',
+      'Urna das 10h às 18h; apuração até as 20h50.',
+    );
     add(first + 3, 18, `Fim da votação · 2º turno ${cycle + 1}`, 'eleicao');
     add(first + 4, 8, `Posse · mandato ${cycle + 1}`, 'posse');
+    if (cycle < 3) {
+      const internal = 19 + cycle * 24;
+      add(
+        internal,
+        8,
+        'Chapas da eleição interna',
+        'partido',
+        'Inscrições da direção até as 21h do dia seguinte.',
+      );
+      add(
+        internal + 2,
+        8,
+        'Eleição interna dos partidos',
+        'partido',
+        'Votação até as 21h do dia seguinte.',
+      );
+      add(internal + 4, 8, 'Posse da direção partidária', 'posse');
+    }
+    if (cycle > 0) {
+      const window = 24 + (cycle - 1) * 24;
+      add(window, 8, 'Janela partidária', 'partido', 'Dois dias para mudar de partido.');
+      add(window + 2, 21, 'Fim da filiação e do domicílio', 'prazo');
+      add(
+        window + 3,
+        8,
+        'Convenções e DRAP',
+        'partido',
+        'Dois dias para chapas, coligações e registros.',
+      );
+      add(
+        window + 5,
+        8,
+        'Começa a campanha',
+        'campanha',
+        'Julgamento dos DRAPs e início da campanha.',
+      );
+    }
   }
   add(config.duration || 90, 22, 'Encerramento previsto da temporada', 'temporada');
   const months = (day - 12) * 2;

@@ -15,6 +15,7 @@ import {
 import { MemoryProofStorage, SupabaseProofStorage } from './proof-storage.js';
 import { rankingFilters } from './checkin-ranking.js';
 import { communityRoutes } from './community.js';
+import { publicationRoutes } from './publications.js';
 import { organizationRoutes } from './organization.js';
 import { OrganizationStore, seesMeeting, seesPoll } from './organization-store.js';
 import { votingRules } from './governance.js';
@@ -579,6 +580,7 @@ export function createApp({
     res.json({ ok: true });
   });
   communityRoutes(app, repo, admin);
+  publicationRoutes(app, repo, admin, { now });
   organizationRoutes(app, repo, admin, documentStorage, { seasonRequest });
   app.use((_req, _res, next) =>
     next(Object.assign(new Error('Rota não encontrada.'), { status: 404 })),

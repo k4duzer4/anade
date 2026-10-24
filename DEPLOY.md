@@ -101,6 +101,8 @@ Antes de publicar, execute `npm run db:migrate` para aplicar `013_assignments.sq
 
 A configuração da temporada é persistida no banco: início em 15/10/2026 e duração de 90 dias, conforme referência confirmada. O próximo tick é calculado diariamente às 8h de Brasília; a contagem regressiva atualiza a cada segundo. Mudanças oficiais podem ser corrigidas em **Calendário → Configurar temporada**.
 
+O mural de divulgação exige também `014_publications.sql`. Não há variável nem agendamento adicional: cada consulta filtra o ciclo das 8h de Brasília e recolhe os registros vencidos. O navegador esconde o ciclo anterior na virada mesmo sem resposta da API. O estatuto usa `anade.portal_settings` e começa sem conteúdo publicado; o ADM prepara e publica na própria página.
+
 ## Verificação local
 
 ```powershell

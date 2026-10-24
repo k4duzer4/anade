@@ -183,6 +183,16 @@ Nas votações da Câmara/Senado, a lista de eleitores continua congelada, mas c
 
 O painel e o calendário têm contagem regressiva por segundo, alinhada ao horário do servidor, e recalculam o dia ao passar das 8h. A temporada 1 foi confirmada com dia 1 em **15/10/2026**, duração de **90 dias**, dia 10 em **24/10/2026** e encerramento previsto em **12/01/2027**. Os próximos marcos incluem eleições, posse, eleição interna, janela partidária, filiação, convenções e campanha. As datas continuam ajustáveis pela administração se o Legado alterar o calendário.
 
+### Divulgação diária e estatuto
+
+Execute `npm run db:migrate` para aplicar `014_publications.sql`, sem novas variáveis. Em `/divulgacao`, qualquer filiado compartilha um título, um link HTTPS e o tipo (post ou matéria de jornal). A autoria vem da sessão. O autor ou um administrador pode retirar o link; URLs não são acessadas pelo servidor nem recebem prévia remota. Links repetidos da mesma pessoa no mesmo ciclo são bloqueados.
+
+O ciclo vai das **8h de Brasília até as 8h do dia seguinte**, incluindo a madrugada. Às 8h o mural deixa de exibir o ciclo anterior, mesmo se a aba continuar aberta e a nova consulta falhar. A API só consulta o ciclo vigente; os registros antigos são removidos fisicamente no próximo acesso ao mural. Não depende de cron pago nem de servidor ligado continuamente, e não apaga as publicações nos sites de origem. A paginação mantém até vinte links por página.
+
+Em `/estatuto`, o espaço começa **Em elaboração**. Somente administradores podem salvar o texto e/ou link do documento e escolher publicar. Rascunhos não são devolvidos aos filiados pela API. Publicar exige texto ou link HTTPS; desmarcar a publicação volta ao estado de elaboração. A página e as APIs são exclusivas para filiados. O menu agrupa Divulgação em Participação e Estatuto em Organização.
+
+Na visão geral, o calendário usa cartões de mesma altura e só três próximos marcos, com acesso à lista completa em `/calendario`, evitando que a coluna de marcos crie um vazio no desktop.
+
 ## Referências técnicas
 
 - [Next.js: instalação e App Router](https://nextjs.org/docs/app/getting-started/installation)

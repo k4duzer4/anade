@@ -6,7 +6,7 @@ import session from 'express-session';
 import { createApp } from '../src/app.js';
 import { MemoryRepository } from '../src/repository.js';
 
-async function setup(t) {
+async function setup(t, options = {}) {
   const repo = new MemoryRepository(),
     store = new session.MemoryStore(),
     secret = 'community-test-secret-more-than-thirty-two-characters',
@@ -35,7 +35,7 @@ async function setup(t) {
     legapp: 'SUPERPRIVATE',
     shareLegapp: false,
   });
-  const server = createApp({ repo, store, secret, env: {} }).listen(0, '127.0.0.1');
+  const server = createApp({ repo, store, secret, env: {}, ...options }).listen(0, '127.0.0.1');
   await once(server, 'listening');
   t.after(() => new Promise((resolve) => server.close(resolve)));
   const call = (path, id = 'member', method = 'GET', body, csrf = 'community-csrf') =>
@@ -51,6 +51,87 @@ async function setup(t) {
     });
   return { call, repo };
 }
+
+test('mural de divulgação: só filiados, autoria e CSRF, links HTTPS e limpeza na virada das 8h', async (t) => {
+  let date = new Date('2026-10-24T10:59:59Z');
+  const { call, repo } = await setup(t, { now: () => date });
+  const publication = {
+    type: 'post',
+    title: 'Meu post',
+    url: 'https://legado.planalto.fun/blue/post/123',
+    ownerId: 'admin',
+  };
+  assert.equal((await call('/api/publications', null)).status, 401);
+  assert.equal((await call('/api/publications', 'member', 'POST', publication, '')).status, 403);
+  assert.equal(
+    (
+      await call('/api/publications', 'member', 'POST', {
+        ...publication,
+        url: 'javascript:alert(1)',
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await call('/api/publications', 'member', 'POST', {
+        ...publication,
+        url: 'https://user:password@example.com',
+      })
+    ).status,
+    400,
+  );
+  const created = await call('/api/publications', 'member', 'POST', publication);
+  assert.equal(created.status, 201);
+  const { id } = await created.json();
+  let feed = await (await call('/api/publications', 'other')).json();
+  assert.equal(feed.records[0].ownerId, 'member');
+  assert.equal(feed.resetsAt, '2026-10-24T11:00:00.000Z');
+  assert.equal((await call(`/api/publications/${id}`, 'other', 'DELETE', {})).status, 403);
+  assert.equal((await call('/api/publications', 'member', 'POST', publication)).status, 409);
+  date = new Date('2026-10-24T11:00:00Z');
+  feed = await (await call('/api/publications')).json();
+  assert.equal(feed.records.length, 0);
+  assert.equal(repo.publications.size, 0);
+  assert.equal(feed.resetsAt, '2026-10-25T11:00:00.000Z');
+  const current = await call('/api/publications', 'member', 'POST', {
+    ...publication,
+    type: 'materia',
+  });
+  assert.equal(current.status, 201);
+  const currentId = (await current.json()).id;
+  assert.equal((await call(`/api/publications/${currentId}`, 'member', 'DELETE', {})).status, 200);
+  assert.equal((await (await call('/api/publications')).json()).records.length, 0);
+  assert.equal((await call('/api/publications?page=-1')).status, 400);
+});
+
+test('estatuto: começa em elaboração, somente ADM mantém rascunho e publica sem vazar texto privado', async (t) => {
+  const { call } = await setup(t);
+  const draft = {
+    title: 'Estatuto da ANADE',
+    body: 'Texto em revisão privada',
+    url: '',
+    published: false,
+  };
+  assert.equal((await call('/api/statute', null)).status, 401);
+  assert.equal((await (await call('/api/statute')).json()).published, false);
+  assert.equal((await call('/api/statute', 'member', 'PUT', draft)).status, 403);
+  assert.equal((await call('/api/statute', 'admin', 'PUT', draft, '')).status, 403);
+  assert.equal((await call('/api/statute', 'admin', 'PUT', draft)).status, 200);
+  assert.equal((await (await call('/api/statute', 'member')).json()).body, '');
+  assert.equal((await (await call('/api/statute', 'admin')).json()).body, draft.body);
+  assert.equal(
+    (await call('/api/statute', 'admin', 'PUT', { ...draft, body: '', published: true })).status,
+    400,
+  );
+  assert.equal(
+    (await call('/api/statute', 'admin', 'PUT', { ...draft, published: true })).status,
+    200,
+  );
+  assert.equal((await (await call('/api/statute', 'other')).json()).body, draft.body);
+  assert.equal((await call('/api/statute', 'admin', 'PUT', draft)).status, 200);
+  assert.equal((await (await call('/api/statute', 'other')).json()).body, '');
+});
 test('propostas: filiação, CSRF, autoria, apoio idempotente, comentários e encaminhamento único com abstenção', async (t) => {
   const { call, repo } = await setup(t);
   assert.equal((await call('/api/proposals', null)).status, 401);

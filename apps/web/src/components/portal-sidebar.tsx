@@ -16,6 +16,7 @@ import {
   LogOut,
   Megaphone,
   Network,
+  Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
   Rocket,
@@ -52,6 +53,7 @@ export const sidebarGroups = [
       { path: '/votacoes', title: 'Votações internas', icon: Vote },
       { path: '/propostas', title: 'Central de propostas', icon: Lightbulb },
       { path: '/campanha', title: 'Central de campanha', icon: Rocket },
+      { path: '/divulgacao', title: 'Mural de divulgação', icon: Newspaper },
     ],
   },
   {
@@ -63,6 +65,7 @@ export const sidebarGroups = [
       { path: '/bancadas', title: 'Bancadas', icon: Landmark },
       { path: '/filiados', title: 'Nossos filiados', icon: Users },
       { path: '/direcao', title: 'Direção', icon: Landmark },
+      { path: '/estatuto', title: 'Estatuto', icon: BookOpen },
     ],
   },
   {

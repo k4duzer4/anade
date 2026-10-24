@@ -177,10 +177,62 @@
   padding-top: 13px;
 }
 .season-dashboard.is-compact .season-phase h2 {
-  font-size: 34px;
+  font-size: 28px;
+  margin: 12px 0 6px;
+}
+.season-dashboard.is-compact {
+  align-items: stretch;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr);
+}
+.season-dashboard.is-compact .season-phase,
+.season-dashboard.is-compact .season-milestones {
+  padding: 22px;
+}
+.season-dashboard.is-compact .season-counters {
+  margin: 17px 0 10px;
+}
+.season-dashboard.is-compact .season-counters > div {
+  padding: 12px;
+}
+.season-dashboard.is-compact .season-counters strong {
+  margin-top: 7px;
 }
 .season-dashboard.is-compact .season-milestones article {
-  margin-bottom: 15px;
+  margin-bottom: 13px;
+}
+.season-dashboard.is-compact .season-reference {
+  font-size: 9px;
+  padding-top: 9px;
+}
+@media (max-width: 1300px) {
+  .season-dashboard.is-compact {
+    grid-template-columns: 1fr;
+  }
+  .season-dashboard.is-compact .season-milestones {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .season-dashboard.is-compact .season-milestones > header,
+  .season-dashboard.is-compact .season-reference {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+  .season-dashboard.is-compact .season-milestones article {
+    display: block;
+    margin: 0;
+  }
+  .season-dashboard.is-compact .season-milestones article > div {
+    margin-bottom: 10px;
+  }
+}
+@media (max-width: 600px) {
+  .season-dashboard.is-compact .season-milestones {
+    grid-template-columns: 1fr;
+  }
+  .season-dashboard.is-compact .season-milestones article {
+    display: flex;
+  }
 }
 @media (max-width: 1100px) {
   .season-dashboard {

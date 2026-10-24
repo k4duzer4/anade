@@ -34,7 +34,7 @@ export function SeasonCountdown({
         e.title !== 'Posse da direção partidária',
     )
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 8);
+    .slice(0, compact ? 3 : 8);
   return (
     <div className={`season-dashboard ${compact ? 'is-compact' : ''}`}>
       <section className="panel season-phase">
@@ -116,7 +116,7 @@ export function SeasonCountdown({
                 </div>
                 <section>
                   <h3>{event.title}</h3>
-                  {event.body && <p>{event.body}</p>}
+                  {!compact && event.body && <p>{event.body}</p>}
                   <span>
                     {event.gameDay ? `Dia ${event.gameDay} · ` : ''}
                     {formatDate(event.date)}

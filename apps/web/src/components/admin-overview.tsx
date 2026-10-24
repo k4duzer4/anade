@@ -25,6 +25,7 @@ import { MemberAvatar } from './member-avatar';
 import { ErrorNotice } from './ui';
 import { loadCheckins } from '@/lib/checkin-upload';
 import { formatDate, type CheckinRanking } from '@/lib/types';
+import { officialDirection } from '@/lib/official-direction';
 
 export function AdminOverview({
   adminsCount,
@@ -156,7 +157,7 @@ export function AdminOverview({
       description: 'Dirigentes, cargos e responsabilidades.',
       href: '/direcao',
       Icon: Landmark,
-      detail: `${data.directors.length} posições`,
+      detail: `${officialDirection(data.members, data.directors).length} funções atribuídas`,
     },
     {
       title: 'Consultar pontos',

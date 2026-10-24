@@ -132,7 +132,7 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
         s,
         members.filter((x) => !previous?.memberIds.includes(x)),
         `Você participa de ${data.name}.`,
-        `/grupos?grupo=${id}`,
+        `/grupos/${id}`,
         'group',
         id,
       );
@@ -181,19 +181,12 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
       };
       const id = await s.save('note', item, previous?.id);
       if (assignedId && assignedId !== previous?.assignedId)
-        await notify(
-          s,
-          [assignedId],
-          `Atribuição: ${item.title}`,
-          `/grupos?grupo=${g.id}`,
-          'note',
-          id,
-        );
+        await notify(s, [assignedId], `Atribuição: ${item.title}`, `/grupos/${g.id}`, 'note', id);
       await notify(
         s,
         mentions.filter((x) => !previous?.mentionIds.includes(x)),
         `Você foi mencionado: ${item.title}`,
-        `/grupos?grupo=${g.id}`,
+        `/grupos/${g.id}`,
         'note',
         id,
         'mencao',
@@ -552,7 +545,7 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
           `note:${n.id}:${n.dueDate}`,
           `Prazo: ${n.title}`,
           `${n.dueDate}T21:00:00-03:00`,
-          `/grupos?grupo=${n.groupId}`,
+          `/grupos/${n.groupId}`,
         );
     for (const item of legal)
       if (item.status !== 'concluido' && item.dueDate && permitted(item, user))

@@ -1,61 +1,21 @@
 'use client';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
-import {
-  LayoutDashboard,
-  CalendarDays,
-  Vote,
-  Users,
-  ContactRound,
-  Flag,
-  ArrowUpRight,
-  LogOut,
-  Menu,
-  X,
-  ChevronRight,
-  ShieldCheck,
-  RefreshCw,
-  Landmark,
-  Settings2,
-  Clock3,
-  Lightbulb,
-  Megaphone,
-  Rocket,
-  Network,
-  Wallet,
-  Scale,
-} from 'lucide-react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Menu, X, ChevronRight, ShieldCheck, RefreshCw } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { MemberAvatar } from './member-avatar';
 import { ThemeSwitcher } from '@/components/theme-switcher';
-import { m } from 'motion/react';
 import { GlobalSearch } from './global-search';
 import { NotificationCenter } from './notification-center';
-const nav = [
-  { path: '/painel', title: 'Visão geral', icon: LayoutDashboard },
-  { path: '/agenda', title: 'Agenda do partido', icon: CalendarDays },
-  { path: '/votacoes', title: 'Votações internas', icon: Vote },
-  { path: '/propostas', title: 'Central de propostas', icon: Lightbulb },
-  { path: '/comunicados', title: 'Comunicados', icon: Megaphone },
-  { path: '/campanha', title: 'Central de campanha', icon: Rocket },
-  { path: '/grupos', title: 'Grupos e diretórios', icon: Network },
-  { path: '/bancadas', title: 'Bancadas', icon: Landmark },
-  { path: '/calendario', title: 'Calendário do Legado', icon: CalendarDays },
-  { path: '/financeiro', title: 'Financeiro', icon: Wallet },
-  { path: '/juridico', title: 'Jurídico', icon: Scale },
-  { path: '/ponto', title: 'Bater ponto', icon: Clock3 },
-  { path: '/filiados', title: 'Nossos filiados', icon: Users },
-  { path: '/direcao', title: 'Direção', icon: Landmark },
-  { path: '/ficha', title: 'Meu perfil', icon: ContactRound },
-  { path: '/administracao', title: 'Administração', icon: Settings2 },
-];
+import { PortalSidebar, sidebarItems, useSidebarPreferences } from './portal-sidebar';
 export default function PortalLayout({ children }: { children: ReactNode }) {
   const { data, config, loading, error, logout, refresh } = usePortal();
   const path = usePathname();
   const router = useRouter();
   const [menu, setMenu] = useState(false);
+  const closeMenu = useCallback(() => setMenu(false), []);
+  const sidebar = useSidebarPreferences();
   useEffect(() => {
     if (!loading && !data) router.replace('/');
   }, [data, loading, router]);
@@ -70,7 +30,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     );
   const member = data.members.find((m) => m.id === data.user.id),
     name = member?.name || data.user.discord;
-  const visibleNav = nav.filter((item) => item.path !== '/administracao' || data.user.admin);
+  const visibleNav = sidebarItems.filter((item) => !item.adminOnly || data.user.admin);
   const active = visibleNav.find((n) => n.path === path || path.startsWith(`${n.path}/`));
   async function exit() {
     try {
@@ -81,90 +41,25 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     }
   }
   return (
-    <div className={`portal-shell ${menu ? 'menu-open' : ''}`}>
+    <div
+      className={`portal-shell ${menu ? 'menu-open' : ''} ${sidebar.preferences.collapsed ? 'sidebar-is-collapsed' : ''}`}
+    >
       <a href="#conteudo" className="skip-link">
         Pular para o conteúdo
       </a>
-      <aside className="sidebar">
-        <Link className="sidebar-brand" href="/painel" aria-label="ANADE 10, início">
-          <div className="brand-image">
-            <Image
-              src="/brand/anade-logo.png"
-              alt="ANADE 10 com seu jacaré"
-              width={180}
-              height={180}
-            />
-          </div>
-          <span>ALIANÇA NACIONAL DEMOCRÁTICA</span>
-        </Link>
-        <div className="sidebar-divider">
-          <span>PORTAL DO FILIADO</span>
-          <i />
-        </div>
-        <nav aria-label="Menu principal">
-          {visibleNav.map((item) => (
-            <Link
-              key={item.path}
-              href={item.path}
-              onClick={() => setMenu(false)}
-              className={active?.path === item.path ? 'active' : ''}
-              aria-current={active?.path === item.path ? 'page' : undefined}
-            >
-              {active?.path === item.path && (
-                <m.span
-                  className="nav-active-pill"
-                  layoutId="sidebar-active"
-                  transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-                />
-              )}
-              <item.icon size={19} />
-              {item.title}
-              {item.path === '/votacoes' && data.polls.filter((p) => !p.closed).length > 0 && (
-                <span className="nav-count">{data.polls.filter((p) => !p.closed).length}</span>
-              )}
-            </Link>
-          ))}
-        </nav>
-        <div className="nav-secondary">
-          <Link
-            href="/partido"
-            onClick={() => setMenu(false)}
-            className={path === '/partido' ? 'active' : ''}
-          >
-            <Flag size={18} /> A ANADE
-          </Link>
-        </div>
-        <div className="sidebar-bottom">
-          <div className="sidebar-motto">
-            <span>UMA ALIANÇA DE IDEIAS.</span>
-            <strong>
-              UM PROJETO
-              <br />
-              DE TODOS.
-            </strong>
-            <span className="gold-rule" />
-          </div>
-          <a
-            className="wiki-link"
-            href="https://legado.planalto.fun/wiki/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Wiki do Legado
-            <ArrowUpRight size={15} />
-          </a>
-          <div className="user-block">
-            <MemberAvatar name={name} src={member?.avatarUrl} />
-            <div>
-              <strong>{name.split(' ').slice(0, 2).join(' ')}</strong>
-              <small>{data.user.admin ? 'Direção nacional' : 'Filiado ANADE'}</small>
-            </div>
-            <button aria-label="Sair da conta" className="icon-button" onClick={exit}>
-              <LogOut size={17} />
-            </button>
-          </div>
-        </div>
-      </aside>
+      <PortalSidebar
+        path={path}
+        admin={data.user.admin}
+        name={name}
+        avatarUrl={member?.avatarUrl}
+        menuOpen={menu}
+        onNavigate={closeMenu}
+        onExit={exit}
+        {...sidebar}
+        pendingVotes={
+          data.polls.filter((p) => !p.closed && !p.hasVoted && p.canVote !== false).length
+        }
+      />
       {menu && (
         <button className="menu-backdrop" aria-label="Fechar menu" onClick={() => setMenu(false)} />
       )}
@@ -174,6 +69,8 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             <button
               className="mobile-menu icon-button"
               aria-label={menu ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={menu}
+              aria-controls="portal-navigation"
               onClick={() => setMenu(!menu)}
             >
               {menu ? <X size={21} /> : <Menu size={21} />}
@@ -185,7 +82,9 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
                 ? 'Editar meu perfil'
                 : path.startsWith('/filiados/')
                   ? 'Perfil do filiado'
-                  : active?.title || 'A ANADE'}
+                  : path.startsWith('/grupos/')
+                    ? 'Espaço do grupo'
+                    : active?.title || 'A ANADE'}
             </b>
           </div>
           <div className="topbar-right">

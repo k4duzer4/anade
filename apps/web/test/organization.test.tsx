@@ -8,6 +8,7 @@ import { LegalHub } from '../src/components/legal-hub';
 import { GameCalendarPanel } from '../src/components/game-calendar';
 import { NotificationCenter } from '../src/components/notification-center';
 import { PollCard } from '../src/components/poll-card';
+import { GroupWorkspace } from '../src/components/group-workspace';
 import { loadCommunity } from '../src/lib/community';
 const portal = vi.hoisted(() => ({
   data: {
@@ -15,6 +16,8 @@ const portal = vi.hoisted(() => ({
     csrf: 'csrf',
     serverTime: '2026-10-24T14:00:00Z',
     members: [{ id: 'member', name: 'Maria', discord: 'maria', state: 'SP' }],
+    polls: [],
+    meetings: [],
   },
   config: { states: ['SP'] },
   mutate: vi.fn(),
@@ -51,6 +54,61 @@ it('grupo privado não oferece entrada nem edição para não participante', asy
   expect(screen.queryByRole('link', { name: 'Entrar no grupo' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Criar grupo' })).toBeNull();
   expect(loadCommunity).toHaveBeenCalledTimes(1);
+});
+it('entrar no grupo aponta para página própria e o detalhe não repete a listagem', async () => {
+  const group = {
+    id: 'group',
+    name: 'Câmara',
+    type: 'camara',
+    state: '',
+    memberIds: ['member'],
+    canAccess: true,
+    leaderId: 'member',
+    description: 'Bancada',
+  };
+  vi.mocked(loadCommunity).mockImplementation(async (url) =>
+    String(url).includes('/notes')
+      ? { records: [], page: 0, total: 0, hasMore: false }
+      : { records: [group] },
+  );
+  const view = render(<GroupsHub />);
+  await screen.findByRole('link', { name: 'Entrar no grupo' });
+  expect(screen.getByRole('link', { name: 'Entrar no grupo' }).getAttribute('href')).toBe(
+    '/grupos/group',
+  );
+  view.unmount();
+  render(<GroupsHub groupId="group" />);
+  await screen.findByRole('heading', { name: 'Câmara', level: 1 });
+  expect(screen.queryByRole('textbox', { name: 'Buscar grupo' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Entrar no grupo' })).toBeNull();
+  expect(screen.getByRole('heading', { name: 'Maria' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /Votações/ })).toBeTruthy();
+});
+it('página do grupo mostra apenas seus próprios votos e participantes', async () => {
+  const group = {
+    id: 'group',
+    name: 'Câmara',
+    type: 'camara',
+    state: '',
+    memberIds: ['member'],
+    canAccess: true,
+    leaderId: 'member',
+    description: 'Bancada',
+  };
+  const user = userEvent.setup();
+  render(
+    <GroupWorkspace group={group} onCreateNote={vi.fn()}>
+      <p>Pauta exclusiva da Câmara</p>
+    </GroupWorkspace>,
+  );
+  expect(screen.getByText('Pauta exclusiva da Câmara')).toBeTruthy();
+  await user.click(screen.getByRole('button', { name: /^Votações/ }));
+  await screen.findByText('Nenhuma votação neste grupo.');
+  expect(screen.queryByText('Pauta exclusiva da Câmara')).toBeNull();
+  await user.click(screen.getByRole('button', { name: /^Participantes/ }));
+  expect(screen.getByRole('link', { name: /Maria Liderança/ }).getAttribute('href')).toBe(
+    '/filiados/member',
+  );
 });
 it('caixas não autorizados e jurídico sem acesso não oferecem criação de registro', async () => {
   vi.mocked(loadCommunity).mockResolvedValue({

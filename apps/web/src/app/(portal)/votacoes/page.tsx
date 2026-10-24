@@ -18,7 +18,7 @@ export default function Polls() {
     target = params.get('votacao') || '',
     groupId = params.get('grupo') || '';
   const [filter, setFilter] = useState('open'),
-    [open, setOpen] = useState(false),
+    [open, setOpen] = useState(() => params.get('nova') === '1' && data?.user.admin === true),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const [search, setSearch] = useState('');

@@ -6,13 +6,26 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 // Keep floating controls inside the native dialog's top layer when a modal is open.
 export const FloatingLayerContext = createContext<HTMLElement | null>(null);
 
-export function Tooltip({ content, children }: { content: string; children: ReactElement }) {
+export function Tooltip({
+  content,
+  children,
+  side = 'top',
+}: {
+  content: string;
+  children: ReactElement;
+  side?: 'top' | 'right' | 'bottom' | 'left';
+}) {
   const container = useContext(FloatingLayerContext);
   return (
     <TooltipPrimitive.Root>
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal container={container}>
-        <TooltipPrimitive.Content className="anade-tooltip" sideOffset={9} collisionPadding={12}>
+        <TooltipPrimitive.Content
+          className="anade-tooltip"
+          side={side}
+          sideOffset={9}
+          collisionPadding={12}
+        >
           {content}
           <TooltipPrimitive.Arrow className="anade-tooltip-arrow" width={10} height={5} />
         </TooltipPrimitive.Content>

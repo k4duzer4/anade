@@ -161,6 +161,10 @@ Na Vercel, importe a raiz do repositório e configure as variáveis do [guia](DE
 
 ## Grupos, bancadas, financeiro, jurídico e calendário
 
+O menu lateral reúne as páginas em quatro submenus (Dia a dia, Participação, Organização e Gestão). O botão de recolher ativa uma faixa de ícones no desktop, com nomes em balões e preferência salva no navegador. No celular, mantém os nomes completos, fecha com Escape e contém o foco enquanto está aberto.
+
+Cada grupo abre em `/grupos/:id`, com liderança, participantes e abas de pautas, votações e reuniões filtradas pelo grupo. Essas páginas individuais não são adicionadas ao menu. Links antigos com `?grupo=...` são redirecionados para o endereço próprio. Atalhos administrativos abrem o formulário de reunião/votação com o grupo selecionado.
+
 Execute `npm run db:migrate` para aplicar `012_organization.sql` antes de publicar esta versão. A migração preserva reuniões/votações anteriores e cria Câmara, Senado, direção, jurídico, comunicação e tesouraria **sem participantes**, além dos caixas partidário e eleitoral **zerados e somente para administradores**. Não há novas variáveis de ambiente.
 
 - `/grupos` e `/bancadas`: somente administradores definem participantes, liderança e diretórios estaduais. Qualquer participante registra prioridades, pautas, negociações, orientações de voto, tarefas e avisos. Autor, liderança e administradores editam. As reuniões de grupo são filtradas na API, na busca e nas notificações, inclusive ao confirmar presença.

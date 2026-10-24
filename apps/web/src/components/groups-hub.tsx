@@ -1,22 +1,12 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import {
-  ArrowUpRight,
-  CalendarDays,
-  Landmark,
-  LockKeyhole,
-  Pencil,
-  Plus,
-  Users,
-  Vote,
-} from 'lucide-react';
+import { ArrowUpRight, Landmark, LockKeyhole, Pencil, Plus, Users } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { PageHeading, Modal, Empty, ErrorNotice, Badge } from './ui';
 import { Select } from './select';
 import { DateTimePicker } from './date-time-picker';
-import { MemberAvatar } from './member-avatar';
+import { GroupWorkspace } from './group-workspace';
 import {
   MembersPicker,
   OrganizationForm,
@@ -36,9 +26,8 @@ import { shortDay } from '@/lib/community';
 import { SearchBox } from './portal-tools';
 import { searchText } from '@/lib/types';
 
-export function GroupsHub({ caucus = false }: { caucus?: boolean }) {
-  const { data } = usePortal(),
-    params = useSearchParams();
+export function GroupsHub({ caucus = false, groupId }: { caucus?: boolean; groupId?: string }) {
+  const { data } = usePortal();
   const [version, setVersion] = useState(0),
     [page, setPage] = useState(0),
     [search, setSearch] = useState('');
@@ -53,13 +42,12 @@ export function GroupsHub({ caucus = false }: { caucus?: boolean }) {
   );
   const groups =
     result?.records.filter((g) => !caucus || ['camara', 'senado'].includes(g.type)) || [];
-  const selected = groups.find((g) => g.id === params.get('grupo'));
+  const selected = groups.find((g) => g.id === groupId);
   const { value: notes, error: notesError } = useOrganization<Page<GroupNote>>(
     selected?.canAccess ? `/api/groups/${selected.id}/notes?page=${page}` : null,
     version,
   );
   if (!data) return null;
-  const path = caucus ? '/bancadas' : '/grupos';
   const close = () => setDialog(null),
     saved = () => {
       setVersion((v) => v + 1);
@@ -68,125 +56,114 @@ export function GroupsHub({ caucus = false }: { caucus?: boolean }) {
   return (
     <div className="refresh-page org-page">
       <PageHeading
-        eyebrow={caucus ? 'ESPAÇO DAS BANCADAS' : 'ORGANIZAÇÃO · ANADE'}
-        title={caucus ? 'Uma bancada. Uma direção.' : 'Cada equipe, um propósito.'}
+        eyebrow={
+          groupId
+            ? `${selected ? groupNames[selected.type] : 'GRUPO'} · ANADE`
+            : caucus
+              ? 'ESPAÇO DAS BANCADAS'
+              : 'ORGANIZAÇÃO · ANADE'
+        }
+        title={
+          groupId
+            ? selected?.name || 'Espaço do grupo'
+            : caucus
+              ? 'Uma bancada. Uma direção.'
+              : 'Cada equipe, um propósito.'
+        }
         description={
-          caucus
-            ? 'Parlamentares, liderança e prioridades legislativas em um só lugar.'
-            : 'Grupos de trabalho, diretórios estaduais e equipes com participantes definidos.'
+          groupId
+            ? selected?.description ||
+              'Participantes, liderança e decisões deste grupo em um só lugar.'
+            : caucus
+              ? 'Parlamentares, liderança e prioridades legislativas em um só lugar.'
+              : 'Grupos de trabalho, diretórios estaduais e equipes com participantes definidos.'
         }
         action={
-          data.user.admin && (
-            <button className="button primary" onClick={() => setDialog({ type: 'group' })}>
+          data.user.admin &&
+          (!groupId || selected?.canAccess) && (
+            <button
+              className="button primary"
+              onClick={() => setDialog({ type: 'group', group: selected })}
+            >
               <Plus size={17} />
-              Criar grupo
+              {groupId ? 'Gerenciar grupo' : 'Criar grupo'}
             </button>
           )
         }
       />
+      {groupId && (
+        <Link className="text-button group-back" href="/grupos">
+          ← Voltar aos grupos
+        </Link>
+      )}
       <ErrorNotice message={error || notesError} />
       {!result && <OrganizationLoading />}
-      <div className="org-toolbar">
-        <SearchBox label="Buscar grupo" value={search} onChange={setSearch} />
-        <span>{groups.length} grupos · participação definida pela administração</span>
-      </div>
-      <div className="org-group-grid">
-        {groups
-          .filter((g) => searchText(`${g.name} ${g.state}`).includes(searchText(search)))
-          .map((g) => (
-            <article
-              className={`panel org-group-card ${selected?.id === g.id ? 'is-selected' : ''}`}
-              key={g.id}
-            >
-              <div className="org-card-heading">
-                <span className="org-symbol">
-                  <Landmark size={22} />
-                </span>
-                <Badge>
-                  {groupNames[g.type]}
-                  {g.state ? ` · ${g.state}` : ''}
-                </Badge>
-              </div>
-              <h2>{g.name}</h2>
-              <p>{g.description || 'Um espaço para organizar o trabalho da nossa aliança.'}</p>
-              <span className="org-meta">
-                <Users size={15} />
-                {g.memberIds.length} participantes
-              </span>
-              <div className="org-card-actions">
-                {g.canAccess ? (
-                  <Link
-                    className="text-button"
-                    href={`${path}?grupo=${g.id}#grupo-${g.id}`}
-                    onClick={() => setPage(0)}
-                  >
-                    Entrar no grupo
-                    <ArrowUpRight size={15} />
-                  </Link>
-                ) : (
-                  <span className="org-meta">
-                    <LockKeyhole size={14} />
-                    Somente participantes
-                  </span>
-                )}
-                {data.user.admin && (
-                  <button
-                    className="icon-button"
-                    aria-label={`Editar ${g.name}`}
-                    onClick={() => setDialog({ type: 'group', group: g })}
-                  >
-                    <Pencil size={15} />
-                  </button>
-                )}
-              </div>
-            </article>
-          ))}
-      </div>
-      {selected?.canAccess && (
-        <section className="org-workspace" key={selected.id} id={`grupo-${selected.id}`}>
-          <header className="org-workspace-heading">
-            <div>
-              <span className="eyebrow">ESPAÇO DO GRUPO</span>
-              <h2>{selected.name}</h2>
-              <p>
-                Liderança:{' '}
-                {data.members.find((m) => m.id === selected.leaderId)?.name || 'Ainda não definida'}
-              </p>
-            </div>
-            <button
-              className="button primary"
-              onClick={() => setDialog({ type: 'note', group: selected })}
-            >
-              <Plus size={17} />
-              Novo registro
-            </button>
-          </header>
-          <div className="org-quicklinks">
-            <Link href={`/agenda?grupo=${selected.id}`}>
-              <CalendarDays size={17} />
-              Reuniões do grupo
-            </Link>
-            <Link href={`/votacoes?grupo=${selected.id}`}>
-              <Vote size={17} />
-              Votações do grupo
-            </Link>
+      {!groupId && (
+        <>
+          <div className="org-toolbar">
+            <SearchBox label="Buscar grupo" value={search} onChange={setSearch} />
+            <span>{groups.length} grupos · participação definida pela administração</span>
           </div>
-          <details className="panel org-participants">
-            <summary>Participantes · {selected.memberIds.length}</summary>
-            <div>
-              {data.members
-                .filter((m) => selected.memberIds.includes(m.id))
-                .map((m) => (
-                  <Link href={`/filiados/${m.id}`} key={m.id}>
-                    <MemberAvatar name={m.name} src={m.avatarUrl} />
-                    <span>
-                      {m.name}
-                      {m.id === selected.leaderId && <small>Liderança</small>}
+          <div className="org-group-grid">
+            {groups
+              .filter((g) => searchText(`${g.name} ${g.state}`).includes(searchText(search)))
+              .map((g) => (
+                <article
+                  className={`panel org-group-card ${selected?.id === g.id ? 'is-selected' : ''}`}
+                  key={g.id}
+                >
+                  <div className="org-card-heading">
+                    <span className="org-symbol">
+                      <Landmark size={22} />
                     </span>
-                  </Link>
-                ))}
-            </div>
-          </details>
+                    <Badge>
+                      {groupNames[g.type]}
+                      {g.state ? ` · ${g.state}` : ''}
+                    </Badge>
+                  </div>
+                  <h2>{g.name}</h2>
+                  <p>{g.description || 'Um espaço para organizar o trabalho da nossa aliança.'}</p>
+                  <span className="org-meta">
+                    <Users size={15} />
+                    {g.memberIds.length} participantes
+                  </span>
+                  <div className="org-card-actions">
+                    {g.canAccess ? (
+                      <Link
+                        className="text-button"
+                        href={`/grupos/${g.id}`}
+                        onClick={() => setPage(0)}
+                      >
+                        Entrar no grupo
+                        <ArrowUpRight size={15} />
+                      </Link>
+                    ) : (
+                      <span className="org-meta">
+                        <LockKeyhole size={14} />
+                        Somente participantes
+                      </span>
+                    )}
+                    {data.user.admin && (
+                      <button
+                        className="icon-button"
+                        aria-label={`Editar ${g.name}`}
+                        onClick={() => setDialog({ type: 'group', group: g })}
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    )}
+                  </div>
+                </article>
+              ))}
+          </div>
+        </>
+      )}
+      {selected?.canAccess && (
+        <GroupWorkspace
+          group={selected}
+          workCount={notes?.total || 0}
+          onCreateNote={() => setDialog({ type: 'note', group: selected })}
+        >
           <div className="org-record-grid">
             {notes?.records
               .filter((n) => n.groupId === selected.id)
@@ -232,6 +209,19 @@ export function GroupsHub({ caucus = false }: { caucus?: boolean }) {
             </section>
           )}
           {notes && <OrganizationPager page={page} hasMore={notes.hasMore} onChange={setPage} />}
+        </GroupWorkspace>
+      )}
+      {groupId && result && !selected?.canAccess && (
+        <section className="panel">
+          <Empty>
+            <LockKeyhole size={28} />
+            <h3>{selected ? 'Este grupo é restrito.' : 'Grupo não encontrado.'}</h3>
+            <p>
+              {selected
+                ? 'A administração define os participantes deste espaço.'
+                : 'Volte à lista para encontrar um grupo disponível.'}
+            </p>
+          </Empty>
         </section>
       )}
       {dialog?.type === 'group' && (

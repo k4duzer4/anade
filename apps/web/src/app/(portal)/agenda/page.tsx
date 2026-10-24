@@ -16,7 +16,7 @@ export default function Agenda() {
     target = params.get('encontro') || '',
     groupId = params.get('grupo') || '';
   const [filter, setFilter] = useState('upcoming'),
-    [open, setOpen] = useState(false);
+    [open, setOpen] = useState(() => params.get('nova') === '1' && data?.user.admin === true);
   const [search, setSearch] = useState('');
   const [day, setDay] = useState('');
   if (!data) return null;

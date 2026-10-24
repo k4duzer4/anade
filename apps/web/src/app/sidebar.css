@@ -62,13 +62,14 @@
   font-weight: 800;
   color: #36513b;
 }
-.sidebar-compact-brand {
+.sidebar-modern .sidebar-compact-brand {
   display: none;
   font:
     800 28px/0.8 'Barlow Condensed',
     sans-serif;
   color: #f4efd9;
   letter-spacing: -1px;
+  margin: 0;
 }
 .sidebar-compact-brand > span {
   color: #e4be4f;
@@ -486,6 +487,20 @@
   }
   .sidebar-account-link strong {
     font-size: 11px;
+  }
+}
+@media (min-width: 701px) and (max-width: 1100px) {
+  .portal-shell .topbar .verified {
+    display: none;
+  }
+  .portal-shell .breadcrumb > span:first-of-type {
+    display: none;
+  }
+  .portal-shell .breadcrumb > b {
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 @media (prefers-reduced-motion: reduce) {

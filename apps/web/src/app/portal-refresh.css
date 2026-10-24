@@ -1286,11 +1286,34 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  padding: 26px;
+  border: 1px solid var(--card-edge);
+  background: var(--card-fill);
+}
+.home-refresh .dashboard-columns > .panel > .panel-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 64px;
+  padding: 0 0 20px;
+  margin: 0 0 16px;
+  background: transparent;
+  overflow: visible;
+  gap: 16px;
+}
+.home-refresh .dashboard-columns > .panel > .panel-heading > div {
+  padding: 0;
+}
+.home-refresh .dashboard-columns > .panel > .panel-heading h2 {
+  margin: 6px 0 0;
 }
 .home-refresh .dashboard-columns > .panel > .empty-state {
   flex: 1;
   display: grid;
   align-content: center;
+  justify-items: center;
+  min-height: 112px;
+  padding: 24px 0;
+  text-align: center;
 }
 .home-refresh .panel-heading::after {
   display: none;
@@ -1307,20 +1330,12 @@
 .home-refresh .panel-heading .text-button {
   font-size: 10px;
 }
-.home-refresh .dashboard-columns > .panel:first-child {
-  padding: 26px;
-  border: 1px solid var(--card-edge);
-  background: var(--card-fill);
-}
 .home-refresh .dashboard-columns > .panel .event-card {
   border: 0;
   padding: 0;
   box-shadow: none;
   background: transparent;
   flex: 1;
-}
-.home-refresh .dashboard-columns > .panel:first-child .panel-heading {
-  padding: 0 0 19px;
 }
 .home-refresh .dashboard-poll {
   padding: 19px 0;

@@ -21,6 +21,7 @@ export type Member = {
 };
 export type Meeting = {
   id: string;
+  groupId?: string;
   title: string;
   date: string;
   location: string;
@@ -32,6 +33,23 @@ export type Meeting = {
 };
 export type Poll = {
   id: string;
+  canVote?: boolean;
+  governance?: {
+    groupId: string;
+    groupName: string;
+    electorIds: string[];
+    quorumPercent: number;
+    rule: string;
+    opensAt: string;
+  };
+  outcome?: {
+    quorum: number;
+    quorumReached: boolean;
+    electorate: number;
+    threshold: number;
+    winner: number | null;
+    reason: string;
+  };
   title: string;
   description: string;
   options: string[];

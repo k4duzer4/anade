@@ -3,9 +3,14 @@ import { MAX_PROOF_BYTES } from './checkins.js';
 
 const BUCKET = 'anade-checkins';
 export class SupabaseProofStorage {
-  constructor(env, request = fetch, { bucket = BUCKET, maxBytes = MAX_PROOF_BYTES } = {}) {
+  constructor(
+    env,
+    request = fetch,
+    { bucket = BUCKET, maxBytes = MAX_PROOF_BYTES, allowedMimeTypes = ['image/webp'] } = {},
+  ) {
     this.bucket = bucket;
     this.maxBytes = maxBytes;
+    this.allowedMimeTypes = allowedMimeTypes;
     this.url = env.SUPABASE_URL?.replace(/\/$/, '');
     this.key = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
     this.request = request;
@@ -57,7 +62,7 @@ export class SupabaseProofStorage {
           name: this.bucket,
           public: false,
           file_size_limit: this.maxBytes,
-          allowed_mime_types: ['image/webp'],
+          allowed_mime_types: this.allowedMimeTypes,
         }),
       });
       // Another function may have created the bucket in the meantime.
@@ -76,11 +81,11 @@ export class SupabaseProofStorage {
       503,
     );
   }
-  async put(path, buffer) {
+  async put(path, buffer, mime = 'image/webp') {
     await this.ensureBucket();
     const response = await this.call(`object/${this.bucket}/${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'image/webp', 'x-upsert': 'false' },
+      headers: { 'Content-Type': mime, 'x-upsert': 'false' },
       body: buffer,
     });
     assert(response.ok, 'Não foi possível salvar as imagens. Tente novamente.', 503);

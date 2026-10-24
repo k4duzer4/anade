@@ -215,15 +215,24 @@ export class CommunityStore {
     );
     return rows.map((r) => ({ ...present(r), kind: r.kind }));
   }
-  async forward(id, input, author) {
+  async forward(id, input, author, governance) {
     return this.atomic(async (store) => {
       const item = await store.get('proposal', id, '', true);
       assert(!item.pollId, 'Esta proposta já foi encaminhada.', 409);
       const poll = newPoll({ ...input, title: item.title, description: item.body }, author);
+      poll.governance = governance;
       if (store.sql) {
         await store.sql.query(
-          'INSERT INTO anade.polls(id,title,description,deadline,secret,author_id) VALUES($1,$2,$3,$4,$5,$6)',
-          [poll.id, poll.title, poll.description, poll.deadline, poll.secret, poll.author],
+          'INSERT INTO anade.polls(id,title,description,deadline,secret,author_id,governance) VALUES($1,$2,$3,$4,$5,$6,$7)',
+          [
+            poll.id,
+            poll.title,
+            poll.description,
+            poll.deadline,
+            poll.secret,
+            poll.author,
+            governance ? JSON.stringify(governance) : null,
+          ],
         );
         for (let i = 0; i < poll.options.length; i++)
           await store.sql.query(

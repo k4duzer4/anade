@@ -15,6 +15,9 @@ import {
 import { MemoryProofStorage, SupabaseProofStorage } from './proof-storage.js';
 import { rankingFilters } from './checkin-ranking.js';
 import { communityRoutes } from './community.js';
+import { organizationRoutes } from './organization.js';
+import { OrganizationStore, seesMeeting, seesPoll } from './organization-store.js';
+import { votingRules } from './governance.js';
 import { MAX_PROFILE_IMAGE_BYTES, PROFILE_BUCKET, profileMediaRoutes } from './profile-media.js';
 import {
   assert,
@@ -85,12 +88,24 @@ export function createApp({
   discord = discordRequest,
   proofStorage,
   profileStorage,
+  organizationStorage,
+  seasonRequest,
   now = () => new Date(),
 }) {
   assert(!demo || env.NODE_ENV !== 'production', 'Modo demonstração indisponível em produção.');
   assert(new URL(origin).origin === origin, 'APP_ORIGIN deve ser uma origem sem caminho.');
   assert(secret && secret.length >= 32, 'SESSION_SECRET deve ter pelo menos 32 caracteres.');
   const app = express();
+  const organization = new OrganizationStore(repo);
+  const documentStorage =
+    organizationStorage ||
+    (demo
+      ? new MemoryProofStorage()
+      : new SupabaseProofStorage(env, fetch, {
+          bucket: 'anade-documents',
+          maxBytes: 4 * 1024 * 1024,
+          allowedMimeTypes: ['application/pdf', 'image/webp'],
+        }));
   const storage = proofStorage || (demo ? new MemoryProofStorage() : new SupabaseProofStorage(env));
   const mediaStorage =
     profileStorage ||
@@ -432,14 +447,17 @@ export function createApp({
   app.get('/api/state', async (req, res) => {
     const data = await repo.snapshot();
     const user = res.locals.user;
+    const groups = await organization.list('group');
     res.json({
       serverTime: new Date().toISOString(),
       user: { id: user.id, discord: user.discord, admin: user.admin, member: true },
       csrf: req.session.csrf,
       members: data.members.map((m) => publicMember(m, user.id)),
-      meetings: data.meetings,
+      meetings: data.meetings.filter((m) => seesMeeting(m, user, groups)),
       directors: data.directors,
-      polls: data.polls.map((p) => presentPoll(p, user.id)),
+      polls: data.polls
+        .filter((p) => seesPoll(p, user, groups))
+        .map((p) => presentPoll(p, user.id)),
     });
   });
   app.post('/api/logout', (req, res, next) =>
@@ -472,17 +490,27 @@ export function createApp({
     const meeting = {
       id: randomUUID(),
       ...meetingDetails(req.body, { creating: true }),
+      groupId: req.body.groupId || '',
     };
+    if (meeting.groupId) await organization.get('group', meeting.groupId);
     await repo.createMeeting(meeting, res.locals.user.id);
     res.status(201).json({ ok: true });
   });
   app.put('/api/meetings/:id', admin, async (req, res) => {
     uuid(req.params.id);
-    await repo.updateMeeting(req.params.id, meetingDetails(req.body));
+    const groupId = req.body.groupId || '';
+    if (groupId) await organization.get('group', groupId);
+    await repo.updateMeeting(req.params.id, { ...meetingDetails(req.body), groupId });
     res.json({ ok: true });
   });
   app.post('/api/meetings/:id/attendance', async (req, res) => {
     uuid(req.params.id);
+    const meeting = (await repo.snapshot()).meetings.find((m) => m.id === req.params.id);
+    assert(
+      meeting && seesMeeting(meeting, res.locals.user, await organization.list('group')),
+      'Reunião não encontrada.',
+      404,
+    );
     assert(typeof req.body.confirm === 'boolean', 'Confirmação inválida.');
     await repo.attendance(req.params.id, res.locals.user.id, req.body.confirm);
     res.json({ ok: true });
@@ -493,7 +521,13 @@ export function createApp({
     res.json({ ok: true });
   });
   app.post('/api/polls', admin, async (req, res) => {
-    await repo.createPoll(newPoll(req.body, res.locals.user.id));
+    const poll = newPoll(req.body, res.locals.user.id);
+    const group = req.body.groupId ? await organization.get('group', req.body.groupId) : null;
+    const available = (await repo.snapshot()).members
+      .map((m) => m.id)
+      .filter((id) => !group || group.memberIds.includes(id));
+    poll.governance = votingRules(req.body, available, group);
+    await repo.createPoll(poll);
     res.status(201).json({ ok: true });
   });
   app.post('/api/polls/:id/vote', async (req, res) => {
@@ -507,6 +541,7 @@ export function createApp({
     res.json({ ok: true });
   });
   communityRoutes(app, repo, admin);
+  organizationRoutes(app, repo, admin, documentStorage, { seasonRequest });
   app.use((_req, _res, next) =>
     next(Object.assign(new Error('Rota não encontrada.'), { status: 404 })),
   );

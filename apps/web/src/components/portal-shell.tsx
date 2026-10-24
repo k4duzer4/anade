@@ -23,12 +23,16 @@ import {
   Lightbulb,
   Megaphone,
   Rocket,
+  Network,
+  Wallet,
+  Scale,
 } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { MemberAvatar } from './member-avatar';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { m } from 'motion/react';
 import { GlobalSearch } from './global-search';
+import { NotificationCenter } from './notification-center';
 const nav = [
   { path: '/painel', title: 'Visão geral', icon: LayoutDashboard },
   { path: '/agenda', title: 'Agenda do partido', icon: CalendarDays },
@@ -36,6 +40,11 @@ const nav = [
   { path: '/propostas', title: 'Central de propostas', icon: Lightbulb },
   { path: '/comunicados', title: 'Comunicados', icon: Megaphone },
   { path: '/campanha', title: 'Central de campanha', icon: Rocket },
+  { path: '/grupos', title: 'Grupos e diretórios', icon: Network },
+  { path: '/bancadas', title: 'Bancadas', icon: Landmark },
+  { path: '/calendario', title: 'Calendário do Legado', icon: CalendarDays },
+  { path: '/financeiro', title: 'Financeiro', icon: Wallet },
+  { path: '/juridico', title: 'Jurídico', icon: Scale },
   { path: '/ponto', title: 'Bater ponto', icon: Clock3 },
   { path: '/filiados', title: 'Nossos filiados', icon: Users },
   { path: '/direcao', title: 'Direção', icon: Landmark },
@@ -181,6 +190,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="topbar-right">
             <GlobalSearch />
+            <NotificationCenter />
             <ThemeSwitcher />
             <span className="verified">
               <ShieldCheck size={14} />

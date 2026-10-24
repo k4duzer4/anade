@@ -25,6 +25,11 @@ async function directorsTable(db) {
       'ALTER TABLE',
     )[0],
   );
+  const organization = await readFile(
+    new URL('../db/012_organization.sql', import.meta.url),
+    'utf8',
+  );
+  db.public.none(organization.split('ALTER TABLE anade.organization_records ENABLE')[0]);
 }
 test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do voto', async () => {
   const db = newDb();
@@ -194,6 +199,29 @@ test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do vot
     snapshot = await repo.snapshot();
     assert.equal(snapshot.polls.find((p) => p.id === fullPoll.id).votes.b, 10);
     assert.equal(snapshot.polls.find((p) => p.id === fullPoll.id).options[10], 'Abstenção');
+    const restricted = newPoll(
+      {
+        title: 'Liderança',
+        options: ['A', 'B'],
+        deadline: new Date(Date.now() + 60000).toISOString(),
+      },
+      'a',
+    );
+    restricted.governance = {
+      groupId: '10000000-0000-4000-8000-000000000001',
+      groupName: 'Câmara',
+      electorIds: ['b'],
+      quorumPercent: 100,
+      rule: 'absolute',
+      opensAt: new Date().toISOString(),
+    };
+    await repo.createPoll(restricted);
+    await assert.rejects(repo.vote(restricted.id, 'a', 0), /não faz parte do eleitorado/);
+    await repo.vote(restricted.id, 'b', 0);
+    assert.deepEqual(
+      (await repo.snapshot()).polls.find((p) => p.id === restricted.id).governance.electorIds,
+      ['b'],
+    );
   } finally {
     await pool.end();
   }

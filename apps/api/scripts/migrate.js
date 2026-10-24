@@ -21,6 +21,7 @@ try {
     '009_checkins.sql',
     '010_profile_media.sql',
     '011_community.sql',
+    '012_organization.sql',
   ]) {
     const previous = await client.query('SELECT name FROM anade.migrations WHERE name=$1', [name]);
     if (previous.rowCount) continue;

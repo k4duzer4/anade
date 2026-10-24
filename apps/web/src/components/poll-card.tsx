@@ -51,7 +51,15 @@ export function PollCard({ poll: p }: { poll: Poll }) {
       <div className="poll-card-top">
         <span className={`poll-stage ${p.closed ? 'is-closed' : ''}`}>
           <span />
-          {p.closed ? 'Encerrada' : p.hasVoted ? 'Voto registrado' : 'Aguardando seu voto'}
+          {p.closed
+            ? 'Encerrada'
+            : p.hasVoted
+              ? 'Voto registrado'
+              : p.canVote === false
+                ? p.governance && Date.parse(p.governance.opensAt) > Date.parse(data.serverTime)
+                  ? 'Abertura programada'
+                  : 'Eleitorado restrito'
+                : 'Aguardando seu voto'}
         </span>
         <span className="poll-privacy">
           {p.secret ? <LockKeyhole size={14} /> : <Vote size={14} />}Voto{' '}
@@ -59,6 +67,44 @@ export function PollCard({ poll: p }: { poll: Poll }) {
         </span>
       </div>
       <h2>{p.title}</h2>
+      {p.governance && (
+        <details className="org-poll-rules">
+          <summary>
+            {p.governance.groupName} · {p.governance.electorIds.length}{' '}
+            {p.governance.electorIds.length === 1 ? 'eleitor' : 'eleitores'} · quórum{' '}
+            {p.governance.quorumPercent}%
+          </summary>
+          <p>
+            Regra:{' '}
+            {
+              (
+                {
+                  plurality: 'mais votos válidos, sem empate',
+                  absolute: 'mais da metade de todo o eleitorado',
+                  two_thirds: 'dois terços de todo o eleitorado',
+                } as Record<string, string>
+              )[p.governance.rule]
+            }
+            . Abstenções contam para participação e não apoiam alternativas.
+          </p>
+          <p>Abertura: {formatDate(p.governance.opensAt)}. Eleitores definidos na publicação:</p>
+          <p>
+            {p.governance.electorIds
+              .map((id) => data.members.find((m) => m.id === id)?.name || 'Filiado sem ficha')
+              .join(', ')}
+            .
+          </p>
+        </details>
+      )}
+      {p.outcome && (
+        <p className="org-outcome" role="status">
+          <CheckCircle2 size={17} />
+          {p.outcome.winner === null
+            ? p.outcome.reason
+            : `${p.options[p.outcome.winner]} · ${p.outcome.reason}`}{' '}
+          · Quórum: {p.total}/{p.outcome.quorum} participações necessárias.
+        </p>
+      )}
       {p.description.length > 220 ? (
         <details className="poll-context">
           <summary>Ler contexto da votação</summary>
@@ -71,7 +117,7 @@ export function PollCard({ poll: p }: { poll: Poll }) {
         <Clock3 size={14} />
         {p.closed ? 'Encerramento' : 'Vote até'} {formatDate(p.deadline)}
       </div>
-      {!p.closed && !p.hasVoted && (
+      {!p.closed && !p.hasVoted && p.canVote !== false && (
         <div className="vote-steps" aria-label="Etapas do voto">
           <span className="is-current">
             <b>1</b> Escolha
@@ -82,7 +128,7 @@ export function PollCard({ poll: p }: { poll: Poll }) {
           </span>
         </div>
       )}
-      {!p.closed && !p.hasVoted && (
+      {!p.closed && !p.hasVoted && p.canVote !== false && (
         <fieldset className="poll-options">
           <legend>Escolha uma alternativa</legend>
           {p.options.map((o, i) => (
@@ -182,7 +228,7 @@ export function PollCard({ poll: p }: { poll: Poll }) {
           <Users size={14} />
           {p.total} voto{p.total === 1 ? '' : 's'} registrado{p.total === 1 ? '' : 's'}
         </span>
-        {!p.closed && !p.hasVoted && (
+        {!p.closed && !p.hasVoted && p.canVote !== false && (
           <button
             className="button primary small-button"
             disabled={selection === null}

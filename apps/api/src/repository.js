@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { CHECKIN_PAGE_SIZE, presentCheckin } from './checkins.js';
 import { profileMediaUrl } from './profile-media.js';
 import { RANKING_PAGE_SIZE } from './checkin-ranking.js';
+import { assertElector } from './governance.js';
 export class PgRepository {
   constructor(pool) {
     this.pool = pool;
@@ -239,17 +240,15 @@ export class PgRepository {
       ),
     ]);
     return {
-      records: ranking.rows
-        .slice(0, RANKING_PAGE_SIZE)
-        .map((row) => ({
-          memberId: row.account_id,
-          name: row.name,
-          discord: row.discord,
-          points: row.points,
-          position: row.position,
-          lastDay: row.last_day,
-          avatarUrl: profileMediaUrl(row.account_id, 'avatar', row.avatar_path),
-        })),
+      records: ranking.rows.slice(0, RANKING_PAGE_SIZE).map((row) => ({
+        memberId: row.account_id,
+        name: row.name,
+        discord: row.discord,
+        points: row.points,
+        position: row.position,
+        lastDay: row.last_day,
+        avatarUrl: profileMediaUrl(row.account_id, 'avatar', row.avatar_path),
+      })),
       hasMore: ranking.rows.length > RANKING_PAGE_SIZE,
       summary: summary.rows[0],
     };
@@ -284,6 +283,7 @@ export class PgRepository {
       })),
       meetings: meetings.rows.map((m) => ({
         id: m.id,
+        groupId: m.group_id || '',
         title: m.title,
         date: new Date(m.starts_at).toISOString(),
         location: m.location,
@@ -295,6 +295,7 @@ export class PgRepository {
       })),
       polls: polls.rows.map((p) => ({
         id: p.id,
+        governance: p.governance || undefined,
         title: p.title,
         description: p.description,
         deadline: new Date(p.deadline).toISOString(),
@@ -349,7 +350,7 @@ export class PgRepository {
   }
   async createMeeting(m, author) {
     await this.pool.query(
-      'INSERT INTO anade.meetings(id,title,starts_at,location,agenda,author_id,meet_url,minutes_document_url,minutes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+      'INSERT INTO anade.meetings(id,title,starts_at,location,agenda,author_id,meet_url,minutes_document_url,minutes,group_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
       [
         m.id,
         m.title,
@@ -360,13 +361,24 @@ export class PgRepository {
         m.meetUrl || '',
         m.docsUrl || '',
         m.minutes || '',
+        m.groupId || null,
       ],
     );
   }
   async updateMeeting(id, m) {
     const result = await this.pool.query(
-      'UPDATE anade.meetings SET title=$2,starts_at=$3,location=$4,agenda=$5,meet_url=$6,minutes_document_url=$7,minutes=$8 WHERE id=$1',
-      [id, m.title, m.date, m.location, JSON.stringify(m.agenda), m.meetUrl, m.docsUrl, m.minutes],
+      'UPDATE anade.meetings SET title=$2,starts_at=$3,location=$4,agenda=$5,meet_url=$6,minutes_document_url=$7,minutes=$8,group_id=$9 WHERE id=$1',
+      [
+        id,
+        m.title,
+        m.date,
+        m.location,
+        JSON.stringify(m.agenda),
+        m.meetUrl,
+        m.docsUrl,
+        m.minutes,
+        m.groupId || null,
+      ],
     );
     assert(result.rowCount, 'Reunião não encontrada.', 404);
   }
@@ -400,8 +412,16 @@ export class PgRepository {
   async createPoll(p) {
     await this.transaction(async (c) => {
       await c.query(
-        'INSERT INTO anade.polls(id,title,description,deadline,secret,author_id) VALUES($1,$2,$3,$4,$5,$6)',
-        [p.id, p.title, p.description, p.deadline, p.secret, p.author],
+        'INSERT INTO anade.polls(id,title,description,deadline,secret,author_id,governance) VALUES($1,$2,$3,$4,$5,$6,$7)',
+        [
+          p.id,
+          p.title,
+          p.description,
+          p.deadline,
+          p.secret,
+          p.author,
+          p.governance ? JSON.stringify(p.governance) : null,
+        ],
       );
       for (let i = 0; i < p.options.length; i++)
         await c.query(
@@ -416,6 +436,7 @@ export class PgRepository {
         const { rows } = await c.query('SELECT * FROM anade.polls WHERE id=$1 FOR UPDATE', [id]);
         assert(rows.length, 'Votação não encontrada.', 404);
         const p = rows[0];
+        assertElector(p.governance, userId);
         assert(
           !p.closed && new Date(p.deadline).getTime() > Date.now(),
           'Esta votação está encerrada.',

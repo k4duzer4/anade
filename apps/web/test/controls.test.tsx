@@ -132,7 +132,7 @@ describe('controles ANADE', () => {
     await user.click(trigger);
     await user.click(screen.getByRole('button', { name: 'Limpar' }));
     expect(new FormData(form).get('date')).toBe('');
-  });
+  }, 15000); // Calendar + nested keyboard selects require several complete DOM renders in JSDOM.
 
   it('calendário vazio obrigatório bloqueia envio e botões internos não enviam o formulário', async () => {
     const user = userEvent.setup();

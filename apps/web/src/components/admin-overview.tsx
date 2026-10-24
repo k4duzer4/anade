@@ -16,6 +16,9 @@ import {
   Lightbulb,
   Megaphone,
   Rocket,
+  Network,
+  Wallet,
+  Scale,
 } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { MemberAvatar } from './member-avatar';
@@ -71,6 +74,41 @@ export function AdminOverview({
   });
   const stateList = [...states.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   const tools = [
+    {
+      title: 'Grupos e diretórios',
+      description: 'Participantes, lideranças e trabalho por equipe.',
+      href: '/grupos',
+      Icon: Network,
+      detail: 'Controle de participantes',
+    },
+    {
+      title: 'Bancadas',
+      description: 'Prioridades legislativas e orientações de voto.',
+      href: '/bancadas',
+      Icon: Landmark,
+      detail: 'Câmara e Senado',
+    },
+    {
+      title: 'Financeiro',
+      description: 'Caixas, reservas e comprovantes privados.',
+      href: '/financeiro',
+      Icon: Wallet,
+      detail: 'Acesso por caixa',
+    },
+    {
+      title: 'Jurídico',
+      description: 'Vigência, serviços, processos e prazos.',
+      href: '/juridico',
+      Icon: Scale,
+      detail: 'Acesso por caso e arquivo',
+    },
+    {
+      title: 'Calendário do Legado',
+      description: 'Configure a temporada e os eventos do jogo.',
+      href: '/calendario',
+      Icon: CalendarDays,
+      detail: 'Horários de Brasília',
+    },
     {
       title: 'Central de propostas',
       description: 'Ideias, apoios e encaminhamentos para votação.',

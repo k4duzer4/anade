@@ -1,6 +1,8 @@
 import { assert, text, states } from './domain.js';
 import { electoralOffices } from './checkins.js';
 import { CommunityStore } from './community-store.js';
+import { OrganizationStore, seesMeeting, seesPoll } from './organization-store.js';
+import { votingRules } from './governance.js';
 
 const validId = (id) =>
   assert(
@@ -146,7 +148,13 @@ export function communityRoutes(app, repo, admin) {
   });
   app.post('/api/proposals/:id/poll', admin, async (req, res) => {
     validId(req.params.id);
-    const id = await store.forward(req.params.id, req.body, actor(res).id);
+    const organization = new OrganizationStore(repo);
+    const group = req.body.groupId ? await organization.get('group', req.body.groupId) : null;
+    const available = (await repo.snapshot()).members
+      .map((m) => m.id)
+      .filter((id) => !group || group.memberIds.includes(id));
+    const governance = votingRules(req.body, available, group);
+    const id = await store.forward(req.params.id, req.body, actor(res).id, governance);
     res.status(201).json({ id });
   });
   app.get('/api/announcements', (req, res) => list('announcement', req, res));
@@ -246,6 +254,7 @@ export function communityRoutes(app, repo, admin) {
     const q = normalize(text(req.query.q, 100));
     assert(q.length >= 2, 'Digite pelo menos dois caracteres.');
     const snapshot = await repo.snapshot();
+    const groups = await new OrganizationStore(repo).list('group');
     const results = [];
     const add = (type, id, title, body, href) => {
       if (normalize(`${title} ${body}`).includes(q))
@@ -260,26 +269,30 @@ export function communityRoutes(app, repo, admin) {
         `/filiados/${encodeURIComponent(m.id)}`,
       ),
     );
-    snapshot.meetings.forEach((m) => {
-      add(
-        'Reunião',
-        m.id,
-        m.title,
-        [...m.agenda, m.location].join(' · '),
-        `/agenda?encontro=${m.id}#encontro-${m.id}`,
-      );
-      if (m.docsUrl || m.minutes)
+    snapshot.meetings
+      .filter((m) => seesMeeting(m, actor(res), groups))
+      .forEach((m) => {
         add(
-          'Documento',
-          `ata-${m.id}`,
-          `Ata · ${m.title}`,
-          m.minutes || 'Ata da reunião no Google Docs',
-          m.docsUrl || `/agenda?encontro=${m.id}#encontro-${m.id}`,
+          'Reunião',
+          m.id,
+          m.title,
+          [...m.agenda, m.location].join(' · '),
+          `/agenda?encontro=${m.id}#encontro-${m.id}`,
         );
-    });
-    snapshot.polls.forEach((p) =>
-      add('Votação', p.id, p.title, p.description, `/votacoes?votacao=${p.id}#votacao-${p.id}`),
-    );
+        if (m.docsUrl || m.minutes)
+          add(
+            'Documento',
+            `ata-${m.id}`,
+            `Ata · ${m.title}`,
+            m.minutes || 'Ata da reunião no Google Docs',
+            m.docsUrl || `/agenda?encontro=${m.id}#encontro-${m.id}`,
+          );
+      });
+    snapshot.polls
+      .filter((p) => seesPoll(p, actor(res), groups))
+      .forEach((p) =>
+        add('Votação', p.id, p.title, p.description, `/votacoes?votacao=${p.id}#votacao-${p.id}`),
+      );
     const kinds = ['proposal', 'announcement'];
     if (actor(res).admin || (await store.open())) kinds.push('campaign');
     const entries = await store.search(q, kinds);

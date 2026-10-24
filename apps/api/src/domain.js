@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { assertElector, pollOutcome } from './governance.js';
 export const ideologies = [
   'Socialismo',
   'Social-democracia',
@@ -213,6 +214,7 @@ export function newPoll(input, author) {
   };
 }
 export function castVote(poll, userId, option) {
+  assertElector(poll.governance, userId);
   assert(
     !poll.closed && Date.parse(poll.deadline) > Date.now(),
     'Esta votação está encerrada.',
@@ -231,6 +233,10 @@ export function presentPoll(poll, userId) {
   result.total = Object.keys(votes).length;
   result.hasVoted = Object.hasOwn(votes, userId);
   result.myVote = votes[userId] ?? null;
+  result.canVote =
+    !poll.governance ||
+    (poll.governance.electorIds.includes(userId) &&
+      Date.parse(poll.governance.opensAt) <= Date.now());
   result.abstentionIndex = poll.options.findIndex((label) => label === 'Abstenção');
   if (result.closed || !poll.secret) {
     result.counts = poll.options.map((_, i) => Object.values(votes).filter((v) => v === i).length);
@@ -238,5 +244,6 @@ export function presentPoll(poll, userId) {
     result.validVotes = result.total - result.abstentions;
   }
   if (!poll.secret) result.ballots = Object.entries(votes).map(([id, option]) => ({ id, option }));
+  if (result.closed && result.counts) result.outcome = pollOutcome(poll, result.counts);
   return result;
 }

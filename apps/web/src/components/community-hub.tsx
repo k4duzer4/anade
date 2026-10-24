@@ -28,6 +28,7 @@ import { MemberAvatar } from './member-avatar';
 import { SearchBox } from './portal-tools';
 import { loadCommunity, shortDay, type CommunityItem, type CommunityList } from '@/lib/community';
 import { searchText } from '@/lib/types';
+import { PollElectorate } from './poll-electorate';
 
 type Kind = 'proposal' | 'announcement' | 'campaign';
 const areas = {
@@ -792,11 +793,17 @@ function ForwardProposal({ item, onDone }: { item: CommunityItem; onDone: () => 
     <Form
       onSubmit={async (event) => {
         event.preventDefault();
-        const values = Object.fromEntries(new FormData(event.currentTarget));
+        const raw = new FormData(event.currentTarget),
+          values = Object.fromEntries(raw);
         setBusy(true);
         setError('');
         try {
           await mutate(`/api/proposals/${item.id}/poll`, 'POST', {
+            groupId: values.groupId === 'all' ? '' : values.groupId,
+            electorIds: raw.getAll('electorIds'),
+            quorumPercent: Number(values.quorumPercent),
+            approvalRule: values.approvalRule,
+            opensAt: values.opensAt ? new Date(String(values.opensAt)).toISOString() : undefined,
             deadline: new Date(String(values.deadline)).toISOString(),
             secret: values.secret === 'true',
             options: String(values.options)
@@ -804,7 +811,7 @@ function ForwardProposal({ item, onDone }: { item: CommunityItem; onDone: () => 
               .map((s) => s.trim())
               .filter(Boolean),
           });
-          notify('Proposta encaminhada. A votação está aberta aos filiados.');
+          notify('Proposta encaminhada com o eleitorado definido.');
           onDone();
         } catch (failure) {
           setError((failure as Error).message);
@@ -839,6 +846,7 @@ function ForwardProposal({ item, onDone }: { item: CommunityItem; onDone: () => 
             ]}
           />
         </label>
+        <PollElectorate />
       </div>
       <ErrorNotice message={error} />
       <div className="form-actions">

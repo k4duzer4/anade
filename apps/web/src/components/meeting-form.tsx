@@ -6,6 +6,9 @@ import { ErrorNotice, SubmitButton } from './ui';
 import type { Meeting } from '@/lib/types';
 import { DateTimePicker } from './date-time-picker';
 import { Form } from './form';
+import { Select } from './select';
+import { useOrganization } from './organization-ui';
+import type { Group } from '@/lib/organization';
 function localDateTime(value: string) {
   const d = new Date(value);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -15,12 +18,15 @@ export function MeetingForm({
   meeting,
   onSaved,
   onCancel,
+  initialGroupId,
 }: {
   meeting?: Meeting;
   onSaved: () => void;
   onCancel: () => void;
+  initialGroupId?: string;
 }) {
   const { data, mutate, notify } = usePortal();
+  const { value: groups } = useOrganization<{ records: Group[] }>('/api/groups');
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   if (!data?.user.admin) return null;
@@ -35,6 +41,7 @@ export function MeetingForm({
         meeting ? 'PUT' : 'POST',
         {
           ...values,
+          groupId: values.groupId === 'all' ? '' : values.groupId,
           date: new Date(String(values.date)).toISOString(),
           agenda: String(values.agenda)
             .split('\n')
@@ -56,6 +63,19 @@ export function MeetingForm({
         Organize a reunião, vincule a chamada e deixe a ata no mesmo lugar.
       </p>
       <div className="form-grid">
+        <label className="field full">
+          Participantes da reunião
+          <Select
+            name="groupId"
+            aria-label="Grupo da reunião"
+            defaultValue={meeting?.groupId || initialGroupId || 'all'}
+            options={[
+              { value: 'all', label: 'Todos os filiados' },
+              ...(groups?.records || []).map((g) => ({ value: g.id, label: g.name })),
+            ]}
+          />
+          <small>Reuniões de grupo aparecem somente aos participantes e à administração.</small>
+        </label>
         <label className="field full">
           Título
           <input

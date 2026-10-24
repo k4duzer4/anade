@@ -10,25 +10,28 @@ import { DateTimePicker } from '@/components/date-time-picker';
 import { Form } from '@/components/form';
 import { SearchBox, ViewFilters, PagePulse } from '@/components/portal-tools';
 import { searchText } from '@/lib/types';
+import { PollElectorate } from '@/components/poll-electorate';
 export default function Polls() {
   const { data, mutate, notify } = usePortal();
   const params = useSearchParams(),
     router = useRouter(),
-    target = params.get('votacao') || '';
+    target = params.get('votacao') || '',
+    groupId = params.get('grupo') || '';
   const [filter, setFilter] = useState('open'),
     [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const [search, setSearch] = useState('');
   if (!data) return null;
-  const active = data.polls.filter((p) => !p.closed);
-  const pending = active.filter((p) => !p.hasVoted);
-  const list = data.polls
+  const scoped = data.polls.filter((p) => !groupId || p.governance?.groupId === groupId);
+  const active = scoped.filter((p) => !p.closed);
+  const pending = active.filter((p) => !p.hasVoted && p.canVote !== false);
+  const list = scoped
     .filter((p) =>
       target
         ? p.id === target
         : filter === 'pending'
-          ? !p.closed && !p.hasVoted
+          ? !p.closed && !p.hasVoted && p.canVote !== false
           : p.closed === (filter === 'closed'),
     )
     .filter((p) => searchText(`${p.title} ${p.description}`).includes(searchText(search)))
@@ -40,12 +43,17 @@ export default function Polls() {
     );
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const input = Object.fromEntries(new FormData(event.currentTarget));
+    const raw = new FormData(event.currentTarget),
+      input = Object.fromEntries(raw);
     setBusy(true);
     setError('');
     try {
       await mutate('/api/polls', 'POST', {
         ...input,
+        groupId: input.groupId === 'all' ? '' : input.groupId,
+        electorIds: raw.getAll('electorIds'),
+        quorumPercent: Number(input.quorumPercent),
+        opensAt: input.opensAt ? new Date(String(input.opensAt)).toISOString() : undefined,
         secret: input.secret === 'true',
         deadline: new Date(String(input.deadline)).toISOString(),
         options: String(input.options)
@@ -54,7 +62,7 @@ export default function Polls() {
           .filter(Boolean),
       });
       setOpen(false);
-      notify('Votação aberta aos filiados.');
+      notify('Votação publicada com o eleitorado definido.');
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -90,12 +98,12 @@ export default function Polls() {
           { label: 'aguardando seu voto', value: pending.length, Icon: Vote },
           {
             label: 'votos em decisões abertas',
-            value: active.length - pending.length,
+            value: active.filter((p) => p.hasVoted).length,
             Icon: CheckCheck,
           },
           {
             label: 'resultados disponíveis',
-            value: data.polls.length - active.length,
+            value: scoped.length - active.length,
             Icon: Archive,
           },
         ]}
@@ -113,7 +121,7 @@ export default function Polls() {
           options={[
             { value: 'open', label: 'Em andamento', count: active.length },
             { value: 'pending', label: 'Para votar', count: pending.length },
-            { value: 'closed', label: 'Encerradas', count: data.polls.length - active.length },
+            { value: 'closed', label: 'Encerradas', count: scoped.length - active.length },
           ]}
         />
         <SearchBox value={search} onChange={setSearch} label="Buscar votação" />
@@ -226,6 +234,7 @@ export default function Polls() {
                   ]}
                 />
               </label>
+              <PollElectorate initialGroupId={groupId} />
             </div>
             <ErrorNotice message={error} />
             <div className="form-actions">

@@ -13,15 +13,17 @@ export default function Agenda() {
   const { data } = usePortal();
   const params = useSearchParams(),
     router = useRouter(),
-    target = params.get('encontro') || '';
+    target = params.get('encontro') || '',
+    groupId = params.get('grupo') || '';
   const [filter, setFilter] = useState('upcoming'),
     [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [day, setDay] = useState('');
   if (!data) return null;
-  const upcoming = data.meetings.filter((m) => Date.parse(m.date) > Date.parse(data.serverTime));
+  const scoped = data.meetings.filter((m) => !groupId || m.groupId === groupId);
+  const upcoming = scoped.filter((m) => Date.parse(m.date) > Date.parse(data.serverTime));
   const confirmed = upcoming.filter((m) => m.attendance.includes(data.user.id));
-  const filtered = data.meetings
+  const filtered = scoped
     .filter((m) =>
       target
         ? m.id === target
@@ -63,7 +65,7 @@ export default function Agenda() {
           { label: 'presenças confirmadas', value: confirmed.length, Icon: CheckCheck },
           {
             label: 'encontros realizados',
-            value: data.meetings.length - upcoming.length,
+            value: scoped.length - upcoming.length,
             Icon: History,
           },
         ]}
@@ -152,7 +154,11 @@ export default function Agenda() {
       </div>
       {open && (
         <Modal title="AGENDAR REUNIÃO" onClose={() => setOpen(false)}>
-          <MeetingForm onSaved={() => setOpen(false)} onCancel={() => setOpen(false)} />
+          <MeetingForm
+            initialGroupId={groupId}
+            onSaved={() => setOpen(false)}
+            onCancel={() => setOpen(false)}
+          />
         </Modal>
       )}
     </div>

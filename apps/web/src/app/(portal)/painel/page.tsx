@@ -20,6 +20,7 @@ import { MeetingCard } from '@/components/meeting-card';
 import { formatDate } from '@/lib/types';
 import { MemberAvatar } from '@/components/member-avatar';
 import { PortalUpdates } from '@/components/portal-updates';
+import { GameCalendarPanel } from '@/components/game-calendar';
 export default function Dashboard() {
   const { data } = usePortal();
   if (!data) return null;
@@ -34,7 +35,7 @@ export default function Dashboard() {
           Number(a.hasVoted) - Number(b.hasVoted) ||
           Date.parse(a.deadline) - Date.parse(b.deadline),
       );
-  const pending = polls.filter((p) => !p.hasVoted);
+  const pending = polls.filter((p) => !p.hasVoted && p.canVote !== false);
   const focus = !me
     ? {
         label: 'SUA IDENTIDADE NA ANADE',
@@ -84,6 +85,7 @@ export default function Dashboard() {
         }
       />
       <PortalUpdates userId={data.user.id} />
+      <GameCalendarPanel compact />
       <div className={`home-intro ${me ? 'has-profile' : ''}`}>
         <section className="home-focus">
           <div>

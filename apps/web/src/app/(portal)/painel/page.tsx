@@ -21,6 +21,7 @@ import { formatDate } from '@/lib/types';
 import { MemberAvatar } from '@/components/member-avatar';
 import { PortalUpdates } from '@/components/portal-updates';
 import { GameCalendarPanel } from '@/components/game-calendar';
+import { HomeCommunity } from '@/components/home-community';
 export default function Dashboard() {
   const { data } = usePortal();
   if (!data) return null;
@@ -168,6 +169,7 @@ export default function Dashboard() {
           </Link>
         ))}
       </section>
+      <HomeCommunity />
       {!me && (
         <div className="profile-callout">
           <ContactRound size={23} />

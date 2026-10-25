@@ -24,6 +24,7 @@ try {
     '012_organization.sql',
     '013_assignments.sql',
     '014_publications.sql',
+    '015_activity_seen.sql',
   ]) {
     const previous = await client.query('SELECT name FROM anade.migrations WHERE name=$1', [name]);
     if (previous.rowCount) continue;

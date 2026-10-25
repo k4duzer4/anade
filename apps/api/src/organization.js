@@ -65,9 +65,10 @@ const page = (records, query) => {
   };
 };
 const author = (res) => res.locals.user;
-const permitted = (record, user) =>
+export const financeVisible = (record, user) =>
   user.admin || isFinance(user) || record.memberIds.includes(user.id);
-const legalVisible = (item, user) =>
+const permitted = financeVisible;
+export const legalVisible = (item, user) =>
   item.visibility === 'members' ||
   (isLegal(user) && (item.visibility === 'legal_team' || item.memberIds.includes(user.id)));
 export function walletTotals(entries) {

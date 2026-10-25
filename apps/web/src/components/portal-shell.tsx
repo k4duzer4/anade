@@ -8,9 +8,16 @@ import { MemberAvatar } from './member-avatar';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { GlobalSearch } from './global-search';
 import { NotificationCenter } from './notification-center';
-import { PortalSidebar, sidebarItems, useSidebarPreferences } from './portal-sidebar';
+import { SectionActivity } from './section-activity';
+import { uniqueUnseenCount } from '@/lib/activity';
+import {
+  PortalSidebar,
+  sidebarItems,
+  sidebarGroups,
+  useSidebarPreferences,
+} from './portal-sidebar';
 export default function PortalLayout({ children }: { children: ReactNode }) {
-  const { data, config, loading, error, logout, refresh } = usePortal();
+  const { data, config, loading, error, logout, refresh, activity } = usePortal();
   const path = usePathname();
   const router = useRouter();
   const [menu, setMenu] = useState(false);
@@ -47,6 +54,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
       <a href="#conteudo" className="skip-link">
         Pular para o conteúdo
       </a>
+      <SectionActivity path={path} />
       <PortalSidebar
         path={path}
         admin={data.user.admin}
@@ -59,6 +67,18 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
         pendingVotes={
           data.polls.filter((p) => !p.closed && !p.hasVoted && p.canVote !== false).length
         }
+        unseenCounts={Object.fromEntries(
+          Object.entries(activity?.sections || {}).map(([path, value]) => [path, value.unseen]),
+        )}
+        folderCounts={Object.fromEntries(
+          sidebarGroups.map((g) => [
+            g.id,
+            uniqueUnseenCount(
+              activity,
+              g.items.map((item) => item.path),
+            ),
+          ]),
+        )}
       />
       {menu && (
         <button className="menu-backdrop" aria-label="Fechar menu" onClick={() => setMenu(false)} />

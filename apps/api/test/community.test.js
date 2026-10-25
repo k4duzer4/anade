@@ -87,11 +87,13 @@ test('mural de divulgação: só filiados, autoria e CSRF, links HTTPS e limpeza
   let feed = await (await call('/api/publications', 'other')).json();
   assert.equal(feed.records[0].ownerId, 'member');
   assert.equal(feed.resetsAt, '2026-10-24T11:00:00.000Z');
+  assert.equal((await (await call('/api/activity')).json()).sections['/divulgacao'].unseen, 1);
   assert.equal((await call(`/api/publications/${id}`, 'other', 'DELETE', {})).status, 403);
   assert.equal((await call('/api/publications', 'member', 'POST', publication)).status, 409);
   date = new Date('2026-10-24T11:00:00Z');
   feed = await (await call('/api/publications')).json();
   assert.equal(feed.records.length, 0);
+  assert.equal((await (await call('/api/activity')).json()).sections['/divulgacao'], undefined);
   assert.equal(repo.publications.size, 0);
   assert.equal(feed.resetsAt, '2026-10-25T11:00:00.000Z');
   const current = await call('/api/publications', 'member', 'POST', {
@@ -103,6 +105,73 @@ test('mural de divulgação: só filiados, autoria e CSRF, links HTTPS e limpeza
   assert.equal((await call(`/api/publications/${currentId}`, 'member', 'DELETE', {})).status, 200);
   assert.equal((await (await call('/api/publications')).json()).records.length, 0);
   assert.equal((await call('/api/publications?page=-1')).status, 400);
+});
+
+test('novidades são por conta, respeitam CSRF e confirmam somente a versão apresentada da seção', async (t) => {
+  const { call } = await setup(t);
+  assert.equal((await call('/api/activity', null)).status, 401);
+  await call('/api/proposals', 'member', 'POST', {
+    title: 'Proposta inicial',
+    body: 'Conteúdo inicial',
+  });
+  let first = (await (await call('/api/activity', 'member')).json()).sections['/propostas'];
+  assert.equal(first.unseen, 1);
+  const id = (await (await call('/api/proposals', 'member')).json()).records[0].id;
+  assert.equal(
+    (
+      await call(
+        '/api/activity/seen',
+        'member',
+        'PUT',
+        { path: '/propostas', keys: first.keys },
+        '',
+      )
+    ).status,
+    403,
+  );
+  // Uma proposta que chega depois da resposta inicial não pode ser confirmada pelo pedido antigo.
+  await call('/api/proposals', 'other', 'POST', { title: 'Chegou depois', body: 'Outra proposta' });
+  assert.equal(
+    (
+      await call('/api/activity/seen', 'member', 'PUT', {
+        path: '/propostas',
+        keys: first.keys,
+        accountId: 'other',
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await (await call('/api/activity', 'member')).json()).sections['/propostas'].unseen,
+    1,
+  );
+  assert.equal(
+    (await (await call('/api/activity', 'other')).json()).sections['/propostas'].unseen,
+    2,
+  );
+  // Versão revisada volta a ser nova; recibo antigo não apaga alterações que o usuário não viu.
+  await call(`/api/proposals/${id}`, 'member', 'PUT', {
+    title: 'Proposta revisada',
+    body: 'Conteúdo alterado',
+  });
+  await call('/api/activity/seen', 'member', 'PUT', { path: '/propostas', keys: first.keys });
+  first = (await (await call('/api/activity', 'member')).json()).sections['/propostas'];
+  assert.equal(first.unseen, 2);
+  await call('/api/activity/seen', 'member', 'PUT', { path: '/propostas', keys: first.keys });
+  assert.equal(
+    (await (await call('/api/activity', 'member')).json()).sections['/propostas'].unseen,
+    0,
+  );
+  await call(`/api/proposals/${id}/comments`, 'other', 'POST', { body: 'Comentário novo' });
+  assert.equal(
+    (await (await call('/api/activity', 'member')).json()).sections['/propostas'].unseen,
+    1,
+  );
+  assert.equal(
+    (await call('/api/activity/seen', 'member', 'PUT', { path: '/propostas', keys: ['invalid'] }))
+      .status,
+    400,
+  );
 });
 
 test('estatuto: começa em elaboração, somente ADM mantém rascunho e publica sem vazar texto privado', async (t) => {

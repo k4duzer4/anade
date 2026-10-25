@@ -147,6 +147,8 @@ export function PortalSidebar({
   toggleCollapsed,
   toggleGroup,
   pendingVotes = 0,
+  unseenCounts = {},
+  folderCounts = {},
 }: {
   path: string;
   admin: boolean;
@@ -159,6 +161,8 @@ export function PortalSidebar({
   toggleCollapsed: () => void;
   toggleGroup: (id: string, open: boolean) => void;
   pendingVotes?: number;
+  unseenCounts?: Record<string, number>;
+  folderCounts?: Record<string, number>;
 }) {
   const uid = useId();
   const container = useRef<HTMLElement>(null);
@@ -205,21 +209,36 @@ export function PortalSidebar({
   );
   function itemLink(item: NavItem) {
     const selected = active?.path === item.path;
+    const unseen = unseenCounts[item.path] || 0;
     return (
-      <Tooltip side="right" content={item.title} key={item.path}>
+      <Tooltip
+        side="right"
+        content={`${item.title}${unseen ? ` · ${unseen} novidades não vistas` : ''}`}
+        key={item.path}
+      >
         <Link
           href={item.path}
           className={`sidebar-link ${selected ? 'active' : ''}`}
-          aria-label={item.title}
+          aria-label={`${item.title}${unseen ? `, ${unseen} novidades não vistas` : ''}`}
           aria-current={selected ? 'page' : undefined}
           onClick={onNavigate}
         >
           <item.icon size={19} aria-hidden="true" />
           <span className="sidebar-link-label">{item.title}</span>
-          {item.path === '/votacoes' && pendingVotes > 0 && (
-            <span className="nav-count" aria-label={`${pendingVotes} votações aguardando seu voto`}>
-              {pendingVotes}
+          {unseen > 0 ? (
+            <span className="nav-count nav-new-count" aria-label={`${unseen} novidades não vistas`}>
+              {unseen > 99 ? '99+' : unseen}
             </span>
+          ) : (
+            item.path === '/votacoes' &&
+            pendingVotes > 0 && (
+              <span
+                className="nav-count"
+                aria-label={`${pendingVotes} votações aguardando seu voto`}
+              >
+                {pendingVotes}
+              </span>
+            )
           )}
           {selected && <span className="sidebar-current-mark" aria-hidden="true" />}
         </Link>
@@ -280,6 +299,11 @@ export function PortalSidebar({
       <nav className="sidebar-scroll" aria-label="Menu principal">
         <div className="sidebar-home">{itemLink(overview)}</div>
         {sidebarGroups.map((g) => {
+          const unseen =
+            folderCounts[g.id] ??
+            g.items
+              .filter((item) => !('adminOnly' in item) || admin)
+              .reduce((n, item) => n + (unseenCounts[item.path] || 0), 0);
           const open =
             preferences.openGroups[g.id] ??
             (currentGroup ? currentGroup.id === g.id : g.id === 'routine');
@@ -298,6 +322,14 @@ export function PortalSidebar({
               >
                 <g.icon size={17} aria-hidden="true" />
                 <span>{g.title}</span>
+                {!open && !rail && unseen > 0 && (
+                  <span
+                    className="section-new-count"
+                    aria-label={`${unseen} novidades não vistas em ${g.title}`}
+                  >
+                    {unseen > 99 ? '99+' : unseen}
+                  </span>
+                )}
                 <ChevronDown size={15} className="sidebar-section-chevron" aria-hidden="true" />
               </button>
               <div

@@ -5,12 +5,61 @@ import { once } from 'node:events';
 import session from 'express-session';
 import { createApp } from '../src/app.js';
 import { MemoryRepository } from '../src/repository.js';
+import { OrganizationStore } from '../src/organization-store.js';
 import { MemoryProofStorage } from '../src/proof-storage.js';
 import { legadoCalendar, publicSeason } from '../src/legado-calendar.js';
 import { pollOutcome } from '../src/governance.js';
 
 const chamber = '10000000-0000-4000-8000-000000000001',
   legalGroup = '10000000-0000-4000-8000-000000000004';
+
+test('contadores e prévias não revelam grupos, documentos sigilosos, caixas privados ou campanha fechada', async (t) => {
+  const { call, repo, group } = await setup(t);
+  await group(['deputy']);
+  const store = new OrganizationStore(repo);
+  await store.save('note', {
+    groupId: chamber,
+    title: 'Pauta parlamentar sigilosa',
+    body: 'Restrito',
+    status: 'pendente',
+    mentionIds: [],
+    assignedId: '',
+  });
+  await store.save('legal', {
+    title: 'Processo reservado',
+    visibility: 'restricted',
+    memberIds: ['lawyer'],
+    status: 'aberto',
+  });
+  await call('/api/meetings', 'admin', 'POST', {
+    title: 'Reunião reservada',
+    date: new Date(Date.now() + 3600000).toISOString(),
+    agenda: ['Pauta'],
+    groupId: chamber,
+  });
+  const other = await (await call('/api/activity', 'other')).json();
+  assert.equal(other.sections[`/grupos/${chamber}`], undefined);
+  assert.equal(other.sections['/financeiro'], undefined);
+  assert.equal(other.sections['/juridico'], undefined);
+  assert.equal(other.sections['/campanha'], undefined);
+  assert.ok(!JSON.stringify(other).includes('sigilosa'));
+  assert.ok(!JSON.stringify(other).includes('Processo reservado'));
+  assert.ok(!JSON.stringify(other).includes('Reunião reservada'));
+  const deputy = await (await call('/api/activity', 'deputy')).json();
+  assert.ok(deputy.sections[`/grupos/${chamber}`].unseen >= 2);
+  assert.equal(deputy.sections['/financeiro'].total, 2);
+  const lawyer = await (await call('/api/activity', 'lawyer')).json();
+  assert.equal(lawyer.sections['/juridico'].latest[0].title, 'Processo reservado');
+  // Recibos forjados de um conteúdo privado não concedem leitura nem gravam chaves.
+  const keys = deputy.sections[`/grupos/${chamber}`].keys;
+  const response = await call('/api/activity/seen', 'other', 'PUT', {
+    path: `/grupos/${chamber}`,
+    keys,
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).keys, []);
+  assert.equal(repo.activitySeen.get('other')?.size || 0, 0);
+});
 async function setup(t) {
   const repo = new MemoryRepository(),
     store = new session.MemoryStore(),

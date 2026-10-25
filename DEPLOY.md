@@ -103,6 +103,8 @@ A configuração da temporada é persistida no banco: início em 15/10/2026 e du
 
 O mural de divulgação exige também `014_publications.sql`. Não há variável nem agendamento adicional: cada consulta filtra o ciclo das 8h de Brasília e recolhe os registros vencidos. O navegador esconde o ciclo anterior na virada mesmo sem resposta da API. O estatuto usa `anade.portal_settings` e começa sem conteúdo publicado; o ADM prepara e publica na própria página.
 
+Para os contadores de novidades, aplique `015_activity_seen.sql` com `npm run db:migrate` antes do deploy. O histórico de visualização é privado e individual, sem variáveis ou cron adicionais. `/api/activity` consulta somente conteúdos permitidos; `/api/activity/seen` exige sessão e CSRF e confirma somente as chaves da seção ainda visíveis. O sino grava a leitura ao abrir um aviso; fechar ou abrir o painel não lê todos automaticamente.
+
 ## Verificação local
 
 ```powershell

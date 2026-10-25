@@ -62,7 +62,12 @@ it('mural esconde links ao chegar às 8h mesmo enquanto a consulta do novo ciclo
   expect(loadCommunity).toHaveBeenCalledTimes(2);
 });
 it('filiado compartilha link sem forjar autoria, e envio fica em formulário acessível', async () => {
-  vi.mocked(loadCommunity).mockResolvedValue({ ...feed, records: [] });
+  vi.mocked(loadCommunity).mockResolvedValue({
+    ...feed,
+    records: [],
+    serverTime: '2026-10-24T12:00:00Z',
+    resetsAt: '2026-10-25T11:00:00Z',
+  });
   const user = userEvent.setup();
   render(
     <TooltipProvider>

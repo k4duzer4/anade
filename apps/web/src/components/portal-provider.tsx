@@ -1,5 +1,14 @@
 'use client';
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { acknowledgeActivity, type ActivityState } from '@/lib/activity';
 import type { Config, PortalState } from '@/lib/types';
 import { AnimatePresence, m } from 'motion/react';
 import { CheckCircle2 } from 'lucide-react';
@@ -13,6 +22,8 @@ type Context = {
   loginDemo: (role: string) => Promise<void>;
   logout: () => Promise<void>;
   notify: (text: string) => void;
+  activity: ActivityState | null;
+  markActivitySeen: (path: string, keys: string[]) => Promise<void>;
 };
 const PortalContext = createContext<Context | null>(null);
 async function request(url: string, method = 'GET', body?: unknown, csrf?: string) {
@@ -37,6 +48,17 @@ async function request(url: string, method = 'GET', body?: unknown, csrf?: strin
   return data;
 }
 export function PortalProvider({ children }: { children: ReactNode }) {
+  const [activity, setActivity] = useState<ActivityState | null>(null);
+  const activityRequest = useRef(0);
+  const loadActivity = useCallback(async () => {
+    const sequence = ++activityRequest.current;
+    try {
+      const value = await request('/api/activity');
+      if (sequence === activityRequest.current) setActivity(value);
+    } catch {
+      /* Keep the last confirmed counts if this optional request fails. */
+    }
+  }, []);
   const [config, setConfig] = useState<Config | null>(null),
     [data, setData] = useState<PortalState | null>(null),
     [loading, setLoading] = useState(true),
@@ -46,13 +68,18 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     try {
       const value = await request('/api/state');
       setData(value);
+      void loadActivity();
       setError('');
     } catch (e) {
       const err = e as Error & { status?: number };
-      if (err.status === 401 || err.status === 403) setData(null);
+      if (err.status === 401 || err.status === 403) {
+        setData(null);
+        setActivity(null);
+        activityRequest.current++;
+      }
       setError(err.status === 401 ? '' : err.message);
     }
-  }, []);
+  }, [loadActivity]);
   useEffect(() => {
     let active = true;
     async function init() {
@@ -94,8 +121,25 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   async function logout() {
     await request('/api/logout', 'POST', {}, data?.csrf);
     setData(null);
+    setActivity(null);
+    activityRequest.current++;
     setError('');
   }
+  const markActivitySeen = useCallback(
+    async (path: string, keys: string[]) => {
+      for (let offset = 0; offset < keys.length; offset += 200) {
+        const result = await request(
+          '/api/activity/seen',
+          'PUT',
+          { path, keys: keys.slice(offset, offset + 200) },
+          data?.csrf,
+        );
+        activityRequest.current++;
+        setActivity((current) => acknowledgeActivity(current, result.keys));
+      }
+    },
+    [data?.csrf],
+  );
   return (
     <PortalContext.Provider
       value={{
@@ -108,6 +152,8 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         loginDemo,
         logout,
         notify: setNotice,
+        activity,
+        markActivitySeen,
       }}
     >
       {children}

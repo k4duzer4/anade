@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { newDb } from 'pg-mem';
 import { PublicationsStore, publicationWindow } from '../src/publications.js';
+import { ActivityStore } from '../src/activity.js';
 test('ciclo do mural é estável entre meia-noite e 8h e vira exatamente às 8h de Brasília', () => {
   assert.equal(
     publicationWindow(new Date('2026-10-24T03:00:00Z')).start,
@@ -30,11 +31,21 @@ test('PostgreSQL persiste e pagina links, aplica unicidade por ciclo e remove ci
       'ALTER TABLE',
     )[0],
   );
+  db.public.none(
+    (await readFile(new URL('../db/015_activity_seen.sql', import.meta.url), 'utf8')).split(
+      'ALTER TABLE',
+    )[0],
+  );
   const { Pool } = db.adapters.createPg(),
     pool = new Pool(),
     store = new PublicationsStore({ pool });
   try {
     await pool.query("INSERT INTO anade.accounts(id,username) VALUES('a','alice'),('b','bob')");
+    const receipts = new ActivityStore({ pool });
+    await receipts.mark('a', ['key1', 'key2']);
+    await receipts.mark('a', ['key1']);
+    assert.equal((await new ActivityStore({ pool }).seen('a')).size, 2);
+    assert.equal((await receipts.seen('b')).size, 0);
     const period = publicationWindow(new Date('2026-10-24T12:00Z'));
     const data = {
       ownerId: 'a',

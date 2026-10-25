@@ -9,10 +9,14 @@ function Harness({
   admin = false,
   path = '/votacoes',
   menuOpen = false,
+  unseenCounts = {},
+  folderCounts = {},
 }: {
   admin?: boolean;
   path?: string;
   menuOpen?: boolean;
+  unseenCounts?: Record<string, number>;
+  folderCounts?: Record<string, number>;
 }) {
   const sidebar = useSidebarPreferences();
   return (
@@ -30,6 +34,8 @@ function Harness({
           onNavigate={navigate}
           onExit={vi.fn()}
           pendingVotes={2}
+          unseenCounts={unseenCounts}
+          folderCounts={folderCounts}
         />
       </div>
     </TooltipProvider>
@@ -47,6 +53,22 @@ beforeEach(() => {
       removeEventListener: vi.fn(),
     })),
   });
+});
+it('menu recolhido mantém contadores e submenu fechado mostra o total de novidades', async () => {
+  const user = userEvent.setup();
+  render(
+    <Harness
+      path="/painel"
+      unseenCounts={{ '/propostas': 4, '/comunicados': 2 }}
+      folderCounts={{ participation: 4 }}
+    />,
+  );
+  await screen.findByLabelText('4 novidades não vistas em Participação');
+  await user.click(screen.getByRole('button', { name: 'Recolher menu' }));
+  expect(
+    screen.getByRole('link', { name: 'Central de propostas, 4 novidades não vistas' }),
+  ).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Comunicados, 2 novidades não vistas' })).toBeTruthy();
 });
 it('abre a seção da página atual e mantém conteúdo de outros submenus fora do teclado', async () => {
   const user = userEvent.setup();

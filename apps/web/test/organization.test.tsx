@@ -28,7 +28,11 @@ vi.mock('../src/lib/community', async (original) => ({
   ...(await original()),
   loadCommunity: vi.fn(),
 }));
-vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
+const notificationPush = vi.hoisted(() => vi.fn());
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: notificationPush }),
+}));
 beforeEach(() => {
   vi.clearAllMocks();
   portal.data.user.admin = false;
@@ -186,7 +190,7 @@ it('votação restrita mostra as regras sem oferecer voto a observador', () => {
   expect(screen.queryByRole('radio')).toBeNull();
   expect(screen.getByText(/Câmara · 1 eleitor/)).toBeTruthy();
 });
-it('notificação só muda para lida quando a pessoa aciona a confirmação', async () => {
+it('abrir o painel não confirma avisos; clicar na notificação persiste a leitura e navega', async () => {
   const item = {
     key: 'n1',
     title: 'Você recebeu uma tarefa',
@@ -211,8 +215,32 @@ it('notificação só muda para lida quando a pessoa aciona a confirmação', as
   await screen.findByRole('button', { name: 'Notificações, 1 não lidas' });
   await user.click(screen.getByRole('button', { name: 'Notificações, 1 não lidas' }));
   expect(portal.mutate).not.toHaveBeenCalled();
-  await user.click(screen.getByRole('button', { name: `Marcar como lida: ${item.title}` }));
+  await user.click(screen.getByRole('button', { name: `Abrir notificação: ${item.title}` }));
   await waitFor(() =>
     expect(portal.mutate).toHaveBeenCalledWith('/api/notifications/read', 'PUT', { keys: ['n1'] }),
+  );
+  expect(notificationPush).toHaveBeenCalledWith(item.href);
+});
+it('falha ao salvar leitura mantém o aviso pendente no painel flutuante e não navega', async () => {
+  vi.mocked(loadCommunity).mockResolvedValue({
+    records: [
+      { key: 'n2', title: 'Prazo importante', href: '/agenda', type: 'prazo', read: false },
+    ],
+    unread: 1,
+    page: 0,
+    hasMore: false,
+  });
+  portal.mutate.mockRejectedValueOnce(new Error('Não foi possível salvar a leitura.'));
+  const user = userEvent.setup();
+  render(<NotificationCenter />);
+  await user.click(await screen.findByRole('button', { name: 'Notificações, 1 não lidas' }));
+  await user.click(screen.getByRole('button', { name: 'Abrir notificação: Prazo importante' }));
+  await screen.findByText('Não foi possível salvar a leitura.');
+  expect(notificationPush).not.toHaveBeenCalled();
+  expect(screen.getByRole('dialog', { name: 'Suas notificações' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Notificações, 1 não lidas' })).toBeTruthy();
+  await user.keyboard('{Escape}');
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog', { name: 'Suas notificações' })).toBeNull(),
   );
 });

@@ -126,6 +126,26 @@ export class CommunityStore {
     assert(row, 'Registro não encontrado.', 404);
     return row;
   }
+  async activityItems() {
+    // Activity needs revisions and comment totals, not support/read statistics per viewer.
+    if (this.sql) {
+      const { rows } = await this.sql.query(
+        "SELECT i.*,coalesce(c.comments,0) AS comments FROM anade.community_items i LEFT JOIN (SELECT parent_id,count(*) AS comments FROM anade.community_items WHERE kind='comment' GROUP BY parent_id) c ON c.parent_id=i.id WHERE i.kind IN ('proposal','announcement','campaign') ORDER BY i.created_at DESC,i.id",
+      );
+      return rows.map((row) => ({ ...present(row), kind: row.kind }));
+    }
+    const items = [...this.repo.community.items.values()],
+      counts = new Map();
+    for (const item of items)
+      if (item.kind === 'comment')
+        counts.set(item.parent_id, (counts.get(item.parent_id) || 0) + 1);
+    return items
+      .filter((i) => ['proposal', 'announcement', 'campaign'].includes(i.kind))
+      .map((row) => ({
+        ...present({ ...row, comments: counts.get(row.id) || 0 }),
+        kind: row.kind,
+      }));
+  }
   async save(kind, ownerId, data, { id = randomUUID(), parentId = null } = {}) {
     if (!this.sql) {
       const state = this.repo.community;

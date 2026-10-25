@@ -110,6 +110,36 @@ export class OrganizationStore {
     );
     return rows;
   }
+  async listMany(kinds, members) {
+    let records;
+    if (!this.sql)
+      records = structuredClone(
+        [...this.repo.organization.records.values()].filter((r) => kinds.includes(r.kind)),
+      );
+    else {
+      const { rows } = await this.sql.query(
+        'SELECT * FROM anade.organization_records WHERE kind=ANY($1::text[]) ORDER BY created_at DESC,id',
+        [kinds],
+      );
+      records = rows.map((r) => ({
+        ...r.data,
+        id: r.id,
+        kind: r.kind,
+        createdAt: new Date(r.created_at).toISOString(),
+        updatedAt: new Date(r.updated_at).toISOString(),
+      }));
+    }
+    records.sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id));
+    const assignments = kinds.includes('group') ? members || (await this.assignmentMembers()) : [];
+    return Object.fromEntries(
+      kinds.map((kind) => [
+        kind,
+        records
+          .filter((r) => r.kind === kind)
+          .map((r) => (kind === 'group' ? groupAssignment(r, assignments) : r)),
+      ]),
+    );
+  }
   async get(kind, id) {
     const record = (await this.list(kind)).find((x) => x.id === id);
     assert(record, 'Registro não encontrado.', 404);

@@ -2,6 +2,7 @@ import express from 'express';
 import session from 'express-session';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
+import { sensitiveRequestLimits } from './request-security.js';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import multer from 'multer';
 import {
@@ -128,27 +129,18 @@ export function createApp({
         }));
   app.disable('x-powered-by');
   if (Number(env.TRUST_PROXY) > 0) app.set('trust proxy', Number(env.TRUST_PROXY));
-  app.use(helmet());
-  app.use(express.json({ limit: '128kb' }));
+  app.use(
+    helmet({
+      referrerPolicy: { policy: 'same-origin' },
+      strictTransportSecurity: origin.startsWith('https:')
+        ? { maxAge: 31536000, includeSubDomains: false }
+        : false,
+    }),
+  );
   app.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
   });
-  app.use(
-    session({
-      name: 'anade.sid',
-      secret,
-      store,
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: origin.startsWith('https:'),
-        maxAge: 8 * 3600000,
-      },
-    }),
-  );
   app.use(
     '/auth',
     rateLimit({
@@ -167,6 +159,23 @@ export function createApp({
       standardHeaders: 'draft-8',
       legacyHeaders: false,
       message: { error: 'Muitas requisições. Aguarde um minuto.' },
+    }),
+  );
+  // Limit abusive traffic before parsing bodies or reading sessions from PostgreSQL.
+  app.use(express.json({ limit: '128kb', inflate: false }));
+  app.use(
+    session({
+      name: 'anade.sid',
+      secret,
+      store,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: origin.startsWith('https:'),
+        maxAge: 8 * 3600000,
+      },
     }),
   );
   const configured = [
@@ -292,7 +301,7 @@ export function createApp({
     assert(user && user.expires > Date.now(), 'Entre com o Discord para continuar.', 401);
     if (!user.demo) {
       assert(
-        user.member !== false,
+        user.member === true,
         'Sua sessão não possui filiação ativa. Entre novamente com o Discord.',
         403,
       );
@@ -313,6 +322,7 @@ export function createApp({
     res.locals.user = { ...user, assignment: await repo.memberAssignment(user.id) };
     next();
   });
+  app.use('/api', ...sensitiveRequestLimits());
   const admin = (req, _res, next) => {
     assert(req.session.user.admin, 'Apenas a direção pode realizar esta ação.', 403);
     next();

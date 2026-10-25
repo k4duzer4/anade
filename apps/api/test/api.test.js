@@ -253,6 +253,7 @@ test('Express: acesso, CSRF, papéis da sessão, fichas, votação e logout', as
     store.get(sid, (e, s) => (e ? reject(e) : resolve(s))),
   );
   sess.user.demo = false;
+  sess.user.member = true;
   sess.user.admin = false;
   sess.user.accessToken = 'test-token';
   await new Promise((resolve, reject) => store.set(sid, sess, (e) => (e ? reject(e) : resolve())));
@@ -331,6 +332,7 @@ test('OAuth permite cargo administrativo ausente e mantém todos os filiados sem
       sess.user = {
         id: 'demo-admin',
         discord: 'filiado',
+        member: true,
         accessToken: 'test-token',
         admin: true,
         expires: Date.now() + 60000,

@@ -1,11 +1,10 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-export async function requireMember({ adminOnly = false }: { adminOnly?: boolean } = {}) {
+import { cache } from 'react';
+const readAccess = cache(async () => {
   const session = (await cookies()).get('anade.sid');
   if (!session) redirect('/');
-  let allowed = false;
-  let admin = false;
   try {
     const options: RequestInit = {
       headers: { Cookie: `anade.sid=${encodeURIComponent(session.value)}` },
@@ -16,11 +15,19 @@ export async function requireMember({ adminOnly = false }: { adminOnly?: boolean
     const backend = process.env.API_ORIGIN || (process.env.VERCEL ? null : 'http://127.0.0.1:3001');
     if (!backend) throw new Error('API indisponível.');
     const response = await fetch(new URL('api/access', `${backend.replace(/\/$/, '')}/`), options);
-    allowed = response.ok;
-    if (allowed && adminOnly) admin = (await response.json()).user?.admin === true;
+    if ([401, 403].includes(response.status)) return null;
+    if (!response.ok) throw new Error('ACCESS_UNAVAILABLE');
+    const user = (await response.json()).user;
+    if (!user || typeof user.id !== 'string' || !user.id || typeof user.admin !== 'boolean')
+      throw new Error('ACCESS_INVALID');
+    return user as { id: string; admin: boolean };
   } catch {
-    /* Sem confirmação da API, o conteúdo interno permanece fechado. */
+    // An unavailable API must not look like a revoked session or start a login loop.
+    throw new Error('O portal está temporariamente indisponível. Tente novamente.');
   }
-  if (!allowed) redirect('/');
-  if (adminOnly && !admin) redirect('/painel');
+});
+export async function requireMember({ adminOnly = false }: { adminOnly?: boolean } = {}) {
+  const user = await readAccess();
+  if (!user) redirect('/');
+  if (adminOnly && !user.admin) redirect('/painel');
 }

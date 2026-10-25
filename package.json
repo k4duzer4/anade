@@ -19,10 +19,17 @@
     "typecheck": "npm run typecheck -w @anade/web",
     "lint": "npm run lint -w @anade/web",
     "test": "npm test -w @anade/api && npm test -w @anade/web",
-    "db:migrate": "npm run db:migrate -w @anade/api"
+    "db:migrate": "npm run db:migrate -w @anade/api",
+    "audit:production": "npm audit --omit=dev --audit-level=moderate"
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.10.3"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
     "prettier": "^3.9.10"
+  },
+  "overrides": {
+    "zod": "4.6.7"
   }
 }

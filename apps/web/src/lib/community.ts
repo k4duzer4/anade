@@ -28,14 +28,7 @@ export type CommunityList = {
   open?: boolean;
   mine?: CommunityItem | null;
 };
-export async function loadCommunity<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(url, { cache: 'no-store', signal });
-  if (!response.headers.get('content-type')?.includes('application/json'))
-    throw new Error('Não foi possível carregar esta área. Tente novamente.');
-  const value = await response.json();
-  if (!response.ok) throw new Error(value.error || 'Não foi possível concluir a consulta.');
-  return value;
-}
+export { loadCommunity } from './portal-read';
 export const shortDay = (day: string) =>
   new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeZone: 'UTC' }).format(
     new Date(`${day}T12:00:00Z`),

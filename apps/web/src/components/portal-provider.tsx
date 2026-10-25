@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { acknowledgeActivity, type ActivityState } from '@/lib/activity';
 import type { Config, PortalState } from '@/lib/types';
+import { portalRequest, createRefreshQueue } from '@/lib/portal-request';
 import { AnimatePresence, m } from 'motion/react';
 import { CheckCircle2 } from 'lucide-react';
 type Context = {
@@ -17,7 +18,7 @@ type Context = {
   data: PortalState | null;
   loading: boolean;
   error: string;
-  refresh: () => Promise<void>;
+  refresh: (fresh?: boolean) => Promise<void>;
   mutate: (url: string, method: string, body: unknown) => Promise<void>;
   loginDemo: (role: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -27,50 +28,50 @@ type Context = {
 };
 const PortalContext = createContext<Context | null>(null);
 async function request(url: string, method = 'GET', body?: unknown, csrf?: string) {
-  const multipart = body instanceof FormData;
-  const res = await fetch(url, {
-    method,
-    cache: 'no-store',
-    headers: {
-      ...(!multipart ? { 'Content-Type': 'application/json' } : {}),
-      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
-    },
-    ...(body !== undefined ? { body: multipart ? body : JSON.stringify(body) } : {}),
-  });
-  if (!res.headers.get('content-type')?.includes('application/json')) {
-    throw new Error('O portal está temporariamente indisponível. Tente novamente em instantes.');
-  }
-  const data = await res.json();
-  if (!res.ok)
-    throw Object.assign(new Error(data.error || 'Não foi possível concluir a operação.'), {
-      status: res.status,
-    });
-  return data;
+  return portalRequest(url, { method, body, csrf });
 }
 export function PortalProvider({ children }: { children: ReactNode }) {
   const [activity, setActivity] = useState<ActivityState | null>(null);
+  const epoch = useRef(0),
+    lifecycle = useRef(new AbortController());
+  const activityInFlight = useRef<{ epoch: number; task: Promise<void> } | null>(null);
   const activityRequest = useRef(0);
   const loadActivity = useCallback(async () => {
+    const currentEpoch = epoch.current;
+    if (activityInFlight.current?.epoch === currentEpoch) return activityInFlight.current.task;
     const sequence = ++activityRequest.current;
-    try {
-      const value = await request('/api/activity');
-      if (sequence === activityRequest.current) setActivity(value);
-    } catch {
-      /* Keep the last confirmed counts if this optional request fails. */
-    }
+    const task = (async () => {
+      try {
+        const value = await portalRequest<ActivityState>('/api/activity', {
+          signal: lifecycle.current.signal,
+        });
+        if (sequence === activityRequest.current && currentEpoch === epoch.current)
+          setActivity(value);
+      } catch {
+        /* Keep the last confirmed counts if this optional request fails. */
+      }
+    })();
+    activityInFlight.current = { epoch: currentEpoch, task };
+    await task;
+    if (activityInFlight.current?.task === task) activityInFlight.current = null;
   }, []);
   const [config, setConfig] = useState<Config | null>(null),
     [data, setData] = useState<PortalState | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [notice, setNotice] = useState('');
-  const refresh = useCallback(async () => {
+  const performRefresh = useCallback(async () => {
+    const currentEpoch = epoch.current;
     try {
-      const value = await request('/api/state');
+      const value = await portalRequest<PortalState>('/api/state', {
+        signal: lifecycle.current.signal,
+      });
+      if (currentEpoch !== epoch.current) return;
       setData(value);
       void loadActivity();
       setError('');
     } catch (e) {
+      if (currentEpoch !== epoch.current) return;
       const err = e as Error & { status?: number };
       if (err.status === 401 || err.status === 403) {
         setData(null);
@@ -80,13 +81,32 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       setError(err.status === 401 ? '' : err.message);
     }
   }, [loadActivity]);
+  const refreshQueue = useRef<ReturnType<typeof createRefreshQueue> | null>(null);
+  const refresh = useCallback(
+    (fresh = false) => {
+      if (!refreshQueue.current) refreshQueue.current = createRefreshQueue(performRefresh);
+      return refreshQueue.current(fresh);
+    },
+    [performRefresh],
+  );
+  const cancelReads = useCallback(() => {
+    epoch.current++;
+    lifecycle.current.abort();
+    activityRequest.current++;
+  }, []);
   useEffect(() => {
+    if (lifecycle.current.signal.aborted) lifecycle.current = new AbortController();
     let active = true;
     async function init() {
       try {
-        const value = await request('/api/config');
-        if (active) setConfig(value);
-        await refresh();
+        await Promise.all([
+          portalRequest<Config>('/api/config', { signal: lifecycle.current.signal }).then(
+            (value) => {
+              if (active) setConfig(value);
+            },
+          ),
+          refresh(true),
+        ]);
       } catch (e) {
         if (active) setError((e as Error).message);
       } finally {
@@ -94,17 +114,30 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       }
     }
     void init();
+    let lastBackground = 0;
     const focus = () => {
+      if (
+        document.visibilityState === 'hidden' ||
+        navigator.onLine === false ||
+        Date.now() - lastBackground < 5000
+      )
+        return;
+      lastBackground = Date.now();
       void refresh();
     };
     window.addEventListener('focus', focus);
+    window.addEventListener('online', focus);
+    document.addEventListener('visibilitychange', focus);
     const timer = setInterval(focus, 60000);
     return () => {
       active = false;
+      cancelReads();
       window.removeEventListener('focus', focus);
+      window.removeEventListener('online', focus);
+      document.removeEventListener('visibilitychange', focus);
       clearInterval(timer);
     };
-  }, [refresh]);
+  }, [refresh, cancelReads]);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(''), 4500);
@@ -112,14 +145,17 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   }, [notice]);
   async function mutate(url: string, method: string, body: unknown) {
     await request(url, method, body, data?.csrf);
-    await refresh();
+    await refresh(true);
   }
   async function loginDemo(role: string) {
     await request('/api/demo-login', 'POST', { role });
-    await refresh();
+    await refresh(true);
   }
   async function logout() {
     await request('/api/logout', 'POST', {}, data?.csrf);
+    epoch.current++;
+    lifecycle.current.abort();
+    lifecycle.current = new AbortController();
     setData(null);
     setActivity(null);
     activityRequest.current++;
@@ -127,13 +163,15 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   }
   const markActivitySeen = useCallback(
     async (path: string, keys: string[]) => {
+      const currentEpoch = epoch.current;
       for (let offset = 0; offset < keys.length; offset += 200) {
-        const result = await request(
-          '/api/activity/seen',
-          'PUT',
-          { path, keys: keys.slice(offset, offset + 200) },
-          data?.csrf,
-        );
+        const result = await portalRequest<{ keys: string[] }>('/api/activity/seen', {
+          method: 'PUT',
+          body: { path, keys: keys.slice(offset, offset + 200) },
+          csrf: data?.csrf,
+          signal: lifecycle.current.signal,
+        });
+        if (currentEpoch !== epoch.current) return;
         activityRequest.current++;
         setActivity((current) => acknowledgeActivity(current, result.keys));
       }

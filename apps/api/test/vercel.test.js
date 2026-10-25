@@ -106,7 +106,13 @@ test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e autorização 
   await pools[0].query('UPDATE anade.session SET sess=$1 WHERE sid=$2', [
     JSON.stringify({
       cookie: saved.sess.cookie,
-      user: { id: 'member', accessToken: 'test-only', admin: true, expires: Date.now() + 60000 },
+      user: {
+        id: 'member',
+        member: true,
+        accessToken: 'test-only',
+        admin: true,
+        expires: Date.now() + 60000,
+      },
       csrf: 'test-csrf',
     }),
     saved.sid,
@@ -114,6 +120,23 @@ test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e autorização 
   const access = await call(second, '/api/access', cookie);
   assert.equal(access.status, 200);
   assert.deepEqual(await access.json(), { user: { id: 'member', admin: false } });
+  await pools[0].query('UPDATE anade.session SET sess=$1 WHERE sid=$2', [
+    JSON.stringify({
+      cookie: saved.sess.cookie,
+      user: { id: 'member', expires: Date.now() + 60000 },
+      csrf: 'test-csrf',
+    }),
+    saved.sid,
+  ]);
+  assert.equal((await call(first, '/api/access', cookie)).status, 403);
+  await pools[0].query('UPDATE anade.session SET sess=$1 WHERE sid=$2', [
+    JSON.stringify({
+      cookie: saved.sess.cookie,
+      user: { id: 'member', member: true, expires: Date.now() + 60000 },
+      csrf: 'test-csrf',
+    }),
+    saved.sid,
+  ]);
   roles = [];
   await pools[0].query('UPDATE anade.discord_memberships SET valid_until=$1', [
     new Date(Date.now() - 1),

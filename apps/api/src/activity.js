@@ -31,47 +31,28 @@ export class ActivityStore {
       );
   }
 }
-async function allCommunity(store, kind) {
-  const result = [];
-  for (let page = 0; ; page++) {
-    const rows = await store.list(kind, { page, limit: 1000 });
-    result.push(...rows.slice(0, 1000));
-    if (rows.length <= 1000) return result;
-  }
-}
 export async function activitySnapshot(repo, user, now = new Date()) {
   const org = new OrganizationStore(repo),
     community = new CommunityStore(repo),
     publications = new PublicationsStore(repo);
-  const [
-    snapshot,
-    groups,
-    notes,
-    wallets,
-    entries,
-    legal,
-    events,
-    files,
-    proposals,
-    announcements,
-    campaignOpen,
-    statute,
-    calendar,
-  ] = await Promise.all([
-    repo.snapshot(),
-    org.list('group'),
-    org.list('note'),
-    org.list('wallet'),
-    org.list('entry'),
-    org.list('legal'),
-    org.list('event'),
-    org.list('file'),
-    allCommunity(community, 'proposal'),
-    allCommunity(community, 'announcement'),
+  const [snapshot, communityItems, campaignOpen, statute, calendar] = await Promise.all([
+    repo.snapshot({ metadataOnly: true }),
+    community.activityItems(),
     community.open(),
     publications.statute(),
     org.setting(),
   ]);
+  const {
+    group: groups,
+    note: notes,
+    wallet: wallets,
+    entry: entries,
+    legal,
+    event: events,
+    file: files,
+  } = await org.listMany(['group', 'note', 'wallet', 'entry', 'legal', 'event', 'file']);
+  const proposals = communityItems.filter((i) => i.kind === 'proposal'),
+    announcements = communityItems.filter((i) => i.kind === 'announcement');
   const sections = {};
   const add = (paths, kind, id, revision, title, href, date = '') => {
     const key = createHash('sha256')
@@ -146,7 +127,7 @@ export async function activitySnapshot(repo, user, now = new Date()) {
       a.updatedAt,
     );
   if (campaignOpen || user.admin)
-    for (const c of await allCommunity(community, 'campaign'))
+    for (const c of communityItems.filter((i) => i.kind === 'campaign'))
       add(
         ['/campanha'],
         'campaign',

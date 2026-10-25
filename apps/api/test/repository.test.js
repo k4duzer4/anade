@@ -6,6 +6,8 @@ import { newDb, DataType } from 'pg-mem';
 import { PgRepository } from '../src/repository.js';
 import { newPoll, profile } from '../src/domain.js';
 import { assignmentsFixture } from './helpers/assignments.js';
+import { OrganizationStore } from '../src/organization-store.js';
+import { CommunityStore } from '../src/community-store.js';
 async function directorsTable(db) {
   await assignmentsFixture(db);
   // pg-mem não implementa RLS nem os papéis do Supabase; valida o DDL e as consultas.
@@ -248,6 +250,26 @@ test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do vot
       (await repo.snapshot()).polls.find((p) => p.id === restricted.id).governance.electorIds,
       ['b'],
     );
+    const queries = [],
+      originalQuery = pool.query.bind(pool);
+    pool.query = (...args) => {
+      queries.push(args[0]);
+      return originalQuery(...args);
+    };
+    const metadata = await repo.snapshot({ metadataOnly: true });
+    pool.query = originalQuery;
+    assert.equal(queries.length, 3);
+    assert.ok(
+      !queries.some((q) => /FROM anade\.(votes|poll_options|attendance|directors)\b/.test(q)),
+    );
+    assert.equal(metadata.polls.find((p) => p.id === restricted.id).title, 'Liderança');
+    const org = new OrganizationStore(repo),
+      batch = await org.listMany(['group', 'wallet', 'legal']);
+    assert.deepEqual(batch.group, await org.list('group'));
+    assert.equal(batch.wallet.length, 2);
+    const lightweight = await new CommunityStore(repo).activityItems();
+    assert.equal(lightweight.filter((p) => p.kind === 'proposal').length, 1);
+    assert.equal(lightweight[0].supports, 0);
   } finally {
     await pool.end();
   }

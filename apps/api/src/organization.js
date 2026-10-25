@@ -561,9 +561,10 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
       .send(await storage.get(file.path));
   });
   async function notifications(user) {
-    const groups = await store.list('group');
-    const notes = await store.list('note'),
-      legal = await store.list('legal');
+    const recordsByKind = await store.listMany(['group', 'note', 'legal', 'notification', 'event']);
+    const groups = recordsByKind.group,
+      notes = recordsByKind.note,
+      legal = recordsByKind.legal;
     const visible = async (n) => {
       if (n.resourceKind === 'group')
         return groups.some((g) => g.id === n.resourceId && belongs(g, user));
@@ -574,9 +575,9 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
       return legal.some((x) => x.id === n.resourceId && legalVisible(x, user));
     };
     const records = [];
-    for (const n of await store.list('notification'))
+    for (const n of recordsByKind.notification)
       if (n.targetId === user.id && (await visible(n))) records.push({ ...n, key: n.id });
-    const snapshot = await repo.snapshot(),
+    const snapshot = await repo.snapshot({ metadataOnly: true }),
       now = Date.now(),
       end = now + 86400000;
     const due = (key, title, date, href) => {
@@ -628,7 +629,7 @@ export function organizationRoutes(app, repo, admin, storage, { seasonRequest = 
           `${item.end}T21:00:00-03:00`,
           '/juridico',
         );
-    for (const item of await store.list('event'))
+    for (const item of recordsByKind.event)
       if (item.status !== 'concluido')
         due(`event:${item.id}:${item.date}`, `Calendário: ${item.title}`, item.date, '/calendario');
     const read = await store.readKeys(user.id);

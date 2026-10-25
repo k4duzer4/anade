@@ -203,6 +203,8 @@ Ver uma seção é diferente de confirmar a leitura de um comunicado ou votar: e
 
 ## Referências técnicas
 
+A revisão de [segurança e estabilidade](docs/security-and-performance.md) documenta as dependências corrigidas, os limites de requisição/upload, as melhorias de consulta e recuperação, os checks automáticos e a etapa manual de troca das credenciais anteriormente compartilhadas.
+
 - [Next.js: instalação e App Router](https://nextjs.org/docs/app/getting-started/installation)
 - [Express 5](https://expressjs.com/en/guide/migrating-5/)
 - [Supabase: conectar ao PostgreSQL](https://supabase.com/docs/guides/database/connecting-to-postgres)

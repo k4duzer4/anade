@@ -290,17 +290,21 @@ export class PgRepository {
       summary: summary.rows[0],
     };
   }
-  async snapshot() {
+  async snapshot({ metadataOnly = false } = {}) {
     const [profiles, meetings, attendance, polls, options, votes, directors] = await Promise.all([
       this.pool.query(
         "SELECT p.account_id, p.data, p.created_at, a.username, r.office AS assigned_office,r.office_state,r.functions,r.function_state, avatar.path AS avatar_path, banner.path AS banner_path FROM anade.profiles p JOIN anade.accounts a ON a.id=p.account_id LEFT JOIN anade.member_assignments r ON r.account_id=a.id LEFT JOIN anade.profile_media avatar ON avatar.account_id=a.id AND avatar.kind='avatar' LEFT JOIN anade.profile_media banner ON banner.account_id=a.id AND banner.kind='banner' ORDER BY p.created_at",
       ),
       this.pool.query('SELECT * FROM anade.meetings ORDER BY starts_at'),
-      this.pool.query('SELECT * FROM anade.attendance'),
+      metadataOnly ? { rows: [] } : this.pool.query('SELECT * FROM anade.attendance'),
       this.pool.query('SELECT * FROM anade.polls ORDER BY created_at'),
-      this.pool.query('SELECT * FROM anade.poll_options ORDER BY option_index'),
-      this.pool.query('SELECT * FROM anade.votes'),
-      this.pool.query('SELECT * FROM anade.directors ORDER BY position, title, id'),
+      metadataOnly
+        ? { rows: [] }
+        : this.pool.query('SELECT * FROM anade.poll_options ORDER BY option_index'),
+      metadataOnly ? { rows: [] } : this.pool.query('SELECT * FROM anade.votes'),
+      metadataOnly
+        ? { rows: [] }
+        : this.pool.query('SELECT * FROM anade.directors ORDER BY position, title, id'),
     ]);
     return {
       directors: directors.rows.map((d) => ({

@@ -169,6 +169,7 @@
   border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
 }
 .section-new-count {
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
   min-width: 22px;

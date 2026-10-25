@@ -10,6 +10,7 @@ import { OrganizationForm, OrganizationLoading, useOrganization } from './organi
 import { eventNames, options, type GameCalendar, type GameEvent } from '@/lib/organization';
 import { formatDate } from '@/lib/types';
 import { SeasonCountdown } from './season-countdown';
+import { DeleteAction } from './delete-action';
 export function GameCalendarPanel({ compact = false }: { compact?: boolean }) {
   const { data, mutate } = usePortal();
   const [version, setVersion] = useState(0),
@@ -330,6 +331,17 @@ export function GameCalendarPanel({ compact = false }: { compact?: boolean }) {
               </label>
             </div>
           </OrganizationForm>
+          {dialog.item && (
+            <div className="content-danger-zone">
+              <DeleteAction
+                url={`/api/legado/events/${dialog.item.id}`}
+                title={dialog.item.title}
+                label="Excluir evento"
+                description="O evento registrado pela administração será removido do calendário do portal."
+                onDeleted={saved}
+              />
+            </div>
+          )}
         </Modal>
       )}
     </div>

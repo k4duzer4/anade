@@ -25,6 +25,7 @@ import { shortDay } from '@/lib/community';
 import { OrganizationFiles } from './organization-files';
 import { SearchBox } from './portal-tools';
 import { searchText } from '@/lib/types';
+import { DeleteAction } from './delete-action';
 export function LegalHub() {
   const { data } = usePortal();
   const [visibility, setVisibility] = useState('legal_team');
@@ -180,6 +181,18 @@ export function LegalHub() {
               .map((m) => m.id)}
             canEdit={!!value?.canCreate}
           />
+          {value?.canCreate && (
+            <div className="content-danger-zone">
+              <DeleteAction
+                url={`/api/legal/${dialog.item.id}`}
+                title={dialog.item.title}
+                label="Excluir registro jurídico"
+                description="O registro jurídico e todos os documentos anexados serão excluídos do portal."
+                requireName
+                onDeleted={saved}
+              />
+            </div>
+          )}
         </Modal>
       )}
       {dialog?.type === 'edit' && (

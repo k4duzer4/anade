@@ -32,6 +32,7 @@ import {
 } from '@/lib/organization';
 import { shortDay } from '@/lib/community';
 import { OrganizationFiles } from './organization-files';
+import { DeleteAction } from './delete-action';
 
 export function FinanceHub() {
   const { data } = usePortal();
@@ -183,8 +184,8 @@ export function FinanceHub() {
           <OrganizationPager page={page} hasMore={value.hasMore} onChange={setPage} />
           <p className="org-help">
             <LockKeyhole size={14} />
-            Extrato permanente: lançamentos não são apagados ou reescritos. Não realiza
-            transferências no Legado.
+            Exclusões são restritas à equipe financeira e precisam preservar o saldo e os vínculos
+            das reservas. Não realiza transferências no Legado.
           </p>
         </>
       )}
@@ -224,6 +225,21 @@ export function FinanceHub() {
               receita.
             </p>
           </OrganizationForm>
+          {dialog.wallet && (
+            <div className="content-danger-zone">
+              <DeleteAction
+                url={`/api/finance/wallets/${dialog.wallet.id}`}
+                title={dialog.wallet.name}
+                label="Excluir caixa"
+                description="O caixa será excluído. Todas as movimentações precisam ser excluídas primeiro."
+                requireName
+                onDeleted={() => {
+                  setWallet('all');
+                  saved();
+                }}
+              />
+            </div>
+          )}
         </Modal>
       )}
       {dialog?.type === 'entry' && value && (
@@ -263,6 +279,17 @@ export function FinanceHub() {
             memberIds={value?.wallets.find((w) => w.id === dialog.entry?.walletId)?.memberIds || []}
             canEdit={!!value?.canManage}
           />
+          {value?.canManage && (
+            <div className="content-danger-zone">
+              <DeleteAction
+                url={`/api/finance/entries/${dialog.entry.id}`}
+                title={dialog.entry.title}
+                label="Excluir movimentação"
+                description="O lançamento e seus comprovantes serão apagados e o saldo recalculado. A exclusão será bloqueada se deixar saldo insuficiente ou houver movimentações dependentes da reserva."
+                onDeleted={saved}
+              />
+            </div>
+          )}
         </Modal>
       )}
     </div>

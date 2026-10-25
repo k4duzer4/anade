@@ -150,12 +150,19 @@ export function communityRoutes(app, repo, admin) {
   app.post('/api/proposals/:id/poll', admin, async (req, res) => {
     validId(req.params.id);
     const organization = new OrganizationStore(repo);
-    const group = req.body.groupId ? await organization.get('group', req.body.groupId) : null;
-    const available = (await repo.snapshot()).members
-      .map((m) => m.id)
-      .filter((id) => !group || group.memberIds.includes(id));
-    const governance = votingRules(req.body, available, group);
-    const id = await store.forward(req.params.id, req.body, actor(res).id, governance);
+    const id = await organization.atomic(async (s) => {
+      const group = req.body.groupId ? await s.get('group', req.body.groupId) : null;
+      const available = (await s.assignmentMembers())
+        .map((m) => m.id)
+        .filter((id) => !group || group.memberIds.includes(id));
+      const governance = votingRules(req.body, available, group);
+      return new CommunityStore(repo, s.sql).forward(
+        req.params.id,
+        req.body,
+        actor(res).id,
+        governance,
+      );
+    });
     res.status(201).json({ id });
   });
   app.get('/api/announcements', (req, res) => list('announcement', req, res));
@@ -254,7 +261,7 @@ export function communityRoutes(app, repo, admin) {
     validId(req.params.id);
     await store.atomic(async (s) => {
       const item = await s.get('timeline', req.params.id, '', true);
-      own(item, res);
+      if (!actor(res).admin) own(item, res);
       await s.remove(item.id);
     });
     res.json({ ok: true });

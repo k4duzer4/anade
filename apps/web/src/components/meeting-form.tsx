@@ -159,6 +159,12 @@ export function MeetingForm({
             placeholder={'Organização dos diretórios\nPrioridades da bancada\nPróximos passos'}
           />
           <small>Uma pauta por linha, até 30 itens.</small>
+          {meeting && (
+            <small>
+              Reordenar mantém as conversas. Alterar o texto ou remover uma pauta também apaga os
+              comentários dela.
+            </small>
+          )}
         </label>
         <details className="meeting-notes-editor full">
           <summary>Notas e encaminhamentos no portal (opcional)</summary>

@@ -29,6 +29,7 @@ import { SearchBox } from './portal-tools';
 import { loadCommunity, shortDay, type CommunityItem, type CommunityList } from '@/lib/community';
 import { searchText } from '@/lib/types';
 import { PollElectorate } from './poll-electorate';
+import { DeleteAction } from './delete-action';
 
 type Kind = 'proposal' | 'announcement' | 'campaign';
 const areas = {
@@ -377,6 +378,32 @@ export function CommunityHub({ kind }: { kind: Kind }) {
                     )}
                   </footer>
                   <div className="community-management">
+                    {(data.user.admin ||
+                      (kind === 'announcement'
+                        ? data.user.permissions?.communications
+                        : isOwn &&
+                          (kind !== 'proposal' || !item.pollId) &&
+                          (kind !== 'campaign' || result?.open))) && (
+                      <DeleteAction
+                        url={`/api/${area.path}/${item.id}`}
+                        title={item.title}
+                        label={
+                          kind === 'proposal'
+                            ? 'Excluir proposta'
+                            : kind === 'announcement'
+                              ? 'Excluir comunicado'
+                              : 'Excluir pré-candidatura'
+                        }
+                        description={
+                          kind === 'proposal'
+                            ? 'A proposta, os apoios e comentários serão excluídos. Uma votação já criada a partir dela permanece e deve ser excluída separadamente.'
+                            : kind === 'announcement'
+                              ? 'O comunicado e suas confirmações de leitura serão excluídos do mural.'
+                              : 'A pré-candidatura, materiais e compromissos serão removidos da central. Os links nos serviços de origem permanecem.'
+                        }
+                        onDeleted={reload}
+                      />
+                    )}
                     {((kind === 'proposal' && isOwn && !item.pollId) ||
                       (kind === 'announcement' &&
                         (data.user.permissions?.communications ?? data.user.admin)) ||
@@ -759,6 +786,18 @@ function ProposalConversation({ item, onChanged }: { item: CommunityItem; onChan
                     timeZone: 'America/Sao_Paulo',
                   }).format(new Date(comment.createdAt))}
                 </small>
+                {(data?.user.admin || data?.user.id === comment.ownerId) && (
+                  <DeleteAction
+                    url={`/api/proposal-comments/${comment.id}`}
+                    title="Comentário da proposta"
+                    label="Excluir comentário"
+                    description="O comentário será removido da conversa desta proposta."
+                    onDeleted={() => {
+                      setVersion((v) => v + 1);
+                      onChanged();
+                    }}
+                  />
+                )}
               </div>
             </article>
           );

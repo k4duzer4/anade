@@ -17,6 +17,8 @@ import { usePortal } from './portal-provider';
 import { ErrorNotice, Modal } from './ui';
 import { MeetingForm } from './meeting-form';
 import { MemberAvatar } from './member-avatar';
+import { AgendaConversation } from './agenda-conversation';
+import { DeleteAction } from './delete-action';
 import type { Meeting } from '@/lib/types';
 
 export function MeetingCard({ meeting, compact = false }: { meeting: Meeting; compact?: boolean }) {
@@ -129,7 +131,20 @@ export function MeetingCard({ meeting, compact = false }: { meeting: Meeting; co
           {meeting.agenda.map((item, index) => (
             <li key={index}>
               <span>{String(index + 1).padStart(2, '0')}</span>
-              {item}
+              <div className="event-topic">
+                <p>{item}</p>
+                <div className="content-actions">
+                  <AgendaConversation kind="meeting" id={meeting.id} title={item} topic={item} />
+                  {data.user.admin && (
+                    <DeleteAction
+                      url={`/api/meetings/${meeting.id}/agenda/${index}?topic=${encodeURIComponent(item)}`}
+                      title={item}
+                      label="Excluir pauta"
+                      description="Este assunto e os comentários dele serão removidos da reunião. O encontro precisa manter ao menos uma pauta."
+                    />
+                  )}
+                </div>
+              </div>
             </li>
           ))}
         </ol>
@@ -202,6 +217,15 @@ export function MeetingCard({ meeting, compact = false }: { meeting: Meeting; co
             onSaved={() => setEditing(false)}
             onCancel={() => setEditing(false)}
           />
+          <div className="content-danger-zone">
+            <DeleteAction
+              url={`/api/meetings/${meeting.id}`}
+              title={meeting.title}
+              label="Excluir reunião"
+              description="A reunião, suas pautas, comentários, notas da ata e confirmações de presença serão excluídos do portal. Os documentos no Google Docs e o Meet continuam nos serviços de origem."
+              requireName
+            />
+          </div>
         </Modal>
       )}
     </article>

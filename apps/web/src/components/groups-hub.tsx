@@ -1,6 +1,9 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { DeleteAction } from './delete-action';
+import { AgendaConversation } from './agenda-conversation';
 import { ArrowUpRight, Landmark, LockKeyhole, Pencil, Plus, Users } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { PageHeading, Modal, Empty, ErrorNotice, Badge } from './ui';
@@ -184,17 +187,34 @@ export function GroupsHub({ caucus = false, groupId }: { caucus?: boolean; group
                         : 'Sem responsável'}
                       {n.dueDate && ` · Até ${shortDay(n.dueDate)}`}
                     </span>
-                    {(data.user.admin ||
-                      selected.leaderId === data.user.id ||
-                      n.authorId === data.user.id) && (
-                      <button
-                        className="text-button"
-                        onClick={() => setDialog({ type: 'note', group: selected, note: n })}
-                      >
-                        Editar registro
-                        <Pencil size={13} />
-                      </button>
-                    )}
+                    <div className="content-actions">
+                      <AgendaConversation
+                        kind="note"
+                        id={n.id}
+                        title={n.title}
+                        leaderId={selected.leaderId}
+                      />
+                      {(data.user.admin ||
+                        selected.leaderId === data.user.id ||
+                        n.authorId === data.user.id) && (
+                        <>
+                          <button
+                            className="text-button"
+                            onClick={() => setDialog({ type: 'note', group: selected, note: n })}
+                          >
+                            Editar registro
+                            <Pencil size={13} />
+                          </button>
+                          <DeleteAction
+                            url={`/api/groups/${selected.id}/notes/${n.id}`}
+                            title={n.title}
+                            label="Excluir pauta"
+                            description="O registro e todos os comentários desta pauta serão excluídos do grupo."
+                            onDeleted={saved}
+                          />
+                        </>
+                      )}
+                    </div>
                   </div>
                 </article>
               ))}
@@ -321,86 +341,106 @@ function GroupEditor({
   onCancel: () => void;
 }) {
   const { data, config } = usePortal();
+  const router = useRouter();
   const [type, setType] = useState(group?.type || 'outro');
   if (!data) return null;
   return (
-    <OrganizationForm
-      url={`/api/groups${group ? `/${group.id}` : ''}`}
-      method={group ? 'PUT' : 'POST'}
-      onSaved={onSaved}
-      onCancel={onCancel}
-      transform={(v, raw) => ({
-        ...v,
-        leaderId: v.leaderId === 'none' ? '' : v.leaderId,
-        memberIds: raw.getAll('memberIds'),
-      })}
-    >
-      <p className="form-description">
-        Escolha participantes reais. O cargo informado na ficha do personagem não concede acesso
-        automaticamente.
-      </p>
-      <div className="form-grid">
-        <label className="field full">
-          Nome
-          <input name="name" required maxLength={120} defaultValue={group?.name} />
-        </label>
-        <label className="field">
-          Tipo
-          <Select
-            name="type"
-            aria-label="Tipo de grupo"
-            value={type}
-            onValueChange={setType}
-            options={options(groupNames)}
-          />
-        </label>
-        {type === 'estadual' && (
+    <>
+      <OrganizationForm
+        url={`/api/groups${group ? `/${group.id}` : ''}`}
+        method={group ? 'PUT' : 'POST'}
+        onSaved={onSaved}
+        onCancel={onCancel}
+        transform={(v, raw) => ({
+          ...v,
+          leaderId: v.leaderId === 'none' ? '' : v.leaderId,
+          memberIds: raw.getAll('memberIds'),
+        })}
+      >
+        <p className="form-description">
+          Escolha participantes reais. O cargo informado na ficha do personagem não concede acesso
+          automaticamente.
+        </p>
+        <div className="form-grid">
+          <label className="field full">
+            Nome
+            <input name="name" required maxLength={120} defaultValue={group?.name} />
+          </label>
           <label className="field">
-            Estado
+            Tipo
             <Select
-              name="state"
-              required
-              aria-label="Estado do diretório"
-              defaultValue={group?.state || undefined}
-              options={(config?.states || []).map((s) => ({ value: s, label: s }))}
+              name="type"
+              aria-label="Tipo de grupo"
+              value={type}
+              onValueChange={setType}
+              options={options(groupNames)}
             />
           </label>
-        )}
-        <label className="field full">
-          Descrição
-          <textarea
-            name="description"
-            maxLength={2000}
-            rows={3}
-            defaultValue={group?.description}
-          />
-        </label>
-        {['camara', 'senado', 'direcao', 'juridico', 'tesouraria', 'comunicacao'].includes(type) ? (
-          <p className="assignment-notice full">
-            Participantes e liderança são definidos pelos cargos e funções oficiais. Gerencie essas
-            atribuições em Administração → Cargos e funções.
-          </p>
-        ) : (
-          <>
-            <label className="field full">
-              Liderança
+          {type === 'estadual' && (
+            <label className="field">
+              Estado
               <Select
-                name="leaderId"
-                aria-label="Liderança"
-                defaultValue={group?.leaderId || 'none'}
-                options={[
-                  { value: 'none', label: 'Ainda não definida' },
-                  ...data.members.map((m) => ({ value: m.id, label: m.name })),
-                ]}
+                name="state"
+                required
+                aria-label="Estado do diretório"
+                defaultValue={group?.state || undefined}
+                options={(config?.states || []).map((s) => ({ value: s, label: s }))}
               />
-              <small>A liderança precisa estar marcada entre os participantes.</small>
             </label>
-            <div className="full">
-              <MembersPicker members={data.members} selected={group?.memberIds} />
-            </div>
-          </>
-        )}
-      </div>
-    </OrganizationForm>
+          )}
+          <label className="field full">
+            Descrição
+            <textarea
+              name="description"
+              maxLength={2000}
+              rows={3}
+              defaultValue={group?.description}
+            />
+          </label>
+          {['camara', 'senado', 'direcao', 'juridico', 'tesouraria', 'comunicacao'].includes(
+            type,
+          ) ? (
+            <p className="assignment-notice full">
+              Participantes e liderança são definidos pelos cargos e funções oficiais. Gerencie
+              essas atribuições em Administração → Cargos e funções.
+            </p>
+          ) : (
+            <>
+              <label className="field full">
+                Liderança
+                <Select
+                  name="leaderId"
+                  aria-label="Liderança"
+                  defaultValue={group?.leaderId || 'none'}
+                  options={[
+                    { value: 'none', label: 'Ainda não definida' },
+                    ...data.members.map((m) => ({ value: m.id, label: m.name })),
+                  ]}
+                />
+                <small>A liderança precisa estar marcada entre os participantes.</small>
+              </label>
+              <div className="full">
+                <MembersPicker members={data.members} selected={group?.memberIds} />
+              </div>
+            </>
+          )}
+        </div>
+      </OrganizationForm>
+      {group && (
+        <div className="content-danger-zone">
+          <DeleteAction
+            url={`/api/groups/${group.id}`}
+            title={group.name}
+            label="Excluir grupo"
+            description="O grupo, seus registros de trabalho e comentários serão apagados. Se houver reuniões ou votações vinculadas, será necessário excluí-las primeiro."
+            requireName
+            onDeleted={() => {
+              onSaved();
+              router.replace('/grupos');
+            }}
+          />
+        </div>
+      )}
+    </>
   );
 }

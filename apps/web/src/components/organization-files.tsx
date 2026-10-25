@@ -4,6 +4,7 @@ import { Download, FileText, Upload, ShieldCheck } from 'lucide-react';
 import { usePortal } from './portal-provider';
 import { MembersPicker, useOrganization } from './organization-ui';
 import { ErrorNotice, SubmitButton } from './ui';
+import { DeleteAction } from './delete-action';
 export function OrganizationFiles({
   kind,
   id,
@@ -36,11 +37,22 @@ export function OrganizationFiles({
       <ErrorNotice message={error || loadError} />
       <div className="org-file-list">
         {value?.records.map((f) => (
-          <a href={f.url} key={f.id}>
-            <FileText size={19} />
-            <span>{f.name}</span>
-            <Download size={16} />
-          </a>
+          <div className="org-file-row" key={f.id}>
+            <a href={f.url}>
+              <FileText size={19} />
+              <span>{f.name}</span>
+              <Download size={16} />
+            </a>
+            {canEdit && (
+              <DeleteAction
+                url={`/api/organization/files/${f.id}`}
+                title={f.name}
+                label="Excluir anexo"
+                description="O documento será excluído deste registro e do armazenamento do portal."
+                onDeleted={() => setVersion((v) => v + 1)}
+              />
+            )}
+          </div>
         ))}
         {value?.records.length === 0 && <p>Nenhum documento disponível para você.</p>}
       </div>

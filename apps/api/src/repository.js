@@ -393,8 +393,8 @@ export class PgRepository {
     const result = await this.pool.query('DELETE FROM anade.directors WHERE id=$1', [id]);
     assert(result.rowCount, 'Diretor não encontrado.', 404);
   }
-  async createMeeting(m, author) {
-    await this.pool.query(
+  async createMeeting(m, author, client = this.pool) {
+    await client.query(
       'INSERT INTO anade.meetings(id,title,starts_at,location,agenda,author_id,meet_url,minutes_document_url,minutes,group_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
       [
         m.id,
@@ -410,8 +410,8 @@ export class PgRepository {
       ],
     );
   }
-  async updateMeeting(id, m) {
-    const result = await this.pool.query(
+  async updateMeeting(id, m, client = this.pool) {
+    const result = await client.query(
       'UPDATE anade.meetings SET title=$2,starts_at=$3,location=$4,agenda=$5,meet_url=$6,minutes_document_url=$7,minutes=$8,group_id=$9 WHERE id=$1',
       [
         id,
@@ -426,6 +426,61 @@ export class PgRepository {
       ],
     );
     assert(result.rowCount, 'Reunião não encontrada.', 404);
+  }
+  async meetingRecord(id, client = this.pool) {
+    const { rows } = await client.query(
+      'SELECT id,agenda,group_id AS "groupId" FROM anade.meetings WHERE id=$1',
+      [id],
+    );
+    assert(rows[0], 'Reunião não encontrada.', 404);
+    return rows[0];
+  }
+  async updateMeetingAgenda(id, agenda, client = this.pool) {
+    const result = await client.query('UPDATE anade.meetings SET agenda=$2 WHERE id=$1', [
+      id,
+      JSON.stringify(agenda),
+    ]);
+    assert(result.rowCount, 'Reunião não encontrada.', 404);
+  }
+  async removeMeeting(id, client = this.pool) {
+    const result = await client.query('DELETE FROM anade.meetings WHERE id=$1', [id]);
+    assert(result.rowCount, 'Reunião não encontrada.', 404);
+  }
+  async removePoll(id, client = this.pool) {
+    const { rows } = await client.query('SELECT id FROM anade.polls WHERE id=$1 FOR UPDATE', [id]);
+    assert(rows.length, 'Votação não encontrada.', 404);
+    await client.query('DELETE FROM anade.votes WHERE poll_id=$1', [id]);
+    await client.query('DELETE FROM anade.polls WHERE id=$1', [id]);
+    const proposals = await client.query(
+      "SELECT id,data FROM anade.community_items WHERE kind='proposal' AND data->>'pollId'=$1 FOR UPDATE",
+      [id],
+    );
+    for (const proposal of proposals.rows) {
+      const data = { ...proposal.data };
+      delete data.pollId;
+      await client.query('UPDATE anade.community_items SET data=$2,updated_at=now() WHERE id=$1', [
+        proposal.id,
+        JSON.stringify(data),
+      ]);
+    }
+  }
+  async groupHasLinks(id, client = this.pool) {
+    const meetings = await client.query('SELECT id FROM anade.meetings WHERE group_id=$1 LIMIT 1', [
+      id,
+    ]);
+    const polls = await client.query(
+      "SELECT id FROM anade.polls WHERE governance->>'groupId'=$1 LIMIT 1",
+      [id],
+    );
+    return meetings.rowCount > 0 || polls.rowCount > 0;
+  }
+  async removeCheckin(id) {
+    const { rows } = await this.pool.query(
+      'DELETE FROM anade.checkins WHERE id=$1 RETURNING actions_path AS "actionsPath",blue_path AS "bluePath"',
+      [id],
+    );
+    assert(rows[0], 'Ponto não encontrado.', 404);
+    return [rows[0].actionsPath, rows[0].bluePath];
   }
   async attendance(id, userId, confirm) {
     await this.transaction(async (c) => {
@@ -454,8 +509,8 @@ export class PgRepository {
     ]);
     assert(result.rowCount, 'Reunião não encontrada.', 404);
   }
-  async createPoll(p) {
-    await this.transaction(async (c) => {
+  async createPoll(p, client) {
+    const save = async (c) => {
       await c.query(
         'INSERT INTO anade.polls(id,title,description,deadline,secret,author_id,governance) VALUES($1,$2,$3,$4,$5,$6,$7)',
         [
@@ -473,7 +528,9 @@ export class PgRepository {
           'INSERT INTO anade.poll_options(poll_id,option_index,label) VALUES($1,$2,$3)',
           [p.id, i, p.options[i]],
         );
-    });
+    };
+    if (client) await save(client);
+    else await this.transaction(save);
   }
   async vote(id, userId, option) {
     try {
@@ -754,6 +811,37 @@ export class MemoryRepository {
   }
   async updateMeeting(id, fields) {
     Object.assign(this.meeting(id), fields);
+  }
+  async meetingRecord(id) {
+    return structuredClone(this.meeting(id));
+  }
+  async updateMeetingAgenda(id, agenda) {
+    this.meeting(id).agenda = agenda;
+  }
+  async removeMeeting(id) {
+    this.meeting(id);
+    this.data.meetings = this.data.meetings.filter((m) => m.id !== id);
+  }
+  async removePoll(id) {
+    this.poll(id);
+    this.data.polls = this.data.polls.filter((p) => p.id !== id);
+    for (const item of this.community?.items.values() || [])
+      if (item.kind === 'proposal' && item.data.pollId === id) {
+        delete item.data.pollId;
+        item.updated_at = new Date().toISOString();
+      }
+  }
+  async groupHasLinks(id) {
+    return (
+      this.data.meetings.some((m) => m.groupId === id) ||
+      this.data.polls.some((p) => p.governance?.groupId === id)
+    );
+  }
+  async removeCheckin(id) {
+    const item = this.checkins.find((c) => c.id === id);
+    assert(item, 'Ponto não encontrado.', 404);
+    this.checkins = this.checkins.filter((c) => c.id !== id);
+    return [item.actions_path, item.blue_path];
   }
   meeting(id) {
     const m = this.data.meetings.find((m) => m.id === id);

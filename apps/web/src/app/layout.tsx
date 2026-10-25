@@ -29,6 +29,7 @@ import './assignments.css';
 import './season-countdown.css';
 import './publications.css';
 import './activity.css';
+import './content-management.css';
 import { PortalProvider } from '@/components/portal-provider';
 import { ExperienceProvider } from '@/components/experience-provider';
 export const metadata: Metadata = {

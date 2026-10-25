@@ -16,7 +16,12 @@ export class OrganizationStore {
     this.repo = repo;
     this.sql = client || repo.pool;
     if (!this.sql && !repo.organization) {
-      repo.organization = { records: new Map(), reads: new Map(), queue: Promise.resolve() };
+      repo.organization = {
+        records: new Map(),
+        reads: new Map(),
+        comments: new Map(),
+        queue: Promise.resolve(),
+      };
       defaults.forEach((name, i) => {
         const id = `10000000-0000-4000-8000-00000000000${i + 1}`;
         repo.organization.records.set(id, {
@@ -54,7 +59,11 @@ export class OrganizationStore {
       });
     const state = this.repo.organization;
     const task = state.queue.then(async () => {
-      const backup = structuredClone({ records: state.records, reads: state.reads });
+      const backup = structuredClone({
+        records: state.records,
+        reads: state.reads,
+        comments: state.comments,
+      });
       try {
         return await fn(this);
       } catch (e) {
@@ -162,6 +171,88 @@ export class OrganizationStore {
         [id, kind, JSON.stringify(clean)],
       );
     return id;
+  }
+  async remove(kind, id) {
+    if (this.sql) {
+      const result = await this.sql.query(
+        'DELETE FROM anade.organization_records WHERE kind=$1 AND id=$2',
+        [kind, id],
+      );
+      assert(result.rowCount, 'Registro não encontrado.', 404);
+      await this.sql.query(
+        "DELETE FROM anade.organization_records WHERE kind='notification' AND data->>'resourceId'=$1",
+        [id],
+      );
+      return;
+    }
+    await this.get(kind, id);
+    this.repo.organization.records.delete(id);
+    for (const [key, item] of this.repo.organization.records)
+      if (item.kind === 'notification' && item.resourceId === id)
+        this.repo.organization.records.delete(key);
+    for (const [key, item] of this.repo.organization.comments)
+      if (item.noteId === id) this.repo.organization.comments.delete(key);
+  }
+  async comments({ meetingId = '', noteId = '', topic = '', page = 0 }) {
+    if (!this.sql)
+      return structuredClone(
+        [...this.repo.organization.comments.values()]
+          .filter((c) => c.meetingId === meetingId && c.noteId === noteId && c.topic === topic)
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id))
+          .slice(page * 20, page * 20 + 21),
+      );
+    const { rows } = await this.sql.query(
+      `SELECT id,account_id AS "authorId",body,created_at AS "createdAt" FROM anade.agenda_comments WHERE ${meetingId ? 'meeting_id' : 'note_id'}=$1 AND topic=$2 ORDER BY created_at DESC,id LIMIT 21 OFFSET $3`,
+      [meetingId || noteId, topic, page * 20],
+    );
+    return rows.map((c) => ({ ...c, createdAt: new Date(c.createdAt).toISOString() }));
+  }
+  async addComment(data) {
+    const id = randomUUID();
+    if (!this.sql)
+      this.repo.organization.comments.set(id, { ...data, id, createdAt: new Date().toISOString() });
+    else
+      await this.sql.query(
+        'INSERT INTO anade.agenda_comments(id,meeting_id,note_id,topic,account_id,body) VALUES($1,$2,$3,$4,$5,$6)',
+        [id, data.meetingId || null, data.noteId || null, data.topic, data.authorId, data.body],
+      );
+    return id;
+  }
+  async removeComment(id, parent, user, leaderId) {
+    let item;
+    if (this.sql) {
+      const { rows } = await this.sql.query(
+        'SELECT account_id AS "authorId",meeting_id AS "meetingId",note_id AS "noteId",topic FROM anade.agenda_comments WHERE id=$1 FOR UPDATE',
+        [id],
+      );
+      item = rows[0];
+    } else item = this.repo.organization.comments.get(id);
+    assert(
+      item &&
+        (item.meetingId || '') === parent.meetingId &&
+        (item.noteId || '') === parent.noteId &&
+        item.topic === parent.topic,
+      'Comentário não encontrado.',
+      404,
+    );
+    assert(
+      user.admin || item.authorId === user.id || leaderId === user.id,
+      'Somente a autoria, liderança ou administração pode excluir este comentário.',
+      403,
+    );
+    if (this.sql) await this.sql.query('DELETE FROM anade.agenda_comments WHERE id=$1', [id]);
+    else this.repo.organization.comments.delete(id);
+  }
+  async pruneMeetingComments(id, agenda = []) {
+    if (this.sql)
+      await this.sql.query(
+        'DELETE FROM anade.agenda_comments WHERE meeting_id=$1 AND NOT (topic=ANY($2::text[]))',
+        [id, agenda],
+      );
+    else
+      for (const [key, c] of this.repo.organization.comments)
+        if (c.meetingId === id && !agenda.includes(c.topic))
+          this.repo.organization.comments.delete(key);
   }
   async setting() {
     if (!this.sql) return this.repo.organization.calendar || {};

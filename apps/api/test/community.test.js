@@ -6,6 +6,54 @@ import session from 'express-session';
 import { createApp } from '../src/app.js';
 import { MemoryRepository } from '../src/repository.js';
 
+test('excluir conteúdo exige autoria ou permissão, limpa comentários/apoios e não apaga votação vinculada', async (t) => {
+  const { call, repo } = await setup(t);
+  const id = (
+    await (
+      await call('/api/proposals', 'member', 'POST', { title: 'Proposta', body: 'Descrição' })
+    ).json()
+  ).id;
+  await call(`/api/proposals/${id}/comments`, 'other', 'POST', { body: 'Uma contribuição' });
+  await call(`/api/proposals/${id}/support`, 'other', 'PUT', { enabled: true });
+  assert.equal((await call(`/api/proposals/${id}`, 'other', 'DELETE', {})).status, 403);
+  const comments = (await (await call(`/api/proposals/${id}/comments`, 'member')).json()).records;
+  assert.equal(
+    (await call(`/api/proposal-comments/${comments[0].id}`, 'member', 'DELETE', {})).status,
+    403,
+  );
+  assert.equal(
+    (await call(`/api/proposal-comments/${comments[0].id}`, 'other', 'DELETE', {})).status,
+    200,
+  );
+  await call(`/api/proposals/${id}/comments`, 'other', 'POST', { body: 'Outra contribuição' });
+  assert.equal((await call(`/api/proposals/${id}`, 'member', 'DELETE', {}, '')).status, 403);
+  assert.equal((await call(`/api/proposals/${id}`, 'member', 'DELETE', {})).status, 200);
+  assert.equal(repo.community.items.size, 0);
+  assert.equal(repo.community.actions.size, 0);
+  const notice = (
+    await (
+      await call('/api/announcements', 'admin', 'POST', { title: 'Aviso', body: 'Comunicado' })
+    ).json()
+  ).id;
+  assert.equal((await call(`/api/announcements/${notice}`, 'member', 'DELETE', {})).status, 403);
+  assert.equal((await call(`/api/announcements/${notice}`, 'admin', 'DELETE', {})).status, 200);
+  await call('/api/admin/campaigns/status', 'admin', 'PUT', { open: true });
+  const campaign = (
+    await (
+      await call('/api/campaigns', 'member', 'POST', {
+        title: 'Projeto',
+        body: 'Propostas',
+        office: 'Deputado federal',
+        state: 'SP',
+        materials: [],
+      })
+    ).json()
+  ).id;
+  await call('/api/admin/campaigns/status', 'admin', 'PUT', { open: false });
+  assert.equal((await call(`/api/campaigns/${campaign}`, 'member', 'DELETE', {})).status, 403);
+  assert.equal((await call(`/api/campaigns/${campaign}`, 'admin', 'DELETE', {})).status, 200);
+});
+
 async function setup(t, options = {}) {
   const repo = new MemoryRepository(),
     store = new session.MemoryStore(),

@@ -34,7 +34,107 @@ async function directorsTable(db) {
     'utf8',
   );
   db.public.none(organization.split('ALTER TABLE anade.organization_records ENABLE')[0]);
+  db.public.none(
+    (await readFile(new URL('../db/016_agenda_comments.sql', import.meta.url), 'utf8')).split(
+      'ALTER TABLE',
+    )[0],
+  );
 }
+
+test('PostgreSQL: comentários com vínculos reais, cascatas e remoção de votação com votos', async () => {
+  const db = newDb();
+  for (const file of [
+    '001_initial.sql',
+    '007_account_admin.sql',
+    '003_abstention.sql',
+    '004_meeting_links.sql',
+  ])
+    db.public.none(await readFile(new URL(`../db/${file}`, import.meta.url), 'utf8'));
+  await directorsTable(db);
+  const { Pool } = db.adapters.createPg(),
+    pool = new Pool(),
+    repo = new PgRepository(pool),
+    org = new OrganizationStore(repo),
+    community = new CommunityStore(repo);
+  try {
+    await repo.account('a', 'admin');
+    const meeting = {
+      id: randomUUID(),
+      title: 'Reunião',
+      date: new Date(Date.now() + 3600000).toISOString(),
+      location: 'Meet',
+      agenda: ['A', 'B'],
+    };
+    await repo.createMeeting(meeting, 'a');
+    await org.addComment({
+      meetingId: meeting.id,
+      noteId: '',
+      topic: 'A',
+      authorId: 'a',
+      body: 'Contribuição',
+    });
+    let rows = await org.comments({ meetingId: meeting.id, topic: 'A' });
+    assert.equal(rows[0].authorId, 'a');
+    assert.equal((await org.comments({ meetingId: meeting.id, topic: 'B' })).length, 0);
+    await org.pruneMeetingComments(meeting.id, ['B']);
+    assert.equal((await org.comments({ meetingId: meeting.id, topic: 'A' })).length, 0);
+    const group = (await org.list('group'))[0];
+    const note = await org.save('note', { groupId: group.id, title: 'Pauta', authorId: 'a' });
+    const comment = await org.addComment({
+      meetingId: '',
+      noteId: note,
+      topic: '',
+      authorId: 'a',
+      body: 'Discussão',
+    });
+    await assert.rejects(
+      org.removeComment(
+        comment,
+        { meetingId: '', noteId: note, topic: '' },
+        { id: 'other', admin: false },
+        '',
+      ),
+      /autoria/,
+    );
+    await org.remove('note', note);
+    assert.equal((await org.comments({ noteId: note })).length, 0);
+    const poll = newPoll(
+      {
+        title: 'Eleição',
+        options: ['Sim', 'Não'],
+        deadline: new Date(Date.now() + 3600000).toISOString(),
+        secret: true,
+      },
+      'a',
+    );
+    await repo.createPoll(poll);
+    await repo.vote(poll.id, 'a', 0);
+    const proposal = await community.save('proposal', 'a', {
+      title: 'Ideia',
+      body: 'Contexto',
+      pollId: poll.id,
+    });
+    await repo.transaction((client) => repo.removePoll(poll.id, client));
+    assert.equal((await pool.query('SELECT * FROM anade.votes')).rowCount, 0);
+    assert.equal((await pool.query('SELECT * FROM anade.poll_options')).rowCount, 0);
+    assert.equal(
+      (await pool.query('SELECT data FROM anade.community_items WHERE id=$1', [proposal])).rows[0]
+        .data.pollId,
+      undefined,
+    );
+    await org.addComment({
+      meetingId: meeting.id,
+      noteId: '',
+      topic: 'B',
+      authorId: 'a',
+      body: 'Contribuição',
+    });
+    await repo.removeMeeting(meeting.id);
+    assert.equal((await pool.query('SELECT * FROM anade.agenda_comments')).rowCount, 0);
+  } finally {
+    await pool.end();
+  }
+});
 test('PostgreSQL: migração, fichas, reuniões, alternativas e unicidade do voto', async () => {
   const db = newDb();
   db.public.none(await readFile(new URL('../db/001_initial.sql', import.meta.url), 'utf8'));

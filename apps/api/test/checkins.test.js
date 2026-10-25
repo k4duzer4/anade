@@ -17,6 +17,30 @@ const ids = {
 const png = await sharp({ create: { width: 200, height: 140, channels: 3, background: '#09402b' } })
   .png()
   .toBuffer();
+
+test('somente admin exclui ponto e comprovantes; ranking e unicidade refletem a exclusão', async (t) => {
+  const { call, storage, repo } = await setup(t);
+  const r = await call('/api/checkins', 'member', { body: submission() });
+  assert.equal(r.status, 201);
+  const id = (await r.json()).record.id;
+  assert.equal((await call(`/api/checkins/${id}`, 'member', { method: 'DELETE' })).status, 403);
+  assert.equal(
+    (
+      await call(`/api/checkins/${id}`, 'admin', {
+        method: 'DELETE',
+        headers: { 'X-CSRF-Token': '' },
+      })
+    ).status,
+    403,
+  );
+  assert.equal((await call(`/api/checkins/${id}`, 'admin', { method: 'DELETE' })).status, 200);
+  assert.equal(repo.checkins.length, 0);
+  assert.equal(storage.objects.size, 0);
+  assert.equal((await call(`/api/checkins/${id}/proofs/actions`, 'admin')).status, 404);
+  const ranking = await (await call('/api/admin/checkins/ranking?period=all', 'admin')).json();
+  assert.equal(ranking.records.length, 0);
+  assert.equal((await call('/api/checkins', 'member', { body: submission() })).status, 201);
+});
 async function setup(t, storage = new MemoryProofStorage()) {
   const secret = 'test-only-checkins-session-secret-more-than-32';
   const repo = new MemoryRepository();

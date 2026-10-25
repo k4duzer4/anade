@@ -19,6 +19,7 @@ import { Select } from './select';
 import { DateTimePicker } from './date-time-picker';
 import { loadCheckins } from '@/lib/checkin-upload';
 import { type Checkin, type CheckinList } from '@/lib/types';
+import { DeleteAction } from './delete-action';
 
 function dayLabel(day: string) {
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(
@@ -35,7 +36,7 @@ export function CheckinHistory({
   revision?: number;
   initialMemberId?: string;
 }) {
-  const { config } = usePortal();
+  const { config, data } = usePortal();
   const [result, setResult] = useState<CheckinList | null>(null);
   const [filters, setFilters] = useState({
     day: '',
@@ -260,6 +261,18 @@ export function CheckinHistory({
                 </div>
               </div>
               <div className="checkin-proofs">
+                {admin && data?.user.admin && (
+                  <DeleteAction
+                    url={`/api/checkins/${record.id}`}
+                    title={`Ponto de ${record.name} · ${record.day}`}
+                    label="Excluir ponto"
+                    description="O ponto e os dois comprovantes serão apagados. Ele deixará de contar no ranking; o filiado poderá registrar novamente esse dia se ainda for hoje."
+                    onDeleted={() => {
+                      setPage(0);
+                      setVersion((v) => v + 1);
+                    }}
+                  />
+                )}
                 {(['actions', 'blue'] as const).map((kind) => (
                   <button
                     type="button"

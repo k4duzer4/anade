@@ -7,6 +7,7 @@ import { Form } from './form';
 import { Select } from './select';
 import { DateTimePicker } from './date-time-picker';
 import { loadCommunity, shortDay, type CommunityItem, type CommunityList } from '@/lib/community';
+import { DeleteAction } from './delete-action';
 const types = [
   { value: 'cargo', label: 'Cargo' },
   { value: 'candidatura', label: 'Candidatura' },
@@ -14,7 +15,7 @@ const types = [
   { value: 'contribuicao', label: 'Contribuição ao partido' },
 ];
 export function MemberTimeline({ memberId, own }: { memberId: string; own: boolean }) {
-  const { mutate, notify } = usePortal();
+  const { data, mutate, notify } = usePortal();
   const [result, setResult] = useState<CommunityList | null>(null),
     [page, setPage] = useState(0),
     [version, setVersion] = useState(0),
@@ -95,6 +96,15 @@ export function MemberTimeline({ memberId, own }: { memberId: string; own: boole
                       Excluir
                     </button>
                   </div>
+                )}
+                {!own && data?.user.admin && (
+                  <DeleteAction
+                    url={`/api/profile/timeline/${item.id}`}
+                    title={item.title}
+                    label="Excluir marco"
+                    description="Este marco será removido da linha do tempo do filiado. Isso não altera os cargos e funções oficiais."
+                    onDeleted={() => setVersion((v) => v + 1)}
+                  />
                 )}
               </div>
             </article>

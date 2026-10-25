@@ -13,6 +13,7 @@ import {
 import { m } from 'motion/react';
 import { usePortal } from './portal-provider';
 import { Modal, ErrorNotice, SubmitButton } from './ui';
+import { DeleteAction } from './delete-action';
 import { formatDate, type Poll } from '@/lib/types';
 export function PollCard({ poll: p }: { poll: Poll }) {
   const { data, mutate, notify } = usePortal();
@@ -263,6 +264,17 @@ export function PollCard({ poll: p }: { poll: Poll }) {
         >
           Encerrar votação
         </button>
+      )}
+      {data.user.admin && (
+        <div className="content-actions poll-management">
+          <DeleteAction
+            url={`/api/polls/${p.id}`}
+            title={p.title}
+            label="Excluir votação"
+            description={`A votação, alternativas, resultados e ${p.total} voto(s) serão apagados. Se veio de uma proposta, a proposta permanece e poderá ser encaminhada novamente.`}
+            requireName
+          />
+        </div>
       )}
       {dialog && (
         <Modal

@@ -5,6 +5,7 @@ import { usePortal } from './portal-provider';
 import { PageHeading, Modal, ErrorNotice } from './ui';
 import { OrganizationForm, OrganizationLoading, useOrganization } from './organization-ui';
 import { formatDate } from '@/lib/types';
+import { DeleteAction } from './delete-action';
 export type Statute = {
   title: string;
   body: string;
@@ -126,6 +127,21 @@ export function StatutePage() {
               </span>
             </label>
           </OrganizationForm>
+          {!!(value.body || value.url) && (
+            <div className="content-danger-zone">
+              <DeleteAction
+                url="/api/statute"
+                title={value.title}
+                label="Excluir conteúdo do estatuto"
+                description="O texto e o link serão apagados e o estatuto voltará a ficar em elaboração. O documento no serviço de origem permanece."
+                requireName
+                onDeleted={() => {
+                  setEditing(false);
+                  setVersion((v) => v + 1);
+                }}
+              />
+            </div>
+          )}
         </Modal>
       )}
     </div>

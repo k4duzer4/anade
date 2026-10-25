@@ -10,6 +10,210 @@ import { MemoryProofStorage } from '../src/proof-storage.js';
 import { legadoCalendar, publicSeason } from '../src/legado-calendar.js';
 import { pollOutcome } from '../src/governance.js';
 
+test('pautas: comentários dos participantes, autoria verificada, moderação e exclusão em cascata', async (t) => {
+  const { call, repo, group } = await setup(t);
+  await group(['deputy', 'other']);
+  const id = (
+    await (
+      await call(`/api/groups/${chamber}/notes`, 'deputy', 'POST', {
+        title: 'Prioridade da bancada',
+        type: 'pauta',
+        body: 'Debater educação',
+      })
+    ).json()
+  ).id;
+  const url = `/api/notes/${id}/comments`;
+  assert.equal((await call(url, null)).status, 401);
+  assert.equal((await call(url, 'lawyer')).status, 403);
+  assert.equal((await call(url, 'deputy', 'POST', { body: '  ' })).status, 400);
+  assert.equal(
+    (await call(url, 'deputy', 'POST', { body: 'Atualização', authorId: 'admin' }, '')).status,
+    403,
+  );
+  assert.equal(
+    (await call(url, 'deputy', 'POST', { body: 'Atualização', authorId: 'admin' })).status,
+    201,
+  );
+  const comment = (await (await call(url, 'other')).json()).records[0];
+  assert.equal(comment.authorId, 'deputy');
+  assert.equal((await call(`${url}/${comment.id}`, 'other', 'DELETE', {})).status, 403);
+  assert.equal(
+    (await call(`/api/groups/${chamber}/notes/${id}`, 'other', 'DELETE', {})).status,
+    403,
+  );
+  assert.equal((await call(`${url}/${comment.id}`, 'deputy', 'DELETE', {})).status, 200);
+  await call(url, 'other', 'POST', { body: 'Outra contribuição' });
+  assert.equal(
+    (await call(`/api/groups/${chamber}/notes/${id}`, 'deputy', 'DELETE', {})).status,
+    200,
+  );
+  assert.equal((await call(url, 'admin')).status, 404);
+  assert.equal(repo.organization.comments.size, 0);
+});
+
+test('reuniões: conversa por assunto permanece ao reordenar e é removida ao excluir a pauta ou o encontro', async (t) => {
+  const { call, repo } = await setup(t);
+  const input = {
+    title: 'Encontro',
+    meetUrl: 'https://meet.google.com/abc-defg-hij',
+    date: new Date(Date.now() + 3600000).toISOString(),
+    agenda: ['Educação', 'Saúde'],
+  };
+  assert.equal((await call('/api/meetings', 'admin', 'POST', input)).status, 201);
+  const meeting = (await repo.snapshot()).meetings[0];
+  const comments = `/api/meetings/${meeting.id}/comments?topic=Educa%C3%A7%C3%A3o`;
+  assert.equal((await call(comments, 'other', 'POST', { body: 'Boa pauta' })).status, 201);
+  assert.equal(
+    (await call(`/api/meetings/${meeting.id}/comments?topic=Sa%C3%BAde`, 'deputy')).status,
+    200,
+  );
+  assert.equal(
+    (await (await call(`/api/meetings/${meeting.id}/comments?topic=Sa%C3%BAde`, 'deputy')).json())
+      .records.length,
+    0,
+  );
+  assert.equal(
+    (
+      await call(`/api/meetings/${meeting.id}`, 'admin', 'PUT', {
+        ...input,
+        agenda: ['Saúde', 'Educação'],
+      })
+    ).status,
+    200,
+  );
+  assert.equal((await (await call(comments, 'other')).json()).records.length, 1);
+  assert.equal(
+    (
+      await call(
+        `/api/meetings/${meeting.id}/agenda/0?topic=Educa%C3%A7%C3%A3o`,
+        'admin',
+        'DELETE',
+        {},
+      )
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await call(
+        `/api/meetings/${meeting.id}/agenda/1?topic=Educa%C3%A7%C3%A3o`,
+        'other',
+        'DELETE',
+        {},
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(
+        `/api/meetings/${meeting.id}/agenda/1?topic=Educa%C3%A7%C3%A3o`,
+        'admin',
+        'DELETE',
+        {},
+      )
+    ).status,
+    200,
+  );
+  assert.equal((await call(comments, 'other')).status, 404);
+  assert.equal(repo.organization.comments.size, 0);
+  assert.equal(
+    (await call(`/api/meetings/${meeting.id}/agenda/0?topic=Sa%C3%BAde`, 'admin', 'DELETE', {}))
+      .status,
+    409,
+  );
+  assert.equal((await call(`/api/meetings/${meeting.id}`, 'admin', 'DELETE', {}, '')).status, 403);
+  assert.equal((await call(`/api/meetings/${meeting.id}`, 'admin', 'DELETE', {})).status, 200);
+  assert.equal((await repo.snapshot()).meetings.length, 0);
+});
+
+test('exclusões: admin remove votação com votos, libera proposta e impede grupo com vínculos', async (t) => {
+  const { call, repo, group } = await setup(t);
+  await group();
+  const proposal = (
+    await (
+      await call('/api/proposals', 'deputy', 'POST', { title: 'Uma ideia', body: 'Contexto' })
+    ).json()
+  ).id;
+  const response = await call(`/api/proposals/${proposal}/poll`, 'admin', 'POST', {
+    groupId: chamber,
+    options: ['Sim', 'Não'],
+    deadline: new Date(Date.now() + 7200000).toISOString(),
+    secret: true,
+    electorIds: ['deputy'],
+    quorumPercent: 50,
+    approvalRule: 'plurality',
+  });
+  assert.equal(response.status, 201);
+  const { id } = await response.json();
+  assert.equal((await call(`/api/polls/${id}/vote`, 'deputy', 'POST', { option: 0 })).status, 200);
+  assert.equal((await call(`/api/groups/${chamber}`, 'admin', 'DELETE', {})).status, 409);
+  assert.equal((await call(`/api/polls/${id}`, 'deputy', 'DELETE', {})).status, 403);
+  assert.equal((await call(`/api/polls/${id}`, 'admin', 'DELETE', {})).status, 200);
+  assert.equal(
+    (await (await call(`/api/proposals/${proposal}`, 'deputy')).json()).pollId,
+    undefined,
+  );
+  assert.equal((await call(`/api/polls/${id}/vote`, 'deputy', 'POST', { option: 0 })).status, 404);
+  assert.equal((await repo.snapshot()).polls.length, 0);
+  assert.equal((await call(`/api/groups/${chamber}`, 'admin', 'DELETE', {})).status, 200);
+});
+
+test('exclusões financeiras preservam reservas e saldo; jurídico e anexos exigem função e visibilidade', async (t) => {
+  const { call, repo, proof } = await setup(t);
+  const walletId = '20000000-0000-4000-8000-000000000001';
+  const entry = async (type, amountCents, reservationId = '') =>
+    (
+      await (
+        await call('/api/finance/entries', 'admin', 'POST', {
+          walletId,
+          type,
+          amountCents,
+          reservationId,
+          date: '2026-10-25',
+          title: type,
+        })
+      ).json()
+    ).id;
+  const income = await entry('receita', 10000),
+    reserve = await entry('reserva', 6000),
+    expense = await entry('despesa', 2000, reserve);
+  assert.equal((await call(`/api/finance/wallets/${walletId}`, 'admin', 'DELETE', {})).status, 409);
+  assert.equal((await call(`/api/finance/entries/${expense}`, 'other', 'DELETE', {})).status, 403);
+  assert.equal((await call(`/api/finance/entries/${income}`, 'admin', 'DELETE', {})).status, 409);
+  assert.equal((await call(`/api/finance/entries/${reserve}`, 'admin', 'DELETE', {})).status, 409);
+  assert.equal((await call(`/api/finance/entries/${expense}`, 'admin', 'DELETE', {})).status, 200);
+  assert.equal((await call(`/api/finance/entries/${reserve}`, 'admin', 'DELETE', {})).status, 200);
+  assert.equal((await call(`/api/finance/entries/${income}`, 'admin', 'DELETE', {})).status, 200);
+  assert.equal((await call(`/api/finance/wallets/${walletId}`, 'admin', 'DELETE', {})).status, 200);
+  const caseId = (
+    await (
+      await call('/api/legal', 'lawyer', 'POST', {
+        title: 'Sigiloso',
+        type: 'processo',
+        visibility: 'restricted',
+        memberIds: ['lawyer'],
+      })
+    ).json()
+  ).id;
+  const org = new OrganizationStore(repo);
+  await proof.put('case.pdf', Buffer.from('%PDF-file'));
+  await org.save('file', {
+    parentKind: 'legal',
+    parentId: caseId,
+    path: 'case.pdf',
+    memberIds: ['lawyer'],
+    name: 'Anexo',
+    mime: 'application/pdf',
+    authorId: 'lawyer',
+  });
+  assert.equal((await call(`/api/legal/${caseId}`, 'admin', 'DELETE', {})).status, 404);
+  assert.equal((await call(`/api/legal/${caseId}`, 'other', 'DELETE', {})).status, 403);
+  assert.equal((await call(`/api/legal/${caseId}`, 'lawyer', 'DELETE', {})).status, 200);
+  assert.equal(proof.objects.size, 0);
+  assert.equal((await org.list('file')).length, 0);
+});
+
 const chamber = '10000000-0000-4000-8000-000000000001',
   legalGroup = '10000000-0000-4000-8000-000000000004';
 
@@ -173,6 +377,15 @@ test('grupos: somente admin define participantes; notas, menções e reuniões n
   const search = await (await call('/api/search?q=confidencial', 'other')).json();
   assert.equal(search.results.length, 0);
   const mid = (await (await call('/api/state', 'deputy')).json()).meetings[0].id;
+  assert.equal((await call(`/api/meetings/${mid}/comments?topic=Pauta`, 'other')).status, 404);
+  assert.equal(
+    (
+      await call(`/api/meetings/${mid}/comments?topic=Pauta`, 'other', 'POST', {
+        body: 'Não autorizado',
+      })
+    ).status,
+    404,
+  );
   assert.equal(
     (await call(`/api/meetings/${mid}/attendance`, 'other', 'POST', { confirm: true })).status,
     404,
@@ -189,6 +402,7 @@ test('grupos: somente admin define participantes; notas, menções e reuniões n
     400,
   );
   await group([]);
+  assert.equal((await call(`/api/meetings/${mid}/comments?topic=Pauta`, 'deputy')).status, 404);
   assert.equal((await (await call('/api/notifications', 'deputy')).json()).records.length, 0);
 });
 test('votações: eleitores congelados, abertura, quórum, sigilo e regras; admin não vota fora da lista', async (t) => {

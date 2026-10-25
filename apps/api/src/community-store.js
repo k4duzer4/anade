@@ -18,6 +18,7 @@ export class CommunityStore {
   constructor(repo, client = null) {
     this.repo = repo;
     this.sql = client || repo.pool;
+    this.transactional = !!client;
     if (!this.sql)
       repo.community ??= {
         items: new Map(),
@@ -27,6 +28,7 @@ export class CommunityStore {
       };
   }
   async atomic(fn) {
+    if (this.transactional) return fn(this);
     if (this.sql)
       return this.repo.transaction((client) => fn(new CommunityStore(this.repo, client)));
     const state = this.repo.community;
@@ -200,7 +202,15 @@ export class CommunityStore {
   }
   async remove(id) {
     if (!this.sql) {
-      this.repo.community.items.delete(id);
+      const ids = new Set([
+        id,
+        ...[...this.repo.community.items.values()]
+          .filter((item) => item.parent_id === id)
+          .map((item) => item.id),
+      ]);
+      for (const key of ids) this.repo.community.items.delete(key);
+      for (const key of this.repo.community.actions)
+        if (ids.has(key.split(':')[0])) this.repo.community.actions.delete(key);
       return;
     }
     await this.sql.query('DELETE FROM anade.community_items WHERE id=$1', [id]);

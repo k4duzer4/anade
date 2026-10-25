@@ -182,4 +182,12 @@ export function publicationRoutes(app, repo, admin, { now = () => new Date() } =
     await store.setStatute(value);
     res.json({ ok: true });
   });
+  app.delete('/api/statute', admin, async (req, res) => {
+    await store.setStatute({
+      ...emptyStatute(),
+      updatedAt: now().toISOString(),
+      updatedBy: res.locals.user.id,
+    });
+    res.json({ ok: true });
+  });
 }

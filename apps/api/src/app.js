@@ -19,6 +19,7 @@ import { communityRoutes } from './community.js';
 import { publicationRoutes } from './publications.js';
 import { activityRoutes } from './activity.js';
 import { organizationRoutes } from './organization.js';
+import { contentManagementRoutes } from './content-management.js';
 import { OrganizationStore, seesMeeting, seesPoll } from './organization-store.js';
 import { votingRules } from './governance.js';
 import {
@@ -542,15 +543,21 @@ export function createApp({
       ...meetingDetails(req.body, { creating: true }),
       groupId: req.body.groupId || '',
     };
-    if (meeting.groupId) await organization.get('group', meeting.groupId);
-    await repo.createMeeting(meeting, res.locals.user.id);
+    await organization.atomic(async (s) => {
+      if (meeting.groupId) await s.get('group', meeting.groupId);
+      await repo.createMeeting(meeting, res.locals.user.id, s.sql);
+    });
     res.status(201).json({ ok: true });
   });
   app.put('/api/meetings/:id', admin, async (req, res) => {
     uuid(req.params.id);
     const groupId = req.body.groupId || '';
-    if (groupId) await organization.get('group', groupId);
-    await repo.updateMeeting(req.params.id, { ...meetingDetails(req.body), groupId });
+    const details = { ...meetingDetails(req.body), groupId };
+    await organization.atomic(async (s) => {
+      if (groupId) await s.get('group', groupId);
+      await repo.updateMeeting(req.params.id, details, s.sql);
+      await s.pruneMeetingComments(req.params.id, details.agenda);
+    });
     res.json({ ok: true });
   });
   app.post('/api/meetings/:id/attendance', async (req, res) => {
@@ -572,12 +579,14 @@ export function createApp({
   });
   app.post('/api/polls', admin, async (req, res) => {
     const poll = newPoll(req.body, res.locals.user.id);
-    const group = req.body.groupId ? await organization.get('group', req.body.groupId) : null;
-    const available = (await repo.snapshot()).members
-      .map((m) => m.id)
-      .filter((id) => !group || group.memberIds.includes(id));
-    poll.governance = votingRules(req.body, available, group);
-    await repo.createPoll(poll);
+    await organization.atomic(async (s) => {
+      const group = req.body.groupId ? await s.get('group', req.body.groupId) : null;
+      const available = (await s.assignmentMembers())
+        .map((m) => m.id)
+        .filter((id) => !group || group.memberIds.includes(id));
+      poll.governance = votingRules(req.body, available, group);
+      await repo.createPoll(poll, s.sql);
+    });
     res.status(201).json({ ok: true });
   });
   app.post('/api/polls/:id/vote', async (req, res) => {
@@ -594,6 +603,7 @@ export function createApp({
   publicationRoutes(app, repo, admin, { now });
   activityRoutes(app, repo, { now });
   organizationRoutes(app, repo, admin, documentStorage, { seasonRequest });
+  contentManagementRoutes(app, repo, admin, documentStorage, storage);
   app.use((_req, _res, next) =>
     next(Object.assign(new Error('Rota não encontrada.'), { status: 404 })),
   );

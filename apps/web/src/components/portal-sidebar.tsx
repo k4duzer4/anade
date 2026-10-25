@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   ArrowUpRight,
+  AudioLines,
   BookOpen,
   CalendarDays,
   ChevronDown,
@@ -40,6 +41,7 @@ export const sidebarGroups = [
     icon: CalendarDays,
     items: [
       { path: '/agenda', title: 'Agenda do partido', icon: CalendarDays },
+      { path: '/plenario', title: 'Plenário virtual', icon: AudioLines },
       { path: '/calendario', title: 'Calendário do Legado', icon: Clock3 },
       { path: '/comunicados', title: 'Comunicados', icon: Megaphone },
       { path: '/ponto', title: 'Bater ponto', icon: Clock3 },
@@ -208,6 +210,9 @@ export function PortalSidebar({
     g.items.some((item) => item.path === active?.path),
   );
   function itemLink(item: NavItem) {
+    // Full navigation applies the document's microphone policy when entering/leaving plenary.
+    const Navigation =
+      item.path.startsWith('/plenario') || path.startsWith('/plenario') ? 'a' : Link;
     const selected = active?.path === item.path;
     const unseen = unseenCounts[item.path] || 0;
     return (
@@ -216,7 +221,7 @@ export function PortalSidebar({
         content={`${item.title}${unseen ? ` · ${unseen} novidades não vistas` : ''}`}
         key={item.path}
       >
-        <Link
+        <Navigation
           href={item.path}
           className={`sidebar-link ${selected ? 'active' : ''}`}
           aria-label={`${item.title}${unseen ? `, ${unseen} novidades não vistas` : ''}`}
@@ -241,7 +246,7 @@ export function PortalSidebar({
             )
           )}
           {selected && <span className="sidebar-current-mark" aria-hidden="true" />}
-        </Link>
+        </Navigation>
       </Tooltip>
     );
   }

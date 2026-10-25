@@ -3,6 +3,7 @@ import { OrganizationStore, belongs, seesMeeting } from './organization-store.js
 import { CommunityStore } from './community-store.js';
 import { isFinance, isLegal, hasFunction } from './assignments.js';
 import { legalVisible, walletTotals } from './organization.js';
+import { PlenaryStore } from './plenary-store.js';
 
 const uuid = (id) =>
   assert(
@@ -94,6 +95,17 @@ export function contentManagementRoutes(app, repo, admin, documentStorage, proof
   app.delete('/api/meetings/:id', admin, async (req, res) => {
     uuid(req.params.id);
     await store.atomic(async (s) => {
+      const plenary = new PlenaryStore(repo, s.sql);
+      assert(
+        (await plenary.get(req.params.id))?.status !== 'open',
+        'Encerre o plenário antes de excluir a reunião.',
+        409,
+      );
+      assert(
+        !(await plenary.polls(req.params.id)).length,
+        'Exclua primeiro as votações ao vivo vinculadas a esta reunião.',
+        409,
+      );
       await repo.removeMeeting(req.params.id, s.sql);
       if (!s.sql) await s.pruneMeetingComments(req.params.id);
     });
@@ -106,6 +118,11 @@ export function contentManagementRoutes(app, repo, admin, documentStorage, proof
     assert(Number.isInteger(index) && index >= 0 && index < 30, 'Pauta inválida.');
     await store.atomic(async (s) => {
       const meeting = await repo.meetingRecord(req.params.id, s.sql);
+      assert(
+        (await new PlenaryStore(repo, s.sql).get(req.params.id))?.status !== 'open',
+        'Encerre o plenário antes de excluir assuntos da reunião.',
+        409,
+      );
       assert(
         meeting.agenda[index] === topic,
         'A pauta mudou. Atualize a página antes de excluir.',

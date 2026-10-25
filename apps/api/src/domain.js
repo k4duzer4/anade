@@ -170,8 +170,8 @@ export function meetingDetails(input, { creating = false } = {}) {
   return {
     title: text(input.title),
     date: new Date(timestamp).toISOString(),
-    location: 'Google Meet',
-    meetUrl: meetingLink(input.meetUrl, 'meet', true),
+    location: input.conference === 'plenary' ? 'Plenário virtual' : 'Google Meet',
+    meetUrl: input.conference === 'plenary' ? '' : meetingLink(input.meetUrl, 'meet', true),
     docsUrl: meetingLink(input.docsUrl, 'docs'),
     agenda: input.agenda.map((item) => text(item, 500)),
     minutes: text(input.minutes ?? '', 10000, false),

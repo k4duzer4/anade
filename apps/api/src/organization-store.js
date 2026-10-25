@@ -64,10 +64,15 @@ export class OrganizationStore {
         reads: state.reads,
         comments: state.comments,
       });
+      const plenaryBackup = structuredClone({
+        plenaries: this.repo.plenaries,
+        plenaryAttendees: this.repo.plenaryAttendees,
+      });
       try {
         return await fn(this);
       } catch (e) {
         Object.assign(state, backup);
+        Object.assign(this.repo, plenaryBackup);
         throw e;
       }
     });

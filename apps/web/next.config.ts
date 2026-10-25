@@ -27,6 +27,15 @@ const config: NextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
+      {
+        source: '/plenario/:path*',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(self "https://kmeet.infomaniak.com"), geolocation=()',
+          },
+        ],
+      },
     ];
   },
 };

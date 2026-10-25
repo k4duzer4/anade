@@ -19,16 +19,23 @@ export function MeetingForm({
   onSaved,
   onCancel,
   initialGroupId,
+  initialConference,
 }: {
   meeting?: Meeting;
   onSaved: () => void;
   onCancel: () => void;
   initialGroupId?: string;
+  initialConference?: string;
 }) {
   const { data, mutate, notify } = usePortal();
   const { value: groups } = useOrganization<{ records: Group[] }>('/api/groups');
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const [conference, setConference] = useState(
+    meeting?.location === 'Plenário virtual' || initialConference === 'plenario'
+      ? 'plenary'
+      : 'meet',
+  );
   if (!data?.user.admin) return null;
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,33 +103,54 @@ export function MeetingForm({
           />
           <small>Horário local do seu dispositivo.</small>
         </label>
-        <section className="meeting-service full">
-          <header>
-            <span>
-              <Video size={18} />
-              Google Meet
-            </span>
-            <a href="https://meet.google.com/" target="_blank" rel="noopener noreferrer">
-              Criar chamada no Google
-              <ArrowUpRight size={13} />
-            </a>
-          </header>
-          <label className="field">
-            Link da chamada
-            <input
-              name="meetUrl"
-              type="url"
-              maxLength={2048}
-              defaultValue={meeting?.meetUrl || ''}
-              required
-              placeholder="https://meet.google.com/abc-defg-hij"
-            />
-            <small>
-              Crie uma reunião para mais tarde no Meet e cole o link aqui. Os filiados poderão
-              entrar pelo portal.
-            </small>
-          </label>
-        </section>
+        <label className="field full">
+          Formato do encontro
+          <Select
+            name="conference"
+            aria-label="Formato do encontro"
+            value={conference}
+            onValueChange={setConference}
+            options={[
+              { value: 'meet', label: 'Google Meet · chamada externa' },
+              { value: 'plenary', label: 'Plenário virtual · kMeet, pautas e votações' },
+            ]}
+          />
+        </label>
+        {conference === 'meet' && (
+          <section className="meeting-service full">
+            <header>
+              <span>
+                <Video size={18} />
+                Google Meet
+              </span>
+              <a href="https://meet.google.com/" target="_blank" rel="noopener noreferrer">
+                Criar chamada no Google
+                <ArrowUpRight size={13} />
+              </a>
+            </header>
+            <label className="field">
+              Link da chamada
+              <input
+                name="meetUrl"
+                type="url"
+                maxLength={2048}
+                defaultValue={meeting?.meetUrl || ''}
+                required
+                placeholder="https://meet.google.com/abc-defg-hij"
+              />
+              <small>
+                Crie uma reunião para mais tarde no Meet e cole o link aqui. Os filiados poderão
+                entrar pelo portal.
+              </small>
+            </label>
+          </section>
+        )}
+        {conference === 'plenary' && (
+          <p className="assignment-notice full">
+            A sala será preparada no portal. A mesa define participantes, quórum e moderação antes
+            de abrir o áudio.
+          </p>
+        )}
         <section className="meeting-service docs-service full">
           <header>
             <span>

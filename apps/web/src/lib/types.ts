@@ -38,7 +38,8 @@ export type Poll = {
   id: string;
   canVote?: boolean;
   governance?: {
-    requiredOffice?:string;
+    plenaryMeetingId?: string;
+    requiredOffice?: string;
     groupId: string;
     groupName: string;
     electorIds: string[];

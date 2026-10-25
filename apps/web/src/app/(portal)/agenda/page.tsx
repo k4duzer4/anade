@@ -155,6 +155,7 @@ export default function Agenda() {
       {open && (
         <Modal title="AGENDAR REUNIÃO" onClose={() => setOpen(false)}>
           <MeetingForm
+            initialConference={params.get('modalidade') || undefined}
             initialGroupId={groupId}
             onSaved={() => setOpen(false)}
             onCancel={() => setOpen(false)}

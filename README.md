@@ -203,6 +203,8 @@ Ver uma seção é diferente de confirmar a leitura de um comunicado ou votar: e
 
 ## Referências técnicas
 
+O [plenário virtual com kMeet](docs/plenary-kmeet.md) reúne áudio, presença confirmada pela mesa, quórum, pautas e votações ao vivo. A documentação explica a configuração e a limitação de moderação compartilhada do áudio gratuito.
+
 A revisão de [segurança e estabilidade](docs/security-and-performance.md) documenta as dependências corrigidas, os limites de requisição/upload, as melhorias de consulta e recuperação, os checks automáticos e a etapa manual de troca das credenciais anteriormente compartilhadas.
 
 - [Next.js: instalação e App Router](https://nextjs.org/docs/app/getting-started/installation)

@@ -4,6 +4,7 @@ import { CHECKIN_PAGE_SIZE, presentCheckin } from './checkins.js';
 import { profileMediaUrl } from './profile-media.js';
 import { RANKING_PAGE_SIZE } from './checkin-ranking.js';
 import { assertElector } from './governance.js';
+import { assertPlenaryVote } from './plenary-store.js';
 import { emptyAssignment, assertParliamentaryOffice } from './assignments.js';
 export class PgRepository {
   constructor(pool) {
@@ -429,7 +430,7 @@ export class PgRepository {
   }
   async meetingRecord(id, client = this.pool) {
     const { rows } = await client.query(
-      'SELECT id,agenda,group_id AS "groupId" FROM anade.meetings WHERE id=$1',
+      'SELECT id,title,starts_at AS date,location,agenda,minutes,meet_url AS "meetUrl",minutes_document_url AS "docsUrl",group_id AS "groupId" FROM anade.meetings WHERE id=$1',
       [id],
     );
     assert(rows[0], 'Reunião não encontrada.', 404);
@@ -538,6 +539,8 @@ export class PgRepository {
         const { rows } = await c.query('SELECT * FROM anade.polls WHERE id=$1 FOR UPDATE', [id]);
         assert(rows.length, 'Votação não encontrada.', 404);
         const p = rows[0];
+        if (p.governance?.plenaryMeetingId)
+          await assertPlenaryVote(this, p.governance.plenaryMeetingId, userId, c);
         assertElector(p.governance, userId);
         if (p.governance?.groupId || p.governance?.requiredOffice) {
           const group = p.governance.groupId
@@ -821,6 +824,9 @@ export class MemoryRepository {
   async removeMeeting(id) {
     this.meeting(id);
     this.data.meetings = this.data.meetings.filter((m) => m.id !== id);
+    this.plenaries?.delete(id);
+    for (const [key, a] of this.plenaryAttendees || [])
+      if (a.meetingId === id) this.plenaryAttendees.delete(key);
   }
   async removePoll(id) {
     this.poll(id);
@@ -868,6 +874,8 @@ export class MemoryRepository {
   async vote(id, userId, option) {
     const p = this.poll(id),
       group = this.organization?.records.get(p.governance?.groupId);
+    if (p.governance?.plenaryMeetingId)
+      await assertPlenaryVote(this, p.governance.plenaryMeetingId, userId);
     assertParliamentaryOffice(p.governance, await this.memberAssignment(userId), group?.type);
     castVote(p, userId, option);
   }

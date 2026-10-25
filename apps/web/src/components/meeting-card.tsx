@@ -85,7 +85,13 @@ export function MeetingCard({ meeting, compact = false }: { meeting: Meeting; co
         )}
       </header>
       <div className="event-resources">
-        {meeting.meetUrl ? (
+        {meeting.location === 'Plenário virtual' ? (
+          <a className="button primary" href={`/plenario/${meeting.id}`}>
+            <Users size={16} />
+            Abrir plenário
+            <ArrowUpRight size={13} />
+          </a>
+        ) : meeting.meetUrl ? (
           <a
             className={`button ${future ? 'primary' : 'secondary'}`}
             href={meeting.meetUrl}

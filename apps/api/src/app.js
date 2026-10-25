@@ -20,6 +20,8 @@ import { publicationRoutes } from './publications.js';
 import { activityRoutes } from './activity.js';
 import { organizationRoutes } from './organization.js';
 import { contentManagementRoutes } from './content-management.js';
+import { plenaryRoutes } from './plenary.js';
+import { PlenaryStore } from './plenary-store.js';
 import { OrganizationStore, seesMeeting, seesPoll } from './organization-store.js';
 import { votingRules } from './governance.js';
 import {
@@ -500,6 +502,7 @@ export function createApp({
         .filter((p) => seesPoll(p, user, groups))
         .map((p) => {
           const result = presentPoll(p, user.id);
+          if (p.governance?.plenaryMeetingId) result.canVote = false;
           const required =
             officeForGroup(groups.find((g) => g.id === p.governance?.groupId)?.type) ||
             p.governance?.requiredOffice;
@@ -555,6 +558,26 @@ export function createApp({
     const details = { ...meetingDetails(req.body), groupId };
     await organization.atomic(async (s) => {
       if (groupId) await s.get('group', groupId);
+      const plenary = await new PlenaryStore(repo, s.sql).get(req.params.id);
+      if (plenary && plenary.status !== 'draft') {
+        const before = await repo.meetingRecord(req.params.id, s.sql);
+        assert(
+          before.location === details.location,
+          'A modalidade fica fixada depois da abertura do plenário.',
+          409,
+        );
+        assert(
+          (before.groupId || '') === groupId,
+          'O grupo fica fixado depois da abertura do plenário.',
+          409,
+        );
+        assert(
+          plenary.status !== 'open' ||
+            JSON.stringify(before.agenda) === JSON.stringify(details.agenda),
+          'Encerre a sessão antes de alterar as pautas da reunião.',
+          409,
+        );
+      }
       await repo.updateMeeting(req.params.id, details, s.sql);
       await s.pruneMeetingComments(req.params.id, details.agenda);
     });
@@ -604,6 +627,7 @@ export function createApp({
   activityRoutes(app, repo, { now });
   organizationRoutes(app, repo, admin, documentStorage, { seasonRequest });
   contentManagementRoutes(app, repo, admin, documentStorage, storage);
+  plenaryRoutes(app, repo, { env, now });
   app.use((_req, _res, next) =>
     next(Object.assign(new Error('Rota não encontrada.'), { status: 404 })),
   );

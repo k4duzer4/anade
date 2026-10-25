@@ -15,7 +15,7 @@ import { usePortal } from './portal-provider';
 import { Modal, ErrorNotice, SubmitButton } from './ui';
 import { DeleteAction } from './delete-action';
 import { formatDate, type Poll } from '@/lib/types';
-export function PollCard({ poll: p }: { poll: Poll }) {
+export function PollCard({ poll: p, onChanged }: { poll: Poll; onChanged?: () => void }) {
   const { data, mutate, notify } = usePortal();
   const [selection, setSelection] = useState<number | null>(null),
     [dialog, setDialog] = useState<'vote' | 'close' | null>(null),
@@ -36,6 +36,7 @@ export function PollCard({ poll: p }: { poll: Poll }) {
         dialog === 'vote' ? 'Seu voto foi registrado.' : 'Votação encerrada. Resultado disponível.',
       );
       setDialog(null);
+      onChanged?.();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -59,7 +60,9 @@ export function PollCard({ poll: p }: { poll: Poll }) {
               : p.canVote === false
                 ? p.governance && Date.parse(p.governance.opensAt) > Date.parse(data.serverTime)
                   ? 'Abertura programada'
-                  : 'Eleitorado restrito'
+                  : p.governance?.plenaryMeetingId
+                    ? 'Plenário virtual'
+                    : 'Eleitorado restrito'
                 : 'Aguardando seu voto'}
         </span>
         <span className="poll-privacy">
@@ -231,6 +234,12 @@ export function PollCard({ poll: p }: { poll: Poll }) {
         </details>
       )}
       <div className="poll-card-bottom">
+        {p.governance?.plenaryMeetingId && p.canVote === false && !p.closed && !p.hasVoted && (
+          <a className="text-button" href={`/plenario/${p.governance.plenaryMeetingId}`}>
+            Entrar no plenário para votar
+            <ArrowRight size={14} />
+          </a>
+        )}
         <span>
           <Users size={14} />
           {p.total} voto{p.total === 1 ? '' : 's'} registrado{p.total === 1 ? '' : 's'}

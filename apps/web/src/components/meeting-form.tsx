@@ -147,8 +147,8 @@ export function MeetingForm({
         )}
         {conference === 'plenary' && (
           <p className="assignment-notice full">
-            A sala será preparada no portal. A mesa define participantes, quórum e moderação antes
-            de abrir o áudio.
+            A mesa define o eleitorado e o quórum no portal. O áudio gratuito do kMeet tem
+            moderação compartilhada: os cargos da ANADE não restringem os controles da sala.
           </p>
         )}
         <section className="meeting-service docs-service full">
@@ -210,8 +210,9 @@ export function MeetingForm({
       </div>
       <p className="meeting-admin-note">
         <ShieldCheck size={15} />
-        Somente a administração edita a reunião e seus links. As permissões de acesso e edição da
-        chamada e do documento são definidas no Google.
+        {conference === 'plenary'
+          ? 'Somente a administração edita o agendamento. Pautas, presenças e votos seguem as permissões do portal; o áudio segue as regras do kMeet. A ata tem compartilhamento próprio no Google Docs.'
+          : 'Somente a administração edita a reunião e seus links. As permissões da chamada e do documento são definidas no Google.'}
       </p>
       <ErrorNotice message={error} />
       <div className="form-actions">

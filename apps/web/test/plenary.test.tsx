@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
 import { PlenaryRoom } from '../src/components/plenary-room';
@@ -62,6 +62,7 @@ let events: Record<string, (event: Record<string, unknown>) => void>;
 let dispose = vi.fn<() => void>();
 beforeEach(() => {
   vi.clearAllMocks();
+  portal.data.members = [{ id: 'member', name: 'Maria' }];
   events = {};
   dispose = vi.fn();
   window.JitsiMeetExternalAPI = class {
@@ -106,6 +107,10 @@ it('áudio só carrega após entrada explícita; presença depende do evento da 
     events.videoConferenceJoined({});
   });
   await screen.findByText('Conectado ao kMeet');
+  const frame = screen.getByTitle('Reunião kMeet do plenário ANADE');
+  await user.click(screen.getByRole('button', { name: 'Ampliar sala' }));
+  expect(screen.getByTitle('Reunião kMeet do plenário ANADE')).toBe(frame);
+  expect(dispose).not.toHaveBeenCalled();
   expect(
     vi
       .mocked(portalRequest)
@@ -117,6 +122,27 @@ it('áudio só carrega após entrada explícita; presença depende do evento da 
   expect(screen.getByText(/moderação de áudio é compartilhada/)).toBeTruthy();
   view.unmount();
   await waitFor(() => expect(dispose).toHaveBeenCalledTimes(1));
+});
+
+it('lista inclui filiados ainda não conectados, pagina e permite busca nominal', async () => {
+  portal.data.members = Array.from({ length: 26 }, (_, i) => ({
+    id: `p${i}`,
+    name: `Pessoa ${String(i).padStart(2, '0')}`,
+  }));
+  vi.mocked(portalRequest).mockImplementation(async () => ({
+    ...state(),
+    availableIds: portal.data.members.map((m) => m.id),
+  }));
+  const user = userEvent.setup();
+  render(<PlenaryRoom id="meeting" />);
+  const roster = within(await screen.findByRole('region', { name: 'Lista de presença' }));
+  expect(roster.getAllByRole('article')).toHaveLength(24);
+  expect(roster.getAllByText('Não conectado')).toHaveLength(24);
+  await user.click(roster.getByRole('button', { name: /Mostrar mais/ }));
+  expect(roster.getAllByRole('article')).toHaveLength(26);
+  await user.type(roster.getByRole('searchbox', { name: 'Buscar participante' }), 'Pessoa 25');
+  expect(roster.getAllByRole('article')).toHaveLength(1);
+  expect(roster.getByText('Pessoa 25')).toBeTruthy();
 });
 
 it('mesa confirma presença pelo endpoint próprio, separado de entrada no áudio', async () => {

@@ -5,13 +5,14 @@ import {
   ArrowLeft,
   AudioLines,
   Check,
-  CheckCheck,
   ChevronRight,
   FileText,
-  Hand,
   Landmark,
   ListOrdered,
   Mic,
+  Maximize2,
+  Minimize2,
+  Radio,
   Plus,
   Settings2,
   ShieldCheck,
@@ -22,7 +23,7 @@ import { usePortal } from './portal-provider';
 import { PageHeading, Modal, ErrorNotice, SubmitButton } from './ui';
 import { MembersPicker, OrganizationLoading } from './organization-ui';
 import { Select } from './select';
-import { MemberAvatar } from './member-avatar';
+import { PlenaryAttendance } from './plenary-attendance';
 import { AgendaConversation } from './agenda-conversation';
 import { PollCard } from './poll-card';
 import { KmeetAudio } from './kmeet-audio';
@@ -37,6 +38,7 @@ export function PlenaryRoom({ id }: { id: string }) {
     [version, setVersion] = useState(0),
     [busy, setBusy] = useState(false),
     [admission, setAdmission] = useState<Admission | null>(null),
+    [stageExpanded, setStageExpanded] = useState(false),
     [closingPoll, setClosingPoll] = useState<string | null>(null),
     [dialog, setDialog] = useState<'settings' | 'poll' | 'open' | 'close' | null>(null);
   const base = `/api/plenaries/${id}`;
@@ -109,18 +111,18 @@ export function PlenaryRoom({ id }: { id: string }) {
     }
   }
   return (
-    <div className="refresh-page plenary-page">
+    <div className="refresh-page plenary-page plenary-room-page">
       <Link href="/plenario" className="text-button">
         <ArrowLeft size={14} />
         Todos os plenários
       </Link>
       <PageHeading
         eyebrow="PLENÁRIO VIRTUAL · ANADE 10"
-        title={value?.meeting.title || 'O partido tem voz.'}
+        title={value?.meeting.title || 'Sessão do plenário'}
         description={
           value
             ? `${formatDate(value.meeting.date)} · Horários de Brasília`
-            : 'Uma mesa, muitas vozes. A mesma aliança.'
+            : 'Acompanhe a ordem do dia, as presenças e as deliberações.'
         }
         action={
           value?.canManage && (
@@ -139,6 +141,43 @@ export function PlenaryRoom({ id }: { id: string }) {
       {!value && !error && <OrganizationLoading />}
       {value && (
         <>
+          <section className="plenary-metrics" aria-label="Indicadores da sessão">
+            {[
+              {
+                label: 'Total de filiados',
+                value: data.members.length,
+                detail: 'Base de filiados da visão geral',
+                Icon: Users,
+              },
+              {
+                label: 'Eleitorado da sessão',
+                value: session?.electorIds.length || value.availableIds.length,
+                detail: session ? 'Composição fixada na abertura' : 'Participantes disponíveis',
+                Icon: ShieldCheck,
+              },
+              {
+                label: 'Conectados ao plenário',
+                value: value.attendees.filter((a) => a.active).length,
+                detail: 'Confirmação da mesa é separada',
+                Icon: Radio,
+              },
+              {
+                label: 'Votações abertas',
+                value: value.polls.filter((p) => !p.closed).length,
+                detail: 'Deliberações desta sessão',
+                Icon: Vote,
+              },
+            ].map((item) => (
+              <article key={item.label}>
+                <div className="plenary-metric-top">
+                  <span>{item.label}</span>
+                  <item.Icon size={18} />
+                </div>
+                <strong>{item.value}</strong>
+                <small>{item.detail}</small>
+              </article>
+            ))}
+          </section>
           <div className="plenary-statusbar">
             <span className={`plenary-status ${live ? 'is-live' : ''}`}>
               <i />
@@ -151,7 +190,7 @@ export function PlenaryRoom({ id }: { id: string }) {
             {session && (
               <span>
                 <Users size={14} />
-                {session.capacity} lugares
+                Limite de {session.capacity} entradas
               </span>
             )}
             {value.canManage && session?.status === 'draft' && (
@@ -170,8 +209,45 @@ export function PlenaryRoom({ id }: { id: string }) {
               </button>
             )}
           </div>
-          <div className="plenary-stage-grid">
-            <section className="panel plenary-stage">
+          <nav className="plenary-section-nav" aria-label="Navegar na sessão">
+            <a href="#sala">
+              <AudioLines size={15} />
+              Sala de reunião
+            </a>
+            <a href="#pautas">
+              <ListOrdered size={15} />
+              Pautas<span>{value.meeting.agenda.length}</span>
+            </a>
+            <a href="#presenca">
+              <Users size={15} />
+              Presença<span>{value.present}</span>
+            </a>
+            <a href="#votacoes">
+              <Vote size={15} />
+              Votações<span>{value.polls.length}</span>
+            </a>
+          </nav>
+          <div className={`plenary-stage-grid ${stageExpanded ? 'is-expanded' : ''}`}>
+            <section className="panel plenary-stage" id="sala">
+              <header className="plenary-stage-heading">
+                <div>
+                  <span className="plenary-section-icon">
+                    <AudioLines size={21} />
+                  </span>
+                  <div>
+                    <span className="eyebrow">AMBIENTE DE ÁUDIO</span>
+                    <h2>Sala de reunião</h2>
+                  </div>
+                </div>
+                <button
+                  className="plenary-expand-button"
+                  aria-pressed={stageExpanded}
+                  aria-label={stageExpanded ? 'Restaurar visualização' : 'Ampliar sala'}
+                  onClick={() => setStageExpanded((v) => !v)}
+                >
+                  {stageExpanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+                </button>
+              </header>
               {admission ? (
                 <KmeetAudio
                   admission={admission}
@@ -185,13 +261,13 @@ export function PlenaryRoom({ id }: { id: string }) {
                   <span className="plenary-crest">
                     <Landmark size={44} />
                   </span>
-                  <span className="eyebrow">A VOZ DA NOSSA ALIANÇA</span>
+                  <span className="eyebrow">ACESSO À CONFERÊNCIA</span>
                   <h2>
                     {closed
-                      ? 'O encontro fica na nossa história.'
+                      ? 'Sessão encerrada'
                       : live
-                        ? 'Seu lugar está aqui.'
-                        : 'Preparar. Ouvir. Construir.'}
+                        ? 'A sessão está aberta'
+                        : 'Aguardando abertura da sessão'}
                   </h2>
                   <p>
                     {closed
@@ -251,7 +327,7 @@ export function PlenaryRoom({ id }: { id: string }) {
                 </div>
               )}
             </section>
-            <aside className="panel plenary-agenda">
+            <aside className="panel plenary-agenda" id="pautas">
               <header>
                 <ListOrdered size={20} />
                 <div>
@@ -289,6 +365,13 @@ export function PlenaryRoom({ id }: { id: string }) {
                   </li>
                 ))}
               </ol>
+              {!value.meeting.agenda.length && (
+                <div className="plenary-agenda-empty">
+                  <ListOrdered size={28} />
+                  <strong>Ordem do dia em preparação</strong>
+                  <p>As pautas serão disponibilizadas pela administração.</p>
+                </div>
+              )}
               {value.meeting.docsUrl && (
                 <a
                   className="button secondary"
@@ -303,101 +386,18 @@ export function PlenaryRoom({ id }: { id: string }) {
             </aside>
           </div>
           <div className="plenary-work-grid">
-            <section className="panel plenary-presence">
-              <header>
-                <div>
-                  <span className="eyebrow">PRESENÇA E PARTICIPAÇÃO</span>
-                  <h2>Uma aliança presente.</h2>
-                </div>
-                <Users size={24} />
-              </header>
-              <div className={`plenary-quorum ${value.quorumReached ? 'is-ready' : ''}`}>
-                <strong>
-                  {value.present}
-                  <small>/{session?.electorIds.length || 0}</small>
-                </strong>
-                <div>
-                  <b>
-                    {value.quorumReached
-                      ? 'Quórum atingido'
-                      : closed
-                        ? 'Presença finalizada'
-                        : 'Aguardando quórum'}
-                  </b>
-                  <span>
-                    {session
-                      ? `${value.quorum} presença(s) necessária(s) · ${session.quorumPercent}%`
-                      : 'A composição será definida pela mesa.'}
-                  </span>
-                </div>
-                {value.quorumReached && <CheckCheck size={24} />}
-              </div>
-              <p className="plenary-presence-help">
-                Quórum considera a conexão ativa, a composição definida e a presença confirmada pela
-                mesa. A conexão ao kMeet é informada pelo navegador; a mesa deve conferir a
-                identidade antes de confirmar.
-              </p>
-              <div className="plenary-roster">
-                {value.attendees.map((a) => {
-                  const member = data.members.find((m) => m.id === a.id);
-                  return (
-                    <article key={a.id}>
-                      <MemberAvatar name={member?.name || 'Filiado'} src={member?.avatarUrl} />
-                      <div>
-                        <strong>{member?.name || 'Filiado ANADE'}</strong>
-                        <small>
-                          {closed
-                            ? a.confirmedAt
-                              ? 'Presença registrada na sessão'
-                              : 'Entrada não confirmada'
-                            : a.excluded
-                              ? 'Entrada suspensa'
-                              : a.active
-                                ? a.verified
-                                  ? 'Presença confirmada'
-                                  : 'Aguardando confirmação da mesa'
-                                : a.connected
-                                  ? 'Conexão expirada'
-                                  : 'Fora do áudio'}
-                        </small>
-                      </div>
-                      {value.canModerate && live && a.active && (
-                        <button
-                          className="text-button"
-                          disabled={busy}
-                          onClick={() =>
-                            void action(`/attendees/${a.id}`, 'PUT', { verified: !a.verified })
-                          }
-                        >
-                          {a.verified ? 'Retirar presença' : 'Confirmar presença'}
-                        </button>
-                      )}
-                      {a.handRaised && a.active && <Hand size={17} aria-label="Pediu a palavra" />}
-                      <span
-                        className={`plenary-presence-dot ${a.active && a.verified ? 'is-present' : ''}`}
-                      />
-                      {value.canManage && live && a.id !== data.user.id && (
-                        <button
-                          className="text-button"
-                          disabled={busy}
-                          onClick={() =>
-                            void action(`/attendees/${a.id}`, 'PUT', { excluded: !a.excluded })
-                          }
-                        >
-                          {a.excluded ? 'Permitir entrada' : 'Suspender entrada'}
-                        </button>
-                      )}
-                    </article>
-                  );
-                })}
-                {!value.attendees.length && <p>Ninguém entrou no áudio ainda.</p>}
-              </div>
-            </section>
-            <section className="panel plenary-decisions">
+            <PlenaryAttendance
+              value={value}
+              members={data.members}
+              userId={data.user.id}
+              busy={busy}
+              onUpdate={(accountId, patch) => action(`/attendees/${accountId}`, 'PUT', patch)}
+            />
+            <section className="panel plenary-decisions" id="votacoes">
               <header>
                 <div>
                   <span className="eyebrow">DECISÕES EM TEMPO REAL</span>
-                  <h2>A palavra vira decisão.</h2>
+                  <h2>Deliberações da sessão</h2>
                 </div>
                 <Vote size={24} />
               </header>
@@ -432,14 +432,14 @@ export function PlenaryRoom({ id }: { id: string }) {
               {!value.polls.length && (
                 <div className="plenary-vote-empty">
                   <Vote size={30} />
-                  <strong>As decisões aparecerão aqui.</strong>
-                  <p>Acompanhe abaixo as votações abertas pela mesa.</p>
+                  <strong>Nenhuma votação publicada</strong>
+                  <p>As votações abertas pela mesa ficarão disponíveis neste espaço.</p>
                 </div>
               )}
             </section>
           </div>
           {!!value.polls.length && (
-            <div className="refresh-polls-grid">
+            <div className="refresh-polls-grid plenary-polls-grid">
               {value.polls.map((p) => (
                 <div key={p.id}>
                   <PollCard poll={p} onChanged={reload} />

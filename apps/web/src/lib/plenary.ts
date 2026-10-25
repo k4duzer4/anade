@@ -1,4 +1,12 @@
 import type { Meeting, Poll } from './types';
+export type PlenaryMeeting = Pick<
+  Meeting,
+  'id' | 'title' | 'date' | 'location' | 'groupId' | 'agenda'
+> & {
+  sessionStatus: 'draft' | 'open' | 'closed';
+  capacity?: number;
+  electorate?: number;
+};
 export type PlenarySession = {
   status: 'draft' | 'open' | 'closed';
   capacity: number;

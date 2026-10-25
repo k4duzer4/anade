@@ -59,6 +59,7 @@ export function plenaryRoutes(app, repo, { env = {}, now = () => new Date() } = 
     const meetings = snapshot.meetings.filter(
       (m) => m.location === 'Plenário virtual' && seesMeeting(m, actor, groups),
     );
+    const summaries = await store.summaries(meetings.map((m) => m.id));
     res.json({
       provider: kmeetProvider(env),
       records: meetings.map((m) => ({
@@ -68,6 +69,8 @@ export function plenaryRoutes(app, repo, { env = {}, now = () => new Date() } = 
         location: m.location,
         groupId: m.groupId,
         agenda: m.agenda,
+        sessionStatus: 'draft',
+        ...summaries.get(m.id),
       })),
     });
   });

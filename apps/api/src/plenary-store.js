@@ -51,6 +51,29 @@ export class PlenaryStore {
       );
     return { ...clean, roomKey };
   }
+  async summaries(ids) {
+    if (!ids.length) return new Map();
+    const rows = this.sql
+      ? (
+          await this.sql.query(
+            `SELECT meeting_id,data FROM anade.plenaries WHERE meeting_id IN (${ids.map((_, i) => `$${i + 1}`).join(',')})`,
+            ids,
+          )
+        ).rows
+      : ids
+          .filter((id) => this.repo.plenaries.has(id))
+          .map((id) => ({ meeting_id: id, data: this.repo.plenaries.get(id) }));
+    return new Map(
+      rows.map(({ meeting_id, data }) => [
+        meeting_id,
+        {
+          sessionStatus: data.status,
+          capacity: data.capacity,
+          electorate: data.electorIds?.length || 0,
+        },
+      ]),
+    );
+  }
   async attendees(id) {
     if (!this.sql)
       return structuredClone(

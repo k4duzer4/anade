@@ -35,6 +35,10 @@ Presença usa evento da interface de conferência e heartbeat do navegador a cad
 
 ## Configuração e verificação
 
+A listagem oferece busca por título, filtros por situação e contadores de sessões. **Total de filiados** usa `data.members.length`, a mesma base da visão geral; não representa conectados, capacidade do áudio ou eleitorado. A sessão apresenta essas informações separadamente. O eleitorado congelado e as regras de voto não são alterados por atualizações no total de filiados.
+
+A lista de presença inclui os participantes disponíveis mesmo antes de entrarem, busca por nome/estado, filtros de confirmação e pedidos de palavra, com 24 itens por etapa. Histórico de conexões anteriores também é preservado. Ampliar a sala altera apenas a disposição visual, sem desmontar o áudio. Estilos contemplam temas claro/escuro, telas menores e preferência por movimento reduzido.
+
 - Aplicar `npm run db:migrate`: migração **017_plenary.sql**. Tabelas com RLS habilitada e sem acesso dos papéis públicos do Supabase.
 - Opcional: `KMEET_ENABLED=false` no backend suspende aberturas e novas admissões de áudio. Não derruba clientes externos já conectados ao kMeet.
 - Microfone é delegado somente à origem fixa `https://kmeet.infomaniak.com` nas páginas `/plenario/*`; câmera permanece bloqueada. Links de entrada fazem navegação completa para aplicar a política do documento, inclusive ao vir de páginas que bloqueiam microfone.

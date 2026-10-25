@@ -107,6 +107,10 @@ test('plenário: regras, autenticação, CSRF, sala oculta e controle de capacid
   assert.equal((await call(`${base}/join`, 'member', 'POST', {})).status, 409);
   assert.ok(!serialized.includes('roomKey'));
   assert.equal((await open()).status, 200);
+  const directory = await (await call('/api/plenaries', 'member')).json();
+  assert.equal(directory.records[0].sessionStatus, 'open');
+  assert.equal(directory.records[0].electorate, 2);
+  assert.ok(!JSON.stringify(directory).includes('roomKey'));
   assert.equal((await configure()).status, 409);
   const participant = await (
     await call(`${base}/join`, 'member', 'POST', {
@@ -339,6 +343,9 @@ test('PostgreSQL: presença confirmada é persistida, reinício exige reconfirma
       quorumPercent: 50,
     });
     await store.enter(id, 'b', new Date());
+    const summary = (await store.summaries([id])).get(id);
+    assert.deepEqual(summary, { sessionStatus: 'open', capacity: 40, electorate: 1 });
+    assert.ok(!JSON.stringify(summary).includes('roomKey'));
     await store.updateAttendee(
       id,
       'b',

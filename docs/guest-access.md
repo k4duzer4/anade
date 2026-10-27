@@ -20,4 +20,6 @@ Se uma conta filiada recebe a permissão de convidado, o modo restrito prevalece
 
 Migração `019_guest_access.sql`: permissão por conta e histórico do responsável pela alteração. RLS habilitada e privilégios de PUBLIC/anon/authenticated revogados. Nenhuma conta real é convertida em convidada como teste.
 
+Na Vercel, o Proxy consulta `/api/access` pela origem pública canônica da ANADE (`APP_ORIGIN` ou `https://anade.vercel.app`), sem seguir redirects nem derivar destino de Host enviado pelo cliente. Componentes do servidor mantêm o binding interno. [Bindings de Services não estão disponíveis no middleware/Proxy](https://vercel.com/kb/guide/vercel-services). O teste de publicação com cookie inválido deve voltar ao login, sem erro 503.
+
 Testes cobrem concessão/remoção/CSRF, modo restrito prevalecendo sobre sessão filiada, OAuth sem cargo de filiado, estado sem snapshot, bloqueio de endpoints e arquivos, persistência entre instâncias, reescrita de URLs e não montagem de componentes privados no shell.

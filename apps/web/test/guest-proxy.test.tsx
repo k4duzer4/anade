@@ -56,3 +56,20 @@ it('filiado segue o fluxo original; erro de autorização não libera páginas p
   );
   expect((await proxy(request('/agenda'))).status).toBe(503);
 });
+it('Proxy na Vercel consulta a API pública da própria ANADE, sem usar binding indisponível nem Host do cliente', async () => {
+  vi.stubEnv('VERCEL', '1');
+  vi.stubEnv('APP_ORIGIN', 'https://anade.vercel.app');
+  vi.stubEnv('API_ORIGIN', 'https://unavailable-binding.test');
+  const fetchMock = vi.fn(async () => Response.json({ error: 'login' }, { status: 401 }));
+  vi.stubGlobal('fetch', fetchMock);
+  const response = await proxy(request('/votacoes'));
+  expect(response.status).toBe(200);
+  expect(fetchMock).toHaveBeenCalledWith(
+    new URL('https://anade.vercel.app/api/access'),
+    expect.objectContaining({
+      redirect: 'error',
+      cache: 'no-store',
+      headers: { Cookie: 'anade.sid=test-session' },
+    }),
+  );
+});

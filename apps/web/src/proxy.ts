@@ -3,11 +3,17 @@ export async function proxy(request: NextRequest) {
   const session = request.cookies.get('anade.sid');
   if (!session) return NextResponse.next();
   try {
-    const backend = process.env.API_ORIGIN || (process.env.VERCEL ? null : 'http://127.0.0.1:3001');
-    if (!backend) throw new Error('API_UNAVAILABLE');
+    // Vercel Services bindings are unavailable in Proxy. Use the fixed, first-party
+    // API entry point here; server components retain their internal binding.
+    // Never derive the cookie destination from an incoming Host header.
+    const backend =
+      process.env.VERCEL === '1'
+        ? process.env.APP_ORIGIN || 'https://anade.vercel.app'
+        : process.env.API_ORIGIN || 'http://127.0.0.1:3001';
     const result = await fetch(new URL('api/access', `${backend.replace(/\/$/, '')}/`), {
       headers: { Cookie: `anade.sid=${encodeURIComponent(session.value)}` },
       cache: 'no-store',
+      redirect: 'error',
       signal: AbortSignal.timeout(10000),
     });
     if ([401, 403].includes(result.status)) return NextResponse.next();

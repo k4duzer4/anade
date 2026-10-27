@@ -42,6 +42,7 @@ export async function portalRequest<T = unknown>(
     if (!response.ok)
       throw Object.assign(new Error(value.error || 'Não foi possível concluir a operação.'), {
         status: response.status,
+        code: value.code,
       });
     return value as T;
   } catch (error) {

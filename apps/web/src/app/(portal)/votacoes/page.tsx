@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Plus, ShieldCheck, Vote, CheckCheck, Archive } from 'lucide-react';
+import { Plus, ShieldCheck, Vote, CheckCheck, Archive, ArrowRight } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, Modal, SubmitButton, ErrorNotice, Empty } from '@/components/ui';
 import { PollCard } from '@/components/poll-card';
@@ -11,6 +11,7 @@ import { Form } from '@/components/form';
 import { SearchBox, ViewFilters, PagePulse } from '@/components/portal-tools';
 import { searchText } from '@/lib/types';
 import { PollElectorate } from '@/components/poll-electorate';
+import { ElectorateNavigation } from '@/components/electorate-navigation';
 export default function Polls() {
   const { data, mutate, notify } = usePortal();
   const params = useSearchParams(),
@@ -23,7 +24,9 @@ export default function Polls() {
     [error, setError] = useState('');
   const [search, setSearch] = useState('');
   if (!data) return null;
-  const scoped = data.polls.filter((p) => !groupId || p.governance?.groupId === groupId);
+  const scoped = data.polls.filter(
+    (p) => !groupId || (p.governance?.groupId || 'national') === groupId,
+  );
   const active = scoped.filter((p) => !p.closed);
   const pending = active.filter((p) => !p.hasVoted && p.canVote !== false);
   const list = scoped
@@ -73,7 +76,7 @@ export default function Polls() {
     <div className="refresh-page votes-refresh">
       <PageHeading
         eyebrow="DEMOCRACIA INTERNA · ANADE"
-        title="Sua voz decide."
+        title="Votações internas"
         description={
           pending.length
             ? `${pending.length} ${pending.length === 1 ? 'decisão aguarda' : 'decisões aguardam'} sua participação. Escolha, revise e confirme.`
@@ -92,6 +95,54 @@ export default function Polls() {
             </button>
           )
         }
+      />
+      <section className="decision-intro">
+        <span className="decision-intro-icon">
+          <Vote size={27} />
+        </span>
+        <div>
+          <span className="eyebrow">PARTICIPE DAS DECISÕES</span>
+          <h2>
+            {pending.length
+              ? 'Seu próximo voto começa aqui.'
+              : 'Decisões claras. Participação de todos.'}
+          </h2>
+          <p>
+            Escolha um grupo, consulte o tema e confirme seu voto. A abstenção também é uma forma de
+            participar.
+          </p>
+        </div>
+        {pending.length > 0 && (
+          <button
+            className="button secondary"
+            onClick={() => {
+              setFilter('pending');
+              if (target) {
+                const next = new URLSearchParams(params.toString());
+                next.delete('votacao');
+                router.replace(`/votacoes?${next}`);
+              }
+            }}
+          >
+            Ver o que falta votar
+            <ArrowRight size={16} />
+          </button>
+        )}
+      </section>
+      <ElectorateNavigation
+        records={data.polls.map((p) => ({
+          groupId: p.governance?.groupId,
+          groupName: p.governance?.groupName,
+        }))}
+        value={groupId || 'all'}
+        onChange={(value) => {
+          const next = new URLSearchParams(params.toString());
+          next.delete('votacao');
+          next.delete('nova');
+          if (value === 'all') next.delete('grupo');
+          else next.set('grupo', value);
+          router.replace(`/votacoes${next.size ? `?${next}` : ''}`);
+        }}
       />
       <PagePulse
         items={[
@@ -116,7 +167,10 @@ export default function Polls() {
           }
           onChange={(value) => {
             setFilter(value);
-            if (target) router.replace('/votacoes');
+            if (target)
+              router.replace(
+                groupId ? `/votacoes?grupo=${encodeURIComponent(groupId)}` : '/votacoes',
+              );
           }}
           options={[
             { value: 'open', label: 'Em andamento', count: active.length },
@@ -141,7 +195,7 @@ export default function Polls() {
       </div>
       <div className="refresh-polls-grid">
         {list.length ? (
-          list.map((p) => <PollCard key={p.id} poll={p} />)
+          list.map((p) => <PollCard key={p.id} poll={p} compact={!target} />)
         ) : (
           <section className="panel">
             <Empty>
@@ -234,7 +288,7 @@ export default function Polls() {
                   ]}
                 />
               </label>
-              <PollElectorate initialGroupId={groupId} />
+              <PollElectorate initialGroupId={groupId === 'national' ? '' : groupId} />
             </div>
             <ErrorNotice message={error} />
             <div className="form-actions">

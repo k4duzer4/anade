@@ -72,13 +72,13 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       setError('');
     } catch (e) {
       if (currentEpoch !== epoch.current) return;
-      const err = e as Error & { status?: number };
+      const err = e as Error & { status?: number; code?: string };
       if (err.status === 401 || err.status === 403) {
         setData(null);
         setActivity(null);
         activityRequest.current++;
       }
-      setError(err.status === 401 ? '' : err.message);
+      setError(err.status === 401 || err.code === 'AFFILIATION_REQUIRED' ? '' : err.message);
     }
   }, [loadActivity]);
   const refreshQueue = useRef<ReturnType<typeof createRefreshQueue> | null>(null);

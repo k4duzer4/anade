@@ -130,6 +130,10 @@ export default function AdministrationContent() {
         }
       />
       <div className="admin-navigation">
+        <Link href="/administracao/filiacoes" className="button secondary">
+          <UserPlus size={16} />
+          Solicitações de filiação
+        </Link>
         <Link href="/administracao/cargos" className="button secondary">
           <ContactRound size={16} />
           Cargos e funções

@@ -39,6 +39,8 @@ A listagem oferece busca por título, filtros por situação e contadores de ses
 
 A lista de presença inclui os participantes disponíveis mesmo antes de entrarem, busca por nome/estado, filtros de confirmação e pedidos de palavra, com 24 itens por etapa. Histórico de conexões anteriores também é preservado. Ampliar a sala altera apenas a disposição visual, sem desmontar o áudio. Estilos contemplam temas claro/escuro, telas menores e preferência por movimento reduzido.
 
+A navegação interna separa Sala, Pautas, Presença e Votações em abas com teclado. O áudio permanece montado e conectado quando outra aba da sessão é selecionada. A listagem permite escolher o grupo eleitor; cada submenu contém apenas reuniões já autorizadas pelo servidor. Votações internas também são separadas por grupo, com cards resumidos e abertura explícita das alternativas antes da revisão/ confirmação do voto. Filtros não concedem permissões adicionais.
+
 - Aplicar `npm run db:migrate`: migração **017_plenary.sql**. Tabelas com RLS habilitada e sem acesso dos papéis públicos do Supabase.
 - Opcional: `KMEET_ENABLED=false` no backend suspende aberturas e novas admissões de áudio. Não derruba clientes externos já conectados ao kMeet.
 - Microfone é delegado somente à origem fixa `https://kmeet.infomaniak.com` nas páginas `/plenario/*`; câmera permanece bloqueada. Links de entrada fazem navegação completa para aplicar a política do documento, inclusive ao vir de páginas que bloqueiam microfone.

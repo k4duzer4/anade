@@ -83,8 +83,8 @@ test('filiação é confirmada em cada login e não é consultada durante a sess
   outage = false;
   roles = [];
   const second = await login(first.cookie);
-  assert.match(second.response.headers.get('location'), /authError=/);
+  assert.equal(second.response.headers.get('location'), 'http://localhost:3000/filiacao');
   assert.equal(checks, 2);
-  assert.equal((await call('/api/state', second.cookie)).status, 401);
+  assert.equal((await call('/api/state', second.cookie)).status, 403);
   assert.equal((await call('/api/state', first.cookie)).status, 401);
 });

@@ -153,6 +153,7 @@ it('votações distinguem pendentes e encerradas e revisam abstenção sem regis
   );
   await user.click(screen.getByRole('button', { name: /Para votar/ }));
   expect(screen.queryByText('Decisão respondida')).toBeNull();
+  await user.click(screen.getByRole('button', { name: 'Votar agora' }));
   await user.click(screen.getByRole('radio', { name: /Abstenção/ }));
   await user.click(screen.getByRole('button', { name: 'Revisar voto' }));
   expect(screen.getByRole('dialog', { name: 'CONFIRMAR SEU VOTO' })).toBeTruthy();

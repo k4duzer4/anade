@@ -6,6 +6,7 @@ export type PlenaryMeeting = Pick<
   sessionStatus: 'draft' | 'open' | 'closed';
   capacity?: number;
   electorate?: number;
+  groupName?: string;
 };
 export type PlenarySession = {
   status: 'draft' | 'open' | 'closed';
@@ -36,7 +37,7 @@ export type PlenaryAttendee = {
   confirmedAt?: string;
 };
 export type PlenaryState = {
-  meeting: Meeting;
+  meeting: Meeting & { groupName?: string };
   session: PlenarySession | null;
   provider: PlenaryProvider;
   canManage: boolean;

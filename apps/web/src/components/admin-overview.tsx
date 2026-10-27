@@ -76,6 +76,13 @@ export function AdminOverview({
   const stateList = [...states.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   const tools = [
     {
+      title: 'Solicitações de filiação',
+      description: 'Analise fichas e acompanhe o cargo e a mensagem no Discord.',
+      href: '/administracao/filiacoes',
+      Icon: Users,
+      detail: 'Novos participantes',
+    },
+    {
       title: 'Cargos e funções',
       description: 'Defina cargos eletivos, funções partidárias e permissões.',
       href: '/administracao/cargos',

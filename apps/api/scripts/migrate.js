@@ -27,6 +27,7 @@ try {
     '015_activity_seen.sql',
     '016_agenda_comments.sql',
     '017_plenary.sql',
+    '018_affiliations.sql',
   ]) {
     const previous = await client.query('SELECT name FROM anade.migrations WHERE name=$1', [name]);
     if (previous.rowCount) continue;

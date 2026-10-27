@@ -111,6 +111,13 @@ it('áudio só carrega após entrada explícita; presença depende do evento da 
   await user.click(screen.getByRole('button', { name: 'Ampliar sala' }));
   expect(screen.getByTitle('Reunião kMeet do plenário ANADE')).toBe(frame);
   expect(dispose).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('tab', { name: /Pautas/ }));
+  expect(screen.getByRole('tabpanel', { name: /Pautas/ })).toBeTruthy();
+  expect(document.querySelector('iframe')).toBe(frame);
+  expect(dispose).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('tab', { name: /Sala de reunião/ }));
+  expect(screen.getByRole('tabpanel', { name: /Sala de reunião/ })).toBeTruthy();
+  expect(document.querySelector('iframe')).toBe(frame);
   expect(
     vi
       .mocked(portalRequest)
@@ -135,6 +142,7 @@ it('lista inclui filiados ainda não conectados, pagina e permite busca nominal'
   }));
   const user = userEvent.setup();
   render(<PlenaryRoom id="meeting" />);
+  await user.click(await screen.findByRole('tab', { name: /Presença/ }));
   const roster = within(await screen.findByRole('region', { name: 'Lista de presença' }));
   expect(roster.getAllByRole('article')).toHaveLength(24);
   expect(roster.getAllByText('Não conectado')).toHaveLength(24);
@@ -166,6 +174,7 @@ it('mesa confirma presença pelo endpoint próprio, separado de entrada no áudi
   );
   const user = userEvent.setup();
   render(<PlenaryRoom id="meeting" />);
+  await user.click(await screen.findByRole('tab', { name: /Presença/ }));
   await user.click(await screen.findByRole('button', { name: 'Confirmar presença' }));
   expect(portalRequest).toHaveBeenCalledWith(
     '/api/plenaries/meeting/attendees/member',

@@ -16,6 +16,8 @@ import { usePortal } from '@/components/portal-provider';
 import { ErrorNotice } from '@/components/ui';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { m, useReducedMotion } from 'motion/react';
+import { portalRequest } from '@/lib/portal-request';
+import type { ApplicantSession } from '@/lib/affiliations';
 export default function LoginPage() {
   const reduced = useReducedMotion();
   const { config, data, loading, error, loginDemo } = usePortal();
@@ -25,6 +27,16 @@ export default function LoginPage() {
   useEffect(() => {
     if (data) router.replace('/painel');
   }, [data, router]);
+  useEffect(() => {
+    if (loading || data) return;
+    const controller = new AbortController();
+    portalRequest<ApplicantSession>('/api/affiliation/session', { signal: controller.signal })
+      .then((value) => {
+        if (!controller.signal.aborted && !value.user.member) router.replace('/filiacao');
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [loading, data, router]);
   useEffect(() => {
     const message = new URLSearchParams(window.location.search).get('authError');
     if (message) queueMicrotask(() => setLocalError(message));
@@ -126,8 +138,14 @@ export default function LoginPage() {
             </div>
           )}
           <p className="access-hint">
-            <ShieldCheck size={14} /> Acesso exclusivo para filiados verificados no Discord.
+            <ShieldCheck size={14} /> Áreas internas exclusivas para filiados aprovados.
           </p>
+          <Link href="/filiacao" className="login-affiliation-link">
+            Ainda não é filiado?{' '}
+            <strong>
+              Solicite sua filiação <ArrowRight size={15} />
+            </strong>
+          </Link>
           {config?.demo && (
             <div className="demo-access">
               <span className="eyebrow">CONHEÇA O PORTAL · DADOS FICTÍCIOS</span>
@@ -148,6 +166,10 @@ export default function LoginPage() {
           </p>
         </m.div>
         <footer className="login-footer">
+          <span className="affiliation-legal-links">
+            <Link href="/termos">Termos de Uso</Link>
+            <Link href="/privacidade">Privacidade</Link>
+          </span>
           <span>ANADE 10 · Um Brasil mais justo, mais forte, para todos.</span>
           <Link href="/partido" className="login-party-link">
             Conheça a ANADE <ArrowUpRight size={14} />

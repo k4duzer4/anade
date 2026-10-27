@@ -22,6 +22,7 @@ import { usePortal } from './portal-provider';
 import { useOrganization, OrganizationLoading } from './organization-ui';
 import { formatDate, searchText } from '@/lib/types';
 import type { PlenaryMeeting, PlenaryProvider } from '@/lib/plenary';
+import { ElectorateNavigation } from './electorate-navigation';
 
 const filters = [
   ['all', 'Todas as sessões'],
@@ -34,6 +35,7 @@ export function PlenaryList() {
   const { data } = usePortal();
   const [query, setQuery] = useState(''),
     [filter, setFilter] = useState('all'),
+    [electorate, setElectorate] = useState('all'),
     [version, setVersion] = useState(0);
   const { value, error } = useOrganization<{
     provider: PlenaryProvider;
@@ -41,8 +43,11 @@ export function PlenaryList() {
   }>('/api/plenaries', `${data?.serverTime}:${version}`);
   if (!data) return null;
   const records = value?.records || [];
-  const count = (status: string) => records.filter((m) => m.sessionStatus === status).length;
-  const filtered = records
+  const scoped = records.filter(
+    (m) => electorate === 'all' || (m.groupId || 'national') === electorate,
+  );
+  const count = (status: string) => scoped.filter((m) => m.sessionStatus === status).length;
+  const filtered = scoped
     .filter(
       (m) =>
         (filter === 'all' || m.sessionStatus === filter) &&
@@ -62,7 +67,7 @@ export function PlenaryList() {
       <PageHeading
         eyebrow="ANADE · ORGANIZAÇÃO PARTIDÁRIA"
         title="Plenário virtual"
-        description="Gestão de reuniões, acompanhamento de pautas e deliberações do partido."
+        description="Encontre sua reunião, entre no áudio e acompanhe as decisões."
         action={
           data.user.admin && (
             <Link className="button primary" href="/agenda?nova=1&modalidade=plenario">
@@ -72,43 +77,27 @@ export function PlenaryList() {
           )
         }
       />
-      <section className="plenary-institutional">
+      <section className="plenary-institutional plenary-intro-compact">
         <div className="plenary-institutional-copy">
           <span className="plenary-seal">
             <Landmark size={28} />
           </span>
           <div>
-            <span className="eyebrow">DIRETÓRIO DIGITAL · ANADE 10</span>
-            <h2>Sessões deliberativas</h2>
+            <span className="eyebrow">REUNIÕES DA ANADE</span>
+            <h2>Um lugar para ouvir, discutir e decidir.</h2>
             <p>
-              Um ambiente para conduzir os trabalhos, registrar presenças e formalizar decisões.
+              Escolha o grupo abaixo e abra uma sessão. Sala, pautas, presença e votações ficam
+              separadas por abas.
             </p>
           </div>
         </div>
-        <ol className="plenary-process" aria-label="Etapas da sessão">
-          <li>
-            <span>01</span>
-            <div>
-              <b>Preparação</b>
-              <small>Pautas e composição</small>
-            </div>
-          </li>
-          <li>
-            <span>02</span>
-            <div>
-              <b>Participação</b>
-              <small>Áudio e presença</small>
-            </div>
-          </li>
-          <li>
-            <span>03</span>
-            <div>
-              <b>Deliberação</b>
-              <small>Quórum e votação</small>
-            </div>
-          </li>
-        </ol>
       </section>
+      <ElectorateNavigation
+        records={records}
+        value={electorate}
+        onChange={setElectorate}
+        noun="sessões"
+      />
       <section className="plenary-metrics" aria-label="Indicadores do plenário">
         {[
           {
@@ -162,7 +151,7 @@ export function PlenaryList() {
             {filters.map(([key, label]) => (
               <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>
                 {label}
-                <span>{key === 'all' ? records.length : count(key)}</span>
+                <span>{key === 'all' ? scoped.length : count(key)}</span>
               </button>
             ))}
           </div>
@@ -218,7 +207,8 @@ export function PlenaryList() {
                         {statusLabel[status]}
                       </span>
                       <span className="plenary-session-scope">
-                        {meeting.groupId ? 'Grupo' : 'Nacional'}
+                        {meeting.groupName ||
+                          (meeting.groupId ? 'Grupo do partido' : 'Todos os filiados')}
                       </span>
                     </header>
                     <div className="plenary-session-title">
@@ -288,6 +278,7 @@ export function PlenaryList() {
                     onClick={() => {
                       setFilter('all');
                       setQuery('');
+                      setElectorate('all');
                     }}
                   >
                     Limpar filtros

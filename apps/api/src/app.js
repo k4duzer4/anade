@@ -22,6 +22,9 @@ import { organizationRoutes } from './organization.js';
 import { contentManagementRoutes } from './content-management.js';
 import { plenaryRoutes } from './plenary.js';
 import { PlenaryStore } from './plenary-store.js';
+import { AffiliationStore } from './affiliation-store.js';
+import { AffiliationDiscord } from './affiliation-discord.js';
+import { applicantRoutes, affiliationAdminRoutes } from './affiliations.js';
 import { OrganizationStore, seesMeeting, seesPoll } from './organization-store.js';
 import { votingRules } from './governance.js';
 import {
@@ -101,6 +104,7 @@ export function createApp({
   demo = false,
   env = process.env,
   discord = discordRequest,
+  affiliationBot,
   proofStorage,
   profileStorage,
   organizationStorage,
@@ -112,6 +116,8 @@ export function createApp({
   assert(secret && secret.length >= 32, 'SESSION_SECRET deve ter pelo menos 32 caracteres.');
   const app = express();
   const organization = new OrganizationStore(repo);
+  const affiliations = new AffiliationStore(repo);
+  const bot = affiliationBot || new AffiliationDiscord(env, origin);
   const documentStorage =
     organizationStorage ||
     (demo
@@ -257,26 +263,31 @@ export function createApp({
       assert(response.ok, 'Não foi possível concluir o login. Tente novamente.', 401);
       const oauth = await response.json();
       const user = await discord('/users/@me', oauth.access_token);
-      const member = await getMember(user.id, oauth.access_token);
-      assert(
-        member.roles.includes(env.DISCORD_MEMBER_ROLE_ID),
-        'Seu usuário não possui o cargo de filiado da ANADE.',
-        403,
-      );
+      let member;
+      try {
+        member = await getMember(user.id, oauth.access_token);
+      } catch (error) {
+        if (error.status !== 403) throw error;
+        member = { roles: [] };
+      }
       await repo.account(user.id, user.username);
+      const membership = await affiliations.access(
+        user.id,
+        member.roles.includes(env.DISCORD_MEMBER_ROLE_ID),
+      );
       const discordAdmin = hasAdminRole(member.roles);
       await regenerate(req);
       req.session.user = {
         id: user.id,
         discord: user.username,
-        member: true,
+        member: membership,
         discordAdmin,
         admin: discordAdmin || (await repo.isAdmin(user.id)),
         expires: Date.now() + Math.min(oauth.expires_in, 28800) * 1000,
       };
       req.session.csrf = random();
       await saveSession(req);
-      res.redirect(`${origin}/painel`);
+      res.redirect(`${origin}/${membership ? 'painel' : 'filiacao'}`);
     } catch (e) {
       res.redirect(
         `${origin}/?authError=${encodeURIComponent(e.status ? e.message : 'Não foi possível conectar ao Discord. Tente novamente.')}`,
@@ -303,11 +314,7 @@ export function createApp({
     const user = req.session.user;
     assert(user && user.expires > Date.now(), 'Entre com o Discord para continuar.', 401);
     if (!user.demo) {
-      assert(
-        user.member === true,
-        'Sua sessão não possui filiação ativa. Entre novamente com o Discord.',
-        403,
-      );
+      user.member = await affiliations.access(user.id, user.member === true);
       // A permissão local é lida do banco, sem consultas ao Discord durante a navegação.
       user.admin =
         (await repo.isAdmin(user.id)) || (adminRoleId !== '' && user.discordAdmin === true);
@@ -322,7 +329,7 @@ export function createApp({
         403,
       );
     }
-    res.locals.user = { ...user, assignment: await repo.memberAssignment(user.id) };
+    res.locals.user = { ...user };
     next();
   });
   app.use('/api', ...sensitiveRequestLimits());
@@ -330,6 +337,24 @@ export function createApp({
     assert(req.session.user.admin, 'Apenas a direção pode realizar esta ação.', 403);
     next();
   };
+  applicantRoutes(app, affiliations, { now });
+  app.post('/api/logout', (req, res, next) =>
+    req.session.destroy((e) => {
+      if (e) return next(e);
+      res.clearCookie('anade.sid', { path: '/' });
+      res.json({ ok: true });
+    }),
+  );
+  app.use('/api', async (_req, res, next) => {
+    if (!res.locals.user.demo && res.locals.user.member !== true)
+      throw Object.assign(
+        new Error('Sua solicitação de filiação precisa ser aprovada pela administração.'),
+        { status: 403, code: 'AFFILIATION_REQUIRED' },
+      );
+    res.locals.user.assignment = await repo.memberAssignment(res.locals.user.id);
+    next();
+  });
+  affiliationAdminRoutes(app, affiliations, admin, { bot, now });
   app.get('/api/access', (_req, res) => {
     const user = res.locals.user;
     res.json({ user: { id: user.id, admin: user.admin } });
@@ -514,13 +539,6 @@ export function createApp({
         }),
     });
   });
-  app.post('/api/logout', (req, res, next) =>
-    req.session.destroy((e) => {
-      if (e) return next(e);
-      res.clearCookie('anade.sid', { path: '/' });
-      res.json({ ok: true });
-    }),
-  );
   app.put('/api/profile', async (req, res) => {
     await repo.saveProfile(res.locals.user.id, profile(req.body));
     res.json({ ok: true });
@@ -641,6 +659,7 @@ export function createApp({
     if (status >= 500) console.error('API:', error.code || error.name);
     if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
     res.status(status).json({
+      ...(error.code === 'AFFILIATION_REQUIRED' ? { code: error.code } : {}),
       ...(error.retryAfter ? { retryAfter: error.retryAfter } : {}),
       error:
         status === 500

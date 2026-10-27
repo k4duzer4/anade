@@ -39,6 +39,7 @@ export function PlenaryRoom({ id }: { id: string }) {
     [busy, setBusy] = useState(false),
     [admission, setAdmission] = useState<Admission | null>(null),
     [stageExpanded, setStageExpanded] = useState(false),
+    [activeTab, setActiveTab] = useState('sala'),
     [closingPoll, setClosingPoll] = useState<string | null>(null),
     [dialog, setDialog] = useState<'settings' | 'poll' | 'open' | 'close' | null>(null);
   const base = `/api/plenaries/${id}`;
@@ -209,26 +210,103 @@ export function PlenaryRoom({ id }: { id: string }) {
               </button>
             )}
           </div>
-          <nav className="plenary-section-nav" aria-label="Navegar na sessão">
-            <a href="#sala">
+          <div className="plenary-room-context">
+            <span>
+              <Users size={15} />
+              {value.meeting.groupName || 'Todos os filiados'}
+            </span>
+            <p>
+              {admission
+                ? 'Seu áudio permanece conectado ao alternar entre as abas.'
+                : live
+                  ? 'Entre na sala para participar. A mesa confirma a presença para habilitar o voto.'
+                  : closed
+                    ? 'Consulte os registros desta sessão nas abas abaixo.'
+                    : value.canManage
+                      ? 'Prepare as regras e os participantes; depois abra a sessão.'
+                      : 'Aguarde a abertura pela mesa. Você já pode consultar as pautas.'}
+            </p>
+          </div>
+          <nav
+            className="plenary-section-nav"
+            aria-label="Navegar na sessão"
+            role="tablist"
+            onKeyDown={(event) => {
+              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+              event.preventDefault();
+              const tabs = ['sala', 'pautas', 'presenca', 'votacoes'];
+              const index = tabs.indexOf(activeTab);
+              const next =
+                event.key === 'Home'
+                  ? 0
+                  : event.key === 'End'
+                    ? 3
+                    : (index + (event.key === 'ArrowRight' ? 1 : 3)) % 4;
+              setActiveTab(tabs[next]);
+              document.getElementById(`plenary-tab-${tabs[next]}`)?.focus();
+            }}
+          >
+            <button
+              type="button"
+              role="tab"
+              id="plenary-tab-sala"
+              aria-controls="sala"
+              aria-selected={activeTab === 'sala'}
+              tabIndex={activeTab === 'sala' ? 0 : -1}
+              onClick={() => setActiveTab('sala')}
+            >
               <AudioLines size={15} />
               Sala de reunião
-            </a>
-            <a href="#pautas">
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="plenary-tab-pautas"
+              aria-controls="pautas"
+              aria-selected={activeTab === 'pautas'}
+              tabIndex={activeTab === 'pautas' ? 0 : -1}
+              onClick={() => setActiveTab('pautas')}
+            >
               <ListOrdered size={15} />
               Pautas<span>{value.meeting.agenda.length}</span>
-            </a>
-            <a href="#presenca">
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="plenary-tab-presenca"
+              aria-controls="presence-panel"
+              aria-selected={activeTab === 'presenca'}
+              tabIndex={activeTab === 'presenca' ? 0 : -1}
+              onClick={() => setActiveTab('presenca')}
+            >
               <Users size={15} />
               Presença<span>{value.present}</span>
-            </a>
-            <a href="#votacoes">
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="plenary-tab-votacoes"
+              aria-controls="votacoes"
+              aria-selected={activeTab === 'votacoes'}
+              tabIndex={activeTab === 'votacoes' ? 0 : -1}
+              onClick={() => setActiveTab('votacoes')}
+            >
               <Vote size={15} />
               Votações<span>{value.polls.length}</span>
-            </a>
+            </button>
           </nav>
-          <div className={`plenary-stage-grid ${stageExpanded ? 'is-expanded' : ''}`}>
-            <section className="panel plenary-stage" id="sala">
+          <div
+            className={`plenary-stage-grid ${stageExpanded ? 'is-expanded' : ''}`}
+            hidden={!['sala', 'pautas'].includes(activeTab)}
+          >
+            <section
+              className="panel plenary-stage"
+              id="sala"
+              role="tabpanel"
+              aria-labelledby="plenary-tab-sala"
+              tabIndex={0}
+              hidden={activeTab !== 'sala'}
+            >
               <header className="plenary-stage-heading">
                 <div>
                   <span className="plenary-section-icon">
@@ -327,7 +405,14 @@ export function PlenaryRoom({ id }: { id: string }) {
                 </div>
               )}
             </section>
-            <aside className="panel plenary-agenda" id="pautas">
+            <aside
+              className="panel plenary-agenda"
+              id="pautas"
+              role="tabpanel"
+              aria-labelledby="plenary-tab-pautas"
+              tabIndex={0}
+              hidden={activeTab !== 'pautas'}
+            >
               <header>
                 <ListOrdered size={20} />
                 <div>
@@ -385,15 +470,30 @@ export function PlenaryRoom({ id }: { id: string }) {
               )}
             </aside>
           </div>
-          <div className="plenary-work-grid">
-            <PlenaryAttendance
-              value={value}
-              members={data.members}
-              userId={data.user.id}
-              busy={busy}
-              onUpdate={(accountId, patch) => action(`/attendees/${accountId}`, 'PUT', patch)}
-            />
-            <section className="panel plenary-decisions" id="votacoes">
+          <div className="plenary-work-grid" hidden={!['presenca', 'votacoes'].includes(activeTab)}>
+            <div
+              id="presence-panel"
+              role="tabpanel"
+              aria-labelledby="plenary-tab-presenca"
+              tabIndex={0}
+              hidden={activeTab !== 'presenca'}
+            >
+              <PlenaryAttendance
+                value={value}
+                members={data.members}
+                userId={data.user.id}
+                busy={busy}
+                onUpdate={(accountId, patch) => action(`/attendees/${accountId}`, 'PUT', patch)}
+              />
+            </div>
+            <section
+              className="panel plenary-decisions"
+              id="votacoes"
+              role="tabpanel"
+              aria-labelledby="plenary-tab-votacoes"
+              tabIndex={0}
+              hidden={activeTab !== 'votacoes'}
+            >
               <header>
                 <div>
                   <span className="eyebrow">DECISÕES EM TEMPO REAL</span>
@@ -436,26 +536,26 @@ export function PlenaryRoom({ id }: { id: string }) {
                   <p>As votações abertas pela mesa ficarão disponíveis neste espaço.</p>
                 </div>
               )}
+              {!!value.polls.length && (
+                <div className="refresh-polls-grid plenary-polls-grid">
+                  {value.polls.map((p) => (
+                    <div key={p.id}>
+                      <PollCard poll={p} onChanged={reload} />
+                      {value.canModerate && !data.user.admin && !p.closed && (
+                        <button
+                          className="text-button danger"
+                          disabled={busy}
+                          onClick={() => setClosingPoll(p.id)}
+                        >
+                          Encerrar esta votação
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </div>
-          {!!value.polls.length && (
-            <div className="refresh-polls-grid plenary-polls-grid">
-              {value.polls.map((p) => (
-                <div key={p.id}>
-                  <PollCard poll={p} onChanged={reload} />
-                  {value.canModerate && !data.user.admin && !p.closed && (
-                    <button
-                      className="text-button danger"
-                      disabled={busy}
-                      onClick={() => setClosingPoll(p.id)}
-                    >
-                      Encerrar esta votação
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
         </>
       )}
       {closingPoll && (

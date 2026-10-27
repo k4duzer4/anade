@@ -68,6 +68,7 @@ export function plenaryRoutes(app, repo, { env = {}, now = () => new Date() } = 
         date: m.date,
         location: m.location,
         groupId: m.groupId,
+        groupName: groups.find((group) => group.id === m.groupId)?.name || 'Todos os filiados',
         agenda: m.agenda,
         sessionStatus: 'draft',
         ...summaries.get(m.id),
@@ -92,7 +93,7 @@ export function plenaryRoutes(app, repo, { env = {}, now = () => new Date() } = 
     const session = publicSession;
     const polls = p ? await store.polls(req.params.id) : [];
     res.json({
-      meeting: ctx.meeting,
+      meeting: { ...ctx.meeting, groupName: ctx.group?.name || 'Todos os filiados' },
       session: p ? session : null,
       provider: kmeetProvider(env),
       canManage: ctx.canManage,

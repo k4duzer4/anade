@@ -33,6 +33,7 @@ import './content-management.css';
 import './plenary.css';
 import './affiliations.css';
 import './decisions.css';
+import './decision-card.css';
 import { PortalProvider } from '@/components/portal-provider';
 import { ExperienceProvider } from '@/components/experience-provider';
 export const metadata: Metadata = {

@@ -190,6 +190,39 @@ it('votação restrita mostra as regras sem oferecer voto a observador', () => {
   expect(screen.queryByRole('radio')).toBeNull();
   expect(screen.getByText(/Câmara · 1 eleitor/)).toBeTruthy();
 });
+it('card com voto registrado recolhe o contexto e mantém ações administrativas atrás do menu', async () => {
+  portal.data.user.admin = true;
+  const user = userEvent.setup();
+  render(
+    <TooltipProvider>
+      <PollCard
+        poll={{
+          id: 'registered',
+          title: 'Decisão da bancada',
+          description: 'Texto completo da proposta',
+          options: ['Aprovar', 'Recusar', 'Abstenção'],
+          deadline: '2026-10-27T21:00:00Z',
+          secret: true,
+          closed: false,
+          total: 2,
+          hasVoted: true,
+          myVote: 1,
+          abstentionIndex: 2,
+          canVote: false,
+        }}
+      />
+    </TooltipProvider>,
+  );
+  expect(screen.getByText('PARTICIPAÇÃO CONFIRMADA')).toBeTruthy();
+  expect(screen.getByText('Recusar')).toBeTruthy();
+  expect(screen.queryByRole('radio')).toBeNull();
+  expect(screen.getByText('Texto completo da proposta').closest('details')?.open).toBe(false);
+  expect(screen.queryByRole('button', { name: 'Encerrar votação' })).toBeNull();
+  await user.click(screen.getByLabelText('Administrar votação Decisão da bancada'));
+  await user.click(screen.getByRole('button', { name: 'Encerrar votação' }));
+  expect(screen.getByRole('dialog', { name: 'ENCERRAR VOTAÇÃO' })).toBeTruthy();
+  expect(portal.mutate).not.toHaveBeenCalled();
+});
 it('abrir o painel não confirma avisos; clicar na notificação persiste a leitura e navega', async () => {
   const item = {
     key: 'n1',

@@ -174,7 +174,7 @@ export default function AffiliationContent() {
                 login não concede filiação automaticamente.
               </p>
               {config?.configured && (
-                <a className="button" href="/auth/discord">
+                <a className="button primary" href="/auth/discord">
                   Continuar com Discord
                   <ArrowRight size={18} />
                 </a>
@@ -186,7 +186,7 @@ export default function AffiliationContent() {
               <CheckCheck size={42} />
               <h2>Sua filiação está ativa.</h2>
               <p>Você já pode participar das atividades do portal.</p>
-              <a href="/painel" className="button">
+              <a href="/painel" className="button primary">
                 Acessar o portal
                 <ArrowRight size={17} />
               </a>
@@ -243,7 +243,7 @@ export default function AffiliationContent() {
                       <SubmitButton busy={busy}>Retirar solicitação</SubmitButton>
                     </Form>
                   ) : (
-                    <button className="button" onClick={() => setShowForm(true)}>
+                    <button className="button primary" onClick={() => setShowForm(true)}>
                       Nova solicitação
                       <ArrowRight size={16} />
                     </button>
@@ -352,11 +352,11 @@ export default function AffiliationContent() {
                     <input type="checkbox" name="accepted" required />
                     <span>
                       Li e concordo com os{' '}
-                      <Link href="/termos" target="_blank">
+                      <Link href="/termos" target="_blank" rel="noopener noreferrer">
                         Termos e Condições de Uso
                       </Link>{' '}
                       e a{' '}
-                      <Link href="/privacidade" target="_blank">
+                      <Link href="/privacidade" target="_blank" rel="noopener noreferrer">
                         Política de Privacidade
                       </Link>
                       . Autorizo o uso dos dados desta ficha para analisar a filiação, criar meu

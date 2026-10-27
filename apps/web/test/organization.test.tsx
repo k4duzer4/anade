@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider as TooltipProvider } from '@radix-ui/react-tooltip';
 import { GroupsHub } from '../src/components/groups-hub';
@@ -158,34 +158,37 @@ it('calendário sem temporada não inventa dia do jogo e mostra a origem oficial
   ).toBe('https://legado.planalto.fun/jogo/temporada');
   expect(screen.queryByRole('button', { name: 'Consultar data pública' })).toBeNull();
 });
-it('votação restrita mostra as regras sem oferecer voto a observador', () => {
+it('votação restrita mostra as regras sem oferecer voto a observador', async () => {
   render(
-    <PollCard
-      poll={{
-        id: 'poll',
-        title: 'Liderança',
-        description: '',
-        options: ['A', 'B', 'Abstenção'],
-        deadline: '2026-10-25T14:00:00Z',
-        secret: true,
-        closed: false,
-        total: 0,
-        hasVoted: false,
-        myVote: null,
-        abstentionIndex: 2,
-        canVote: false,
-        governance: {
-          groupId: 'group',
-          groupName: 'Câmara',
-          electorIds: ['other'],
-          quorumPercent: 50,
-          rule: 'absolute',
-          opensAt: '2026-10-24T12:00:00Z',
-        },
-      }}
-    />,
+    <TooltipProvider>
+      <PollCard
+        poll={{
+          id: 'poll',
+          title: 'Liderança',
+          description: '',
+          options: ['A', 'B', 'Abstenção'],
+          deadline: '2026-10-25T14:00:00Z',
+          secret: true,
+          closed: false,
+          total: 0,
+          hasVoted: false,
+          myVote: null,
+          abstentionIndex: 2,
+          canVote: false,
+          governance: {
+            groupId: 'group',
+            groupName: 'Câmara',
+            electorIds: ['other'],
+            quorumPercent: 50,
+            rule: 'absolute',
+            opensAt: '2026-10-24T12:00:00Z',
+          },
+        }}
+      />
+    </TooltipProvider>,
   );
-  expect(screen.getByText('Eleitorado restrito')).toBeTruthy();
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Ver detalhes' }));
+  expect(screen.getByRole('dialog', { name: 'Votação interna' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Revisar voto' })).toBeNull();
   expect(screen.queryByRole('radio')).toBeNull();
   expect(screen.getByText(/Câmara · 1 eleitor/)).toBeTruthy();
@@ -213,12 +216,19 @@ it('card com voto registrado recolhe o contexto e mantém ações administrativa
       />
     </TooltipProvider>,
   );
-  expect(screen.getByText('PARTICIPAÇÃO CONFIRMADA')).toBeTruthy();
+  await user.click(screen.getByRole('button', { name: 'Ver meu voto' }));
+  expect(screen.getByText('Você já participou desta decisão.')).toBeTruthy();
   expect(screen.getByText('Recusar')).toBeTruthy();
   expect(screen.queryByRole('radio')).toBeNull();
-  expect(screen.getByText('Texto completo da proposta').closest('details')?.open).toBe(false);
-  expect(screen.queryByRole('button', { name: 'Encerrar votação' })).toBeNull();
-  await user.click(screen.getByLabelText('Administrar votação Decisão da bancada'));
+  expect(
+    within(screen.getByRole('dialog', { name: 'Votação interna' }))
+      .getByText('Texto completo da proposta')
+      .closest('details')?.open,
+  ).toBe(false);
+  expect(screen.getByRole('button', { name: 'Encerrar votação' }).closest('details')?.open).toBe(
+    false,
+  );
+  await user.click(screen.getByText('Gerenciar votação'));
   await user.click(screen.getByRole('button', { name: 'Encerrar votação' }));
   expect(screen.getByRole('dialog', { name: 'ENCERRAR VOTAÇÃO' })).toBeTruthy();
   expect(portal.mutate).not.toHaveBeenCalled();

@@ -159,6 +159,7 @@ it('votações distinguem pendentes e encerradas e revisam abstenção sem regis
   expect(screen.getByRole('dialog', { name: 'CONFIRMAR SEU VOTO' })).toBeTruthy();
   expect(portal.mutate).not.toHaveBeenCalled();
   await user.click(screen.getByRole('button', { name: 'Voltar' }));
+  await user.click(screen.getByRole('button', { name: 'Fechar' }));
   await user.click(screen.getByRole('button', { name: /Encerradas/ }));
   expect(screen.getByText('Decisão encerrada')).toBeTruthy();
   expect(screen.queryByText('Decisão pendente')).toBeNull();

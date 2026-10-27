@@ -93,10 +93,12 @@ export function Modal({
   title,
   children,
   onClose,
+  className = '',
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [container, setContainer] = useState<HTMLDialogElement | null>(null);
@@ -111,7 +113,7 @@ export function Modal({
   }, []);
   return (
     <m.dialog
-      className="modal"
+      className={`modal ${className}`}
       ref={attachDialog}
       onCancel={onClose}
       aria-labelledby={titleId}

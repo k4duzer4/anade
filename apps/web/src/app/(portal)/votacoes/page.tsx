@@ -195,7 +195,9 @@ export default function Polls() {
       </div>
       <div className="refresh-polls-grid">
         {list.length ? (
-          list.map((p) => <PollCard key={p.id} poll={p} compact={!target} />)
+          list.map((p) => (
+            <PollCard key={`${p.id}:${target || 'list'}`} poll={p} autoOpen={Boolean(target)} />
+          ))
         ) : (
           <section className="panel">
             <Empty>

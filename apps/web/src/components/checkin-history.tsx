@@ -93,6 +93,7 @@ export function CheckinHistory({
               ? 'Todos os registros, com os dois prints para conferir.'
               : 'Um registro por dia. Seus comprovantes, sempre à mão.'}
           </p>
+          <p>O dia do ponto começa às 8h e termina às 7h59 do dia seguinte, em Brasília.</p>
         </div>
         <div className="checkin-history-actions">
           {!admin && (

@@ -125,6 +125,8 @@ export type CheckinList = {
   records: Checkin[];
   hasMore: boolean;
   today: string;
+  serverTime?: string;
+  resetsAt?: string;
   todayRecord?: Checkin | null;
   storageReady: boolean;
   members?: { id: string; name: string; discord: string }[];

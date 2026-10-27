@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider as TooltipProvider } from '@radix-ui/react-tooltip';
 import CheckinContent from '../src/components/checkin-content';
@@ -48,6 +48,43 @@ beforeEach(() => {
 });
 
 describe('página de ponto', () => {
+  it('renova o ponto às 8h pelo relógio do servidor, mesmo com relógio local diferente', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2030-01-01T00:00:00Z'));
+    let unmount: (() => void) | undefined;
+    try {
+      vi.mocked(loadCheckins).mockResolvedValue({
+        ...empty,
+        today: '2026-10-25',
+        todayRecord: { ...record, day: '2026-10-25' },
+        serverTime: '2026-10-26T10:59:59.000Z',
+        resetsAt: '2026-10-26T11:00:00.000Z',
+      });
+      await act(async () => {
+        ({ unmount } = render(<CheckinContent />));
+      });
+      expect(screen.getByText('Tudo certo por hoje!')).toBeTruthy();
+      expect(screen.getByText('25 de outubro')).toBeTruthy();
+      vi.mocked(loadCheckins).mockResolvedValue({
+        ...empty,
+        today: '2026-10-26',
+        serverTime: '2026-10-26T11:00:00.000Z',
+        resetsAt: '2026-10-27T11:00:00.000Z',
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(screen.queryByText('Tudo certo por hoje!')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Bater ponto' })).toBeTruthy();
+      expect(screen.getByText('26 de outubro')).toBeTruthy();
+      expect(screen.getByText(/Fecha às 7h59/)).toBeTruthy();
+      expect(portal.mutate).not.toHaveBeenCalled();
+    } finally {
+      unmount?.();
+      vi.useRealTimers();
+    }
+  });
+
   it('arrastar, colar, ampliar e remover atualiza o progresso sem enviar o ponto', async () => {
     const user = userEvent.setup();
     const { unmount } = render(

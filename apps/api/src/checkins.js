@@ -28,6 +28,18 @@ export function brasiliaDay(now = new Date()) {
   const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${values.year}-${values.month}-${values.day}`;
 }
+// The participation day follows the game's 08:00 tick, not civil midnight.
+export function checkinDay(now = new Date()) {
+  return brasiliaDay(new Date(now.getTime() - 8 * 3600000));
+}
+export function checkinPeriod(now = new Date()) {
+  const today = checkinDay(now);
+  return {
+    today,
+    serverTime: now.toISOString(),
+    resetsAt: new Date(Date.parse(`${today}T08:00:00-03:00`) + 86400000).toISOString(),
+  };
+}
 export function checkinFilters(query, admin = false) {
   const page = query.page === undefined ? 0 : Number(query.page);
   assert(Number.isInteger(page) && page >= 0 && page <= 100000, 'Página inválida.');

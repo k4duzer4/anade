@@ -52,6 +52,13 @@ export default function CheckinContent() {
     const timer = setInterval(() => setRevision((value) => value + 1), 60000);
     return () => clearInterval(timer);
   }, []);
+  useEffect(() => {
+    if (!status?.resetsAt || !status.serverTime) return;
+    const remaining = Date.parse(status.resetsAt) - Date.parse(status.serverTime);
+    if (!Number.isFinite(remaining) || remaining <= 0) return;
+    const timer = setTimeout(() => setRevision((value) => value + 1), remaining);
+    return () => clearTimeout(timer);
+  }, [status]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!actions || !blue) {
@@ -82,7 +89,7 @@ export default function CheckinContent() {
       notify('Ponto registrado com os dois comprovantes.');
     } catch (failure) {
       setError((failure as Error).message);
-      // A duplicate or a midnight rollover should also refresh today's status.
+      // A duplicate or an 08:00 rollover should also refresh the active period.
       setRevision((value) => value + 1);
     } finally {
       setBusy(false);
@@ -116,7 +123,7 @@ export default function CheckinContent() {
           <h1>
             Bater ponto<span>.</span>
           </h1>
-          <p>Dois prints. Sua participação do dia registrada.</p>
+          <p>Dois prints. Um ponto por dia, das 8h até 7h59 do dia seguinte, em Brasília.</p>
         </div>
         {data.user.admin && (
           <div className="checkin-admin-actions">
@@ -141,7 +148,7 @@ export default function CheckinContent() {
           </div>
           <span className="eyebrow">PARTICIPAÇÃO REGISTRADA</span>
           <h2>Tudo certo por hoje!</h2>
-          <p>Seus dois comprovantes estão guardados. Nos vemos no próximo ponto.</p>
+          <p>Seus dois comprovantes estão guardados. O próximo ponto abre às 8h de Brasília.</p>
           <div className="checkin-receipt">
             <span>
               <CalendarDays size={15} /> {date}
@@ -160,11 +167,11 @@ export default function CheckinContent() {
             <div className="checkin-form-heading">
               <div>
                 <span className="checkin-live-dot" />
-                <strong>Seu ponto de hoje</strong>
+                <strong>Dia do ponto</strong>
                 <span className="checkin-current-date">{date}</span>
               </div>
               <span>
-                <Clock3 size={13} /> Horário de Brasília
+                <Clock3 size={13} /> Fecha às 7h59 · Brasília
               </span>
             </div>
             <div className="checkin-workspace">
@@ -238,7 +245,10 @@ export default function CheckinContent() {
                     onChange={(event) => setConfirmed(event.target.checked)}
                     required
                   />
-                  <span>Concluí as três ações e publiquei no Blue. Estes prints são de hoje.</span>
+                  <span>
+                    Concluí as três ações e publiquei no Blue. Estes prints são do dia do ponto
+                    indicado acima.
+                  </span>
                 </label>
                 <SubmitButton busy={busy} disabled={disabled}>
                   <Send size={16} />{' '}
@@ -262,7 +272,7 @@ export default function CheckinContent() {
             <p>
               <LockKeyhole size={14} /> Só você e a administração veem os prints.
             </p>
-            <p>Participar é opcional · 1 ponto por dia</p>
+            <p>Participar é opcional · 1 ponto por período · Renova às 8h</p>
           </div>
         </Form>
       )}

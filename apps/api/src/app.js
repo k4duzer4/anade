@@ -6,7 +6,8 @@ import { sensitiveRequestLimits } from './request-security.js';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import multer from 'multer';
 import {
-  brasiliaDay,
+  checkinDay,
+  checkinPeriod,
   checkinFields,
   checkinFilters,
   electoralOffices,
@@ -407,13 +408,14 @@ export function createApp({
     res.json({ ok: true });
   });
   app.get('/api/checkins', async (req, res) => {
-    const today = brasiliaDay(now());
+    const period = checkinPeriod(now());
+    const { today } = period;
     const filters = checkinFilters(req.query);
     const result = await repo.listCheckins({ ...filters, userId: res.locals.user.id });
     const todays = await repo.listCheckins({ userId: res.locals.user.id, day: today });
     res.json({
       ...result,
-      today,
+      ...period,
       todayRecord: todays.records[0] || null,
       storageReady: storage.configured,
     });
@@ -426,12 +428,12 @@ export function createApp({
     res.json({
       ...result,
       members: accounts.map(({ id, name, discord }) => ({ id, name, discord })),
-      today: brasiliaDay(now()),
+      ...checkinPeriod(now()),
       storageReady: storage.configured,
     });
   });
   app.get('/api/admin/checkins/ranking', admin, async (req, res) => {
-    const filters = rankingFilters(req.query, brasiliaDay(now()));
+    const filters = rankingFilters(req.query, checkinDay(now()));
     res.json({ ...(await repo.checkinRanking(filters)), ...filters });
   });
   const proofUpload = multer({
@@ -488,7 +490,7 @@ export function createApp({
         ...fields,
         id,
         accountId: res.locals.user.id,
-        day: brasiliaDay(createdAt),
+        day: checkinDay(createdAt),
         createdAt: createdAt.toISOString(),
         actionsPath: `${id}/actions.webp`,
         bluePath: `${id}/blue.webp`,

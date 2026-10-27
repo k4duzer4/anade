@@ -7,7 +7,7 @@ import sharp from 'sharp';
 import { createApp } from '../src/app.js';
 import { MemoryRepository } from '../src/repository.js';
 import { MemoryProofStorage, SupabaseProofStorage } from '../src/proof-storage.js';
-import { brasiliaDay, checkinFilters } from '../src/checkins.js';
+import { brasiliaDay, checkinDay, checkinPeriod, checkinFilters } from '../src/checkins.js';
 
 const ids = {
   admin: '111111111111111111',
@@ -234,7 +234,7 @@ test('ponto opcional de qualquer filiado: dois prints, privacidade, cargo oficia
   assert(!JSON.stringify(admin).includes('actions_path'));
   assert.equal((await call('/api/checkins', 'member', { body: submission() })).status, 409);
   assert.equal(storage.objects.size, 2);
-  setNow('2026-10-23T03:00:01Z');
+  setNow('2026-10-23T11:00:00Z');
   await repo.saveAssignment(
     ids.member,
     { office: 'Senador', officeState: 'SP', functions: [], functionState: '' },
@@ -363,6 +363,51 @@ test('calendário do ponto usa Brasília e rejeita datas/páginas inválidas', (
     { day: ['2026-10-22'] },
   ])
     assert.throws(() => checkinFilters(query));
+});
+
+test('dia do ponto vira somente às 8h de Brasília, inclusive nas viradas de mês e ano', () => {
+  for (const [instant, day] of [
+    ['2026-10-26T02:59:59.999Z', '2026-10-25'],
+    ['2026-10-26T03:00:00.000Z', '2026-10-25'],
+    ['2026-10-26T10:59:59.999Z', '2026-10-25'],
+    ['2026-10-26T11:00:00.000Z', '2026-10-26'],
+    ['2026-11-01T10:59:59.999Z', '2026-10-31'],
+    ['2027-01-01T10:59:59.999Z', '2026-12-31'],
+    ['2027-01-01T11:00:00.000Z', '2027-01-01'],
+  ])
+    assert.equal(checkinDay(new Date(instant)), day);
+  const before = checkinPeriod(new Date('2026-10-26T10:59:59.999Z'));
+  assert.equal(before.resetsAt, '2026-10-26T11:00:00.000Z');
+  const after = checkinPeriod(new Date('2026-10-26T11:00:00.000Z'));
+  assert.equal(after.resetsAt, '2026-10-27T11:00:00.000Z');
+});
+
+test('ponto de domingo continua na madrugada de segunda; novo ponto só abre às 8h', async (t) => {
+  const { call, setNow } = await setup(t);
+  setNow('2026-10-26T03:30:00Z'); // Segunda 00:30: ainda é o ponto de domingo.
+  const sent = await call('/api/checkins', 'member', { body: submission() });
+  assert.equal(sent.status, 201);
+  const { record } = await sent.json();
+  assert.equal(record.day, '2026-10-25');
+  assert.equal(record.createdAt, '2026-10-26T03:30:00.000Z');
+  setNow('2026-10-26T10:59:59.999Z');
+  const own = await (await call('/api/checkins', 'member')).json();
+  assert.equal(own.today, '2026-10-25');
+  assert.equal(own.todayRecord.id, record.id);
+  assert.equal(own.resetsAt, '2026-10-26T11:00:00.000Z');
+  assert.equal((await call('/api/checkins', 'member', { body: submission() })).status, 409);
+  const admin = await (await call('/api/admin/checkins', 'admin')).json();
+  assert.equal(admin.today, own.today);
+  const ranking = await (await call('/api/admin/checkins/ranking?period=7', 'admin')).json();
+  assert.equal(ranking.until, own.today);
+  assert.equal(ranking.summary.points, 1);
+  setNow('2026-10-26T11:00:00.000Z');
+  const next = await (await call('/api/checkins', 'member')).json();
+  assert.equal(next.today, '2026-10-26');
+  assert.equal(next.todayRecord, null);
+  const newDay = await call('/api/checkins', 'member', { body: submission() });
+  assert.equal(newDay.status, 201);
+  assert.equal((await newDay.json()).record.day, '2026-10-26');
 });
 
 test('Storage recusa bucket público e nunca tenta enviar comprovantes nele', async () => {

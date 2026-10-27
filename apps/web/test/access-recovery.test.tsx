@@ -44,6 +44,14 @@ it('resposta incompleta não concede acesso', async () => {
   );
   await expect(requireMember()).rejects.toThrow('temporariamente indisponível');
 });
+it('convidado não executa páginas de filiados fora da reescrita; layout pode renderizar a navegação vazia', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json({ user: { id: 'guest', admin: false, guest: true } })),
+  );
+  await expect(requireMember()).rejects.toThrow('REDIRECT:/convidado');
+  await expect(requireMember({ allowGuest: true })).resolves.toBeUndefined();
+});
 it('botão de recuperação usa a API retry do Next instalado', async () => {
   const retry = vi.fn();
   render(<ErrorPage retry={retry} />);

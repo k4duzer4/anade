@@ -20,14 +20,23 @@ const readAccess = cache(async () => {
     const user = (await response.json()).user;
     if (!user || typeof user.id !== 'string' || !user.id || typeof user.admin !== 'boolean')
       throw new Error('ACCESS_INVALID');
-    return user as { id: string; admin: boolean };
+    return user as { id: string; admin: boolean; guest?: boolean };
   } catch {
     // An unavailable API must not look like a revoked session or start a login loop.
     throw new Error('O portal está temporariamente indisponível. Tente novamente.');
   }
 });
-export async function requireMember({ adminOnly = false }: { adminOnly?: boolean } = {}) {
+export async function requireMember({
+  adminOnly = false,
+  allowGuest = false,
+}: { adminOnly?: boolean; allowGuest?: boolean } = {}) {
   const user = await readAccess();
   if (!user) redirect('/');
+  if (user.guest && !allowGuest) redirect('/convidado');
   if (adminOnly && !user.admin) redirect('/painel');
+}
+export async function requireGuest() {
+  const user = await readAccess();
+  if (!user) redirect('/');
+  if (!user.guest) redirect('/painel');
 }

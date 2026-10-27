@@ -68,7 +68,10 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       });
       if (currentEpoch !== epoch.current) return;
       setData(value);
-      void loadActivity();
+      if (value.user.guest) {
+        setActivity(null);
+        activityRequest.current++;
+      } else void loadActivity();
       setError('');
     } catch (e) {
       if (currentEpoch !== epoch.current) return;
@@ -144,6 +147,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, [notice]);
   async function mutate(url: string, method: string, body: unknown) {
+    if (data?.user.guest) throw new Error('O acesso de convidado não permite realizar alterações.');
     await request(url, method, body, data?.csrf);
     await refresh(true);
   }

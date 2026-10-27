@@ -1,0 +1,76 @@
+.guest-page {
+  display: grid;
+  gap: 50px;
+  max-width: 1280px;
+  margin: auto;
+  min-height: 65vh;
+}
+.guest-page h1 {
+  font:
+    600 clamp(30px, 3.5vw, 44px)/1.2 'Sora',
+    sans-serif;
+  letter-spacing: -0.04em;
+  margin: 14px 0 0;
+}
+.guest-empty {
+  align-self: center;
+  max-width: 500px;
+  margin: 35px auto 80px;
+  text-align: center;
+}
+.guest-empty > svg {
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+.guest-empty h2 {
+  font:
+    600 21px/1.4 'Sora',
+    sans-serif;
+  letter-spacing: -0.03em;
+  margin-bottom: 15px;
+}
+.guest-empty p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.guest-empty > span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 24px;
+}
+.guest-permission-option {
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+  padding-top: 22px;
+}
+.guest-permission-option h3,
+.guest-admin-list h3 {
+  font:
+    600 18px/1.5 'Sora',
+    sans-serif;
+  margin: 0 0 12px;
+}
+.guest-permission-option p {
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--muted);
+}
+.guest-admin-list {
+  margin-top: 30px;
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+}
+.guest-admin-list .admin-account-list li {
+  justify-content: space-between;
+}
+@media (max-width: 600px) {
+  .guest-page {
+    gap: 30px;
+  }
+  .guest-empty {
+    padding: 10px;
+    margin-top: 40px;
+  }
+}

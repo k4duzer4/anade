@@ -30,6 +30,11 @@ test('Vercel: sessão PostgreSQL entre instâncias, OAuth HTTPS e autorização 
       'ALTER TABLE',
     )[0],
   );
+  db.public.none(
+    (await readFile(new URL('../db/019_guest_access.sql', import.meta.url), 'utf8')).split(
+      'ALTER TABLE',
+    )[0],
+  );
   db.public.registerFunction({
     name: 'to_timestamp',
     args: [DataType.float],

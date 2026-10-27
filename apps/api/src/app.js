@@ -25,6 +25,7 @@ import { PlenaryStore } from './plenary-store.js';
 import { AffiliationStore } from './affiliation-store.js';
 import { AffiliationDiscord } from './affiliation-discord.js';
 import { applicantRoutes, affiliationAdminRoutes } from './affiliations.js';
+import { GuestAccess, emptyGuestState } from './guest-access.js';
 import { OrganizationStore, seesMeeting, seesPoll } from './organization-store.js';
 import { votingRules } from './governance.js';
 import {
@@ -118,6 +119,7 @@ export function createApp({
   const organization = new OrganizationStore(repo);
   const affiliations = new AffiliationStore(repo);
   const bot = affiliationBot || new AffiliationDiscord(env, origin);
+  const guests = new GuestAccess(repo);
   const documentStorage =
     organizationStorage ||
     (demo
@@ -287,7 +289,9 @@ export function createApp({
       };
       req.session.csrf = random();
       await saveSession(req);
-      res.redirect(`${origin}/${membership ? 'painel' : 'filiacao'}`);
+      res.redirect(
+        `${origin}/${membership || (await guests.enabled(user.id)) ? 'painel' : 'filiacao'}`,
+      );
     } catch (e) {
       res.redirect(
         `${origin}/?authError=${encodeURIComponent(e.status ? e.message : 'Não foi possível conectar ao Discord. Tente novamente.')}`,
@@ -313,7 +317,8 @@ export function createApp({
   app.use('/api', async (req, res, next) => {
     const user = req.session.user;
     assert(user && user.expires > Date.now(), 'Entre com o Discord para continuar.', 401);
-    if (!user.demo) {
+    const guest = await guests.enabled(user.id);
+    if (!user.demo && !guest) {
       user.member = await affiliations.access(user.id, user.member === true);
       // A permissão local é lida do banco, sem consultas ao Discord durante a navegação.
       user.admin =
@@ -329,14 +334,31 @@ export function createApp({
         403,
       );
     }
-    res.locals.user = { ...user };
+    res.locals.user = guest ? { ...user, guest: true, admin: false, member: false } : { ...user };
     next();
   });
   app.use('/api', ...sensitiveRequestLimits());
-  const admin = (req, _res, next) => {
-    assert(req.session.user.admin, 'Apenas a direção pode realizar esta ação.', 403);
+  const admin = (_req, res, next) => {
+    assert(res.locals.user.admin, 'Apenas a direção pode realizar esta ação.', 403);
     next();
   };
+  // Guests receive only their own identity/session and an empty navigation state.
+  // This gate precedes every data route, including files and affiliation requests.
+  app.use('/api', (req, res, next) => {
+    const user = res.locals.user;
+    if (!user.guest) return next();
+    if (req.method === 'GET' && req.path === '/access')
+      return res.json({ user: { id: user.id, admin: false, guest: true } });
+    if (req.method === 'GET' && req.path === '/state')
+      return res.json(emptyGuestState(user, req.session.csrf, now()));
+    if (req.method === 'POST' && req.path === '/logout') return next();
+    throw Object.assign(
+      new Error(
+        'O acesso de convidado permite somente conhecer as páginas, sem consultar ou alterar conteúdo.',
+      ),
+      { status: 403, code: 'GUEST_RESTRICTED' },
+    );
+  });
   applicantRoutes(app, affiliations, { now });
   app.post('/api/logout', (req, res, next) =>
     req.session.destroy((e) => {
@@ -360,7 +382,22 @@ export function createApp({
     res.json({ user: { id: user.id, admin: user.admin } });
   });
   app.get('/api/admin/accounts', admin, async (_req, res) => {
-    res.json({ accounts: await repo.adminAccounts() });
+    const [accounts, ids] = await Promise.all([repo.adminAccounts(), guests.activeIds()]);
+    res.json({
+      accounts: accounts.map((account) =>
+        ids.includes(account.id) ? { ...account, isGuest: true } : account,
+      ),
+    });
+  });
+  app.put('/api/admin/guests', admin, async (req, res) => {
+    const discordId = typeof req.body?.discordId === 'string' ? req.body.discordId.trim() : '';
+    assert(/^[0-9]{17,20}$/.test(discordId), 'Informe um ID Discord com 17 a 20 dígitos.');
+    assert(
+      typeof req.body.enabled === 'boolean',
+      'Defina se o acesso de convidado deve ser concedido ou removido.',
+    );
+    const changed = await guests.set(discordId, req.body.enabled, res.locals.user.id);
+    res.json({ ok: true, changed });
   });
   app.get('/api/admin/assignments/:id', admin, async (req, res) =>
     res.json({ assignment: await repo.memberAssignment(req.params.id) }),
@@ -497,6 +534,11 @@ export function createApp({
     assert(
       /^[0-9]{17,20}$/.test(discordId),
       'Informe o ID numérico do usuário Discord, com 17 a 20 dígitos.',
+    );
+    assert(
+      !(await guests.enabled(discordId)),
+      'Remova o acesso de convidado antes de promover a pessoa à administração.',
+      409,
     );
     const changed = await repo.grantAdmin(discordId, res.locals.user.id);
     res.json({ ok: true, changed });
@@ -659,7 +701,9 @@ export function createApp({
     if (status >= 500) console.error('API:', error.code || error.name);
     if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
     res.status(status).json({
-      ...(error.code === 'AFFILIATION_REQUIRED' ? { code: error.code } : {}),
+      ...(['AFFILIATION_REQUIRED', 'GUEST_RESTRICTED'].includes(error.code)
+        ? { code: error.code }
+        : {}),
       ...(error.retryAfter ? { retryAfter: error.retryAfter } : {}),
       error:
         status === 500

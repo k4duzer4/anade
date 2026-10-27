@@ -73,6 +73,7 @@ export type Poll = {
 export type PortalState = {
   serverTime: string;
   user: {
+    guest?: boolean;
     id: string;
     discord: string;
     admin: boolean;

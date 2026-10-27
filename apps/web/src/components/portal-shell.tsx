@@ -10,6 +10,7 @@ import { GlobalSearch } from './global-search';
 import { NotificationCenter } from './notification-center';
 import { SectionActivity } from './section-activity';
 import { uniqueUnseenCount } from '@/lib/activity';
+import { GuestPage } from './guest-page';
 import {
   PortalSidebar,
   sidebarItems,
@@ -37,7 +38,8 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     );
   const member = data.members.find((m) => m.id === data.user.id),
     name = member?.name || data.user.discord;
-  const visibleNav = sidebarItems.filter((item) => !item.adminOnly || data.user.admin);
+  const guest = data.user.guest === true;
+  const visibleNav = sidebarItems.filter((item) => guest || !item.adminOnly || data.user.admin);
   const active = visibleNav.find((n) => n.path === path || path.startsWith(`${n.path}/`));
   async function exit() {
     try {
@@ -54,10 +56,11 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
       <a href="#conteudo" className="skip-link">
         Pular para o conteúdo
       </a>
-      <SectionActivity path={path} />
+      {!guest && <SectionActivity path={path} />}
       <PortalSidebar
         path={path}
         admin={data.user.admin}
+        guest={guest}
         name={name}
         avatarUrl={member?.avatarUrl}
         menuOpen={menu}
@@ -108,12 +111,16 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             </b>
           </div>
           <div className="topbar-right">
-            <GlobalSearch />
-            <NotificationCenter />
+            {!guest && (
+              <>
+                <GlobalSearch />
+                <NotificationCenter />
+              </>
+            )}
             <ThemeSwitcher />
             <span className="verified">
               <ShieldCheck size={14} />
-              {config?.demo ? 'Acesso demonstrativo' : 'Filiado verificado'}
+              {guest ? 'Convidado' : config?.demo ? 'Acesso demonstrativo' : 'Filiado verificado'}
             </span>
             <Link href="/ficha" aria-label="Abrir meu perfil">
               <MemberAvatar className="avatar small" name={name} src={member?.avatarUrl} />
@@ -137,7 +144,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
               </button>
             </div>
           )}
-          {children}
+          {guest ? <GuestPage path={path} /> : children}
           <footer className="portal-footer">
             <span>
               <b>

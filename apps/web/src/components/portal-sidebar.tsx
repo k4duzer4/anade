@@ -140,6 +140,7 @@ export function useSidebarPreferences() {
 export function PortalSidebar({
   path,
   admin,
+  guest = false,
   name,
   avatarUrl,
   menuOpen,
@@ -154,6 +155,7 @@ export function PortalSidebar({
 }: {
   path: string;
   admin: boolean;
+  guest?: boolean;
   name: string;
   avatarUrl?: string;
   menuOpen: boolean;
@@ -214,7 +216,7 @@ export function PortalSidebar({
     const Navigation =
       item.path.startsWith('/plenario') || path.startsWith('/plenario') ? 'a' : Link;
     const selected = active?.path === item.path;
-    const unseen = unseenCounts[item.path] || 0;
+    const unseen = guest ? 0 : unseenCounts[item.path] || 0;
     return (
       <Tooltip
         side="right"
@@ -222,6 +224,7 @@ export function PortalSidebar({
         key={item.path}
       >
         <Navigation
+          {...(Navigation === Link ? { prefetch: false } : {})}
           href={item.path}
           className={`sidebar-link ${selected ? 'active' : ''}`}
           aria-label={`${item.title}${unseen ? `, ${unseen} novidades não vistas` : ''}`}
@@ -236,6 +239,7 @@ export function PortalSidebar({
             </span>
           ) : (
             item.path === '/votacoes' &&
+            !guest &&
             pendingVotes > 0 && (
               <span
                 className="nav-count"
@@ -304,11 +308,12 @@ export function PortalSidebar({
       <nav className="sidebar-scroll" aria-label="Menu principal">
         <div className="sidebar-home">{itemLink(overview)}</div>
         {sidebarGroups.map((g) => {
-          const unseen =
-            folderCounts[g.id] ??
-            g.items
-              .filter((item) => !('adminOnly' in item) || admin)
-              .reduce((n, item) => n + (unseenCounts[item.path] || 0), 0);
+          const unseen = guest
+            ? 0
+            : (folderCounts[g.id] ??
+              g.items
+                .filter((item) => guest || !('adminOnly' in item) || admin)
+                .reduce((n, item) => n + (unseenCounts[item.path] || 0), 0));
           const open =
             preferences.openGroups[g.id] ??
             (currentGroup ? currentGroup.id === g.id : g.id === 'routine');
@@ -345,7 +350,7 @@ export function PortalSidebar({
               >
                 <div>
                   {g.items
-                    .filter((item) => !('adminOnly' in item) || admin)
+                    .filter((item) => guest || !('adminOnly' in item) || admin)
                     .map((item) => itemLink(item))}
                 </div>
               </div>
@@ -381,7 +386,9 @@ export function PortalSidebar({
               <MemberAvatar name={name} src={avatarUrl} />
               <span>
                 <strong>{name.split(' ').slice(0, 2).join(' ')}</strong>
-                <small>{admin ? 'Administração ANADE' : 'Filiado ANADE'}</small>
+                <small>
+                  {guest ? 'Convidado ANADE' : admin ? 'Administração ANADE' : 'Filiado ANADE'}
+                </small>
               </span>
             </Link>
           </Tooltip>

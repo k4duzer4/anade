@@ -32,16 +32,17 @@ beforeEach(() => {
   portal.data.user.admin = true;
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          accounts: [
-            { id: '123456789012345678', name: 'Maria', discord: 'maria', isAdmin: true },
-            { id: '223456789012345678', name: 'João', discord: 'joao', isAdmin: false },
-          ],
-        }),
-        { headers: { 'content-type': 'application/json' } },
-      ),
+    vi.fn().mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            accounts: [
+              { id: '123456789012345678', name: 'Maria', discord: 'maria', isAdmin: true },
+              { id: '223456789012345678', name: 'João', discord: 'joao', isAdmin: false },
+            ],
+          }),
+          { headers: { 'content-type': 'application/json' } },
+        ),
     ),
   );
   vi.mocked(loadCheckins).mockResolvedValue({
@@ -88,4 +89,43 @@ it('visão geral reúne ferramentas e permite revisar uma conta sem conceder adm
   expect(portal.mutate).not.toHaveBeenCalled();
   await user.click(screen.getByRole('button', { name: 'Visão geral' }));
   expect(screen.getByRole('heading', { name: 'Gerenciar o portal' })).toBeTruthy();
+});
+it('administrador concede e remove somente acesso de convidado pelo ID localizado', async () => {
+  const user = userEvent.setup();
+  render(
+    <TooltipProvider>
+      <AdministrationContent />
+    </TooltipProvider>,
+  );
+  await user.click(screen.getByRole('button', { name: 'Acessos e equipe' }));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Localizar conta' }).hasAttribute('disabled')).toBe(
+      false,
+    ),
+  );
+  await user.type(
+    screen.getByRole('textbox', { name: /ID do usuário Discord/ }),
+    '223456789012345678',
+  );
+  await user.click(screen.getByRole('button', { name: 'Localizar conta' }));
+  await user.click(screen.getByRole('button', { name: 'Conceder acesso de convidado' }));
+  await waitFor(() =>
+    expect(portal.mutate).toHaveBeenCalledWith('/api/admin/guests', 'PUT', {
+      discordId: '223456789012345678',
+      enabled: true,
+    }),
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Remover acesso de convidado' }).hasAttribute('disabled'),
+    ).toBe(false),
+  );
+  await user.click(screen.getByRole('button', { name: 'Remover acesso de convidado' }));
+  await waitFor(() =>
+    expect(portal.mutate).toHaveBeenCalledWith('/api/admin/guests', 'PUT', {
+      discordId: '223456789012345678',
+      enabled: false,
+    }),
+  );
+  expect(portal.mutate.mock.calls.some(([url]) => url === '/api/admin/admins')).toBe(false);
 });

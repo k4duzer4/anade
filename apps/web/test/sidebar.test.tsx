@@ -7,12 +7,14 @@ let wide = true;
 const navigate = vi.fn();
 function Harness({
   admin = false,
+  guest = false,
   path = '/votacoes',
   menuOpen = false,
   unseenCounts = {},
   folderCounts = {},
 }: {
   admin?: boolean;
+  guest?: boolean;
   path?: string;
   menuOpen?: boolean;
   unseenCounts?: Record<string, number>;
@@ -29,6 +31,7 @@ function Harness({
           {...sidebar}
           path={path}
           admin={admin}
+          guest={guest}
           name="Maria Silva"
           menuOpen={menuOpen}
           onNavigate={navigate}
@@ -53,6 +56,23 @@ beforeEach(() => {
       removeEventListener: vi.fn(),
     })),
   });
+});
+it('convidado vê a navegação de administração sem insígnias de filiado nem contagens', async () => {
+  const user = userEvent.setup();
+  render(
+    <Harness
+      guest
+      path="/administracao"
+      unseenCounts={{ '/votacoes': 9 }}
+      folderCounts={{ participation: 9 }}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: /Participação/ }));
+  expect(screen.getByRole('link', { name: 'Administração' })).toBeTruthy();
+  expect(screen.getByText('Convidado ANADE')).toBeTruthy();
+  expect(screen.queryByText('Filiado ANADE')).toBeNull();
+  expect(screen.queryByLabelText(/novidades não vistas/)).toBeNull();
+  expect(screen.queryByLabelText(/votações aguardando seu voto/)).toBeNull();
 });
 it('menu recolhido mantém contadores e submenu fechado mostra o total de novidades', async () => {
   const user = userEvent.setup();

@@ -19,7 +19,7 @@ import { Form } from './form';
 import { AdminOverview } from './admin-overview';
 import { MemberAvatar } from './member-avatar';
 
-type Account = { id: string; discord: string; name: string; isAdmin: boolean };
+type Account = { id: string; discord: string; name: string; isAdmin: boolean; isGuest?: boolean };
 
 export default function AdministrationContent() {
   const { data, mutate, notify, refresh } = usePortal();
@@ -94,6 +94,24 @@ export default function AdministrationContent() {
       setAccounts(await loadAccounts());
       setSelected({ ...selected, isAdmin: true });
       notify('Permissão de administrador concedida.');
+    } catch (failure) {
+      setError((failure as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function changeGuest(account: Account, enabled: boolean) {
+    setBusy(true);
+    setError('');
+    try {
+      await mutate('/api/admin/guests', 'PUT', { discordId: account.id, enabled });
+      setAccounts(await loadAccounts());
+      if (selected?.id === account.id) setSelected({ ...account, isGuest: enabled });
+      notify(
+        enabled
+          ? 'Acesso de convidado concedido. Nenhum conteúdo interno será liberado.'
+          : 'Acesso de convidado removido. A conta volta a seguir sua situação de filiação.',
+      );
     } catch (failure) {
       setError((failure as Error).message);
     } finally {
@@ -177,7 +195,7 @@ export default function AdministrationContent() {
                 </span>
                 <div>
                   <span className="eyebrow">COMPARTILHAR A GESTÃO</span>
-                  <h2>Adicionar administrador</h2>
+                  <h2>Gerenciar acessos</h2>
                 </div>
               </header>
               <p className="admin-description">
@@ -239,6 +257,21 @@ export default function AdministrationContent() {
                     <p className="admin-already-granted">
                       <Check size={17} /> Esta conta já é administradora.
                     </p>
+                  ) : selected.isGuest ? (
+                    <div className="guest-permission-option">
+                      <h3>Convidado</h3>
+                      <p>
+                        Esta pessoa pode conhecer todas as páginas, mas não recebe conteúdo nem pode
+                        realizar ações internas.
+                      </p>
+                      <button
+                        className="button outline"
+                        disabled={busy}
+                        onClick={() => changeGuest(selected, false)}
+                      >
+                        Remover acesso de convidado
+                      </button>
+                    </div>
                   ) : (
                     <>
                       <p>
@@ -255,6 +288,20 @@ export default function AdministrationContent() {
                           <ShieldCheck size={16} /> Conceder administração
                         </SubmitButton>
                       </Form>
+                      <div className="guest-permission-option">
+                        <h3>Convidado</h3>
+                        <p>
+                          Libera somente a navegação pelas páginas. Não mostra pautas, filiados,
+                          votações, documentos, arquivos ou contagens. Não concede filiação.
+                        </p>
+                        <button
+                          className="button secondary"
+                          disabled={busy || selected.id === data.user.id}
+                          onClick={() => changeGuest(selected, true)}
+                        >
+                          Conceder acesso de convidado
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -304,6 +351,33 @@ export default function AdministrationContent() {
                   </p>
                 </Empty>
               )}
+              <div className="guest-admin-list">
+                <h3>Convidados</h3>
+                {accounts.some((account) => account.isGuest) ? (
+                  <ul className="admin-account-list">
+                    {accounts
+                      .filter((account) => account.isGuest)
+                      .map((account) => (
+                        <li key={account.id}>
+                          <div>
+                            <strong>{account.name || account.discord}</strong>
+                            <span>@{account.discord}</span>
+                            <code>{account.id}</code>
+                          </div>
+                          <button
+                            className="text-button"
+                            disabled={busy}
+                            onClick={() => changeGuest(account, false)}
+                          >
+                            Remover convidado
+                          </button>
+                        </li>
+                      ))}
+                  </ul>
+                ) : (
+                  <p className="muted">Nenhum acesso de convidado concedido.</p>
+                )}
+              </div>
             </section>
           </div>
         </>

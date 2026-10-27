@@ -1,14 +1,14 @@
 'use client';
 import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Plus, ShieldCheck, Vote, CheckCheck, Archive, ArrowRight } from 'lucide-react';
+import { Plus, ShieldCheck } from 'lucide-react';
 import { usePortal } from '@/components/portal-provider';
 import { PageHeading, Modal, SubmitButton, ErrorNotice, Empty } from '@/components/ui';
 import { PollCard } from '@/components/poll-card';
 import { Select } from '@/components/select';
 import { DateTimePicker } from '@/components/date-time-picker';
 import { Form } from '@/components/form';
-import { SearchBox, ViewFilters, PagePulse } from '@/components/portal-tools';
+import { SearchBox, ViewFilters } from '@/components/portal-tools';
 import { searchText } from '@/lib/types';
 import { PollElectorate } from '@/components/poll-electorate';
 import { ElectorateNavigation } from '@/components/electorate-navigation';
@@ -96,39 +96,6 @@ export default function Polls() {
           )
         }
       />
-      <section className="decision-intro">
-        <span className="decision-intro-icon">
-          <Vote size={27} />
-        </span>
-        <div>
-          <span className="eyebrow">PARTICIPE DAS DECISÕES</span>
-          <h2>
-            {pending.length
-              ? 'Seu próximo voto começa aqui.'
-              : 'Decisões claras. Participação de todos.'}
-          </h2>
-          <p>
-            Escolha um grupo, consulte o tema e confirme seu voto. A abstenção também é uma forma de
-            participar.
-          </p>
-        </div>
-        {pending.length > 0 && (
-          <button
-            className="button secondary"
-            onClick={() => {
-              setFilter('pending');
-              if (target) {
-                const next = new URLSearchParams(params.toString());
-                next.delete('votacao');
-                router.replace(`/votacoes?${next}`);
-              }
-            }}
-          >
-            Ver o que falta votar
-            <ArrowRight size={16} />
-          </button>
-        )}
-      </section>
       <ElectorateNavigation
         records={data.polls.map((p) => ({
           groupId: p.governance?.groupId,
@@ -143,21 +110,6 @@ export default function Polls() {
           else next.set('grupo', value);
           router.replace(`/votacoes${next.size ? `?${next}` : ''}`);
         }}
-      />
-      <PagePulse
-        items={[
-          { label: 'aguardando seu voto', value: pending.length, Icon: Vote },
-          {
-            label: 'votos em decisões abertas',
-            value: active.filter((p) => p.hasVoted).length,
-            Icon: CheckCheck,
-          },
-          {
-            label: 'resultados disponíveis',
-            value: scoped.length - active.length,
-            Icon: Archive,
-          },
-        ]}
       />
       <div className="refresh-toolbar">
         <ViewFilters
@@ -185,52 +137,54 @@ export default function Polls() {
           Ver todas as votações
         </button>
       )}
-      <div className="refresh-list-caption" aria-live="polite">
-        <span>
-          {list.length} votaç{list.length === 1 ? 'ão' : 'ões'}
-        </span>
-        <span>
-          <ShieldCheck size={13} /> Voto único e definitivo
-        </span>
-      </div>
-      <div className="refresh-polls-grid">
-        {list.length ? (
-          list.map((p) => (
-            <PollCard key={`${p.id}:${target || 'list'}`} poll={p} autoOpen={Boolean(target)} />
-          ))
-        ) : (
-          <section className="panel">
-            <Empty>
-              <ShieldCheck size={27} />
-              <h3>
-                {search
-                  ? 'Nenhuma votação encontrada.'
-                  : filter === 'pending'
-                    ? 'Tudo em dia com suas decisões.'
-                    : filter === 'open'
-                      ? 'Sem decisões abertas por enquanto.'
-                      : 'Os resultados aparecerão aqui.'}
-              </h3>
-              <p>
-                {search
-                  ? 'Experimente buscar por outro tema.'
-                  : 'Acompanhe as próximas votações da ANADE.'}
-              </p>
-              {(search || filter === 'pending') && (
-                <button
-                  className="button secondary"
-                  onClick={() => {
-                    setSearch('');
-                    setFilter('open');
-                  }}
-                >
-                  Ver votações em andamento
-                </button>
-              )}
-            </Empty>
-          </section>
-        )}
-      </div>
+      <section className="ballot-results" aria-label="Lista de votações">
+        <div className="refresh-list-caption" aria-live="polite">
+          <span>
+            {list.length} votaç{list.length === 1 ? 'ão' : 'ões'}
+          </span>
+          <span>
+            <ShieldCheck size={13} /> Voto único e definitivo
+          </span>
+        </div>
+        <div className="refresh-polls-grid">
+          {list.length ? (
+            list.map((p) => (
+              <PollCard key={`${p.id}:${target || 'list'}`} poll={p} autoOpen={Boolean(target)} />
+            ))
+          ) : (
+            <section className="panel">
+              <Empty>
+                <ShieldCheck size={27} />
+                <h3>
+                  {search
+                    ? 'Nenhuma votação encontrada.'
+                    : filter === 'pending'
+                      ? 'Tudo em dia com suas decisões.'
+                      : filter === 'open'
+                        ? 'Sem decisões abertas por enquanto.'
+                        : 'Os resultados aparecerão aqui.'}
+                </h3>
+                <p>
+                  {search
+                    ? 'Experimente buscar por outro tema.'
+                    : 'Acompanhe as próximas votações da ANADE.'}
+                </p>
+                {(search || filter === 'pending') && (
+                  <button
+                    className="button secondary"
+                    onClick={() => {
+                      setSearch('');
+                      setFilter('open');
+                    }}
+                  >
+                    Ver votações em andamento
+                  </button>
+                )}
+              </Empty>
+            </section>
+          )}
+        </div>
+      </section>
       <p className="page-note">
         Nas votações secretas, o resultado é exibido somente após o encerramento. Nas abertas, o
         voto é nominal e pode ser consultado pelos filiados.

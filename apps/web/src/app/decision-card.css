@@ -1,3 +1,58 @@
+.votes-refresh {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 30px;
+}
+.votes-refresh > .page-heading {
+  margin: 0;
+  padding-bottom: 6px;
+}
+.votes-refresh > .electorate-navigation {
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0 0 20px;
+}
+.votes-refresh .electorate-navigation-heading {
+  margin-bottom: 13px;
+}
+.votes-refresh .electorate-navigation-heading small {
+  display: none;
+}
+.votes-refresh .electorate-navigation nav {
+  gap: 10px;
+}
+.votes-refresh .electorate-navigation nav button {
+  padding: 11px 15px;
+  background: transparent;
+  border-color: transparent;
+}
+.votes-refresh .electorate-navigation nav button[aria-pressed='true'] {
+  border-color: var(--line);
+  background: var(--accent-soft);
+  box-shadow: none;
+}
+.votes-refresh > .refresh-toolbar {
+  margin: 0;
+  gap: 18px;
+}
+.votes-refresh .ballot-results {
+  display: grid;
+  gap: 18px;
+}
+.votes-refresh .ballot-results > .refresh-list-caption {
+  margin: 0;
+}
+.votes-refresh .refresh-polls-grid {
+  gap: 22px;
+  margin: 0;
+  align-items: stretch;
+}
+.votes-refresh > .page-note {
+  margin: 0;
+  padding-top: 8px;
+}
 .refresh-poll.decision-card.ballot-tile {
   display: flex;
   flex-direction: column;

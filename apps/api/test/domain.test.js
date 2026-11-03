@@ -49,10 +49,16 @@ test('links da reunião aceitam apenas chamadas Meet e documentos Google Docs po
 });
 test('LegApp segue DDD + seis dígitos fictícios; portabilidade entre estados é aceita', () => {
   assert.equal(profile(sample).legapp, '(11) 423-653');
-  for (const legapp of ['11999999999', '(21) 423-653', '(11) 123-456'])
+  for (const ddd of ['21', '22', '24']) {
+    const legapp = `(${ddd}) 423-653`;
+    const result = profile({ ...sample, state: 'RJ', legapp });
+    assert.equal(result.state, 'RJ');
+    assert.equal(result.legapp, legapp);
+  }
+  for (const legapp of ['11999999999', '(99) 423-653', '(11) 123-456'])
     assert.throws(() => profile({ ...sample, legapp }));
   assert.throws(() => profile({ ...sample, degrees: ['Direito', 'Economia', 'Administração'] }));
-  assert.throws(() => profile({ ...sample, state: 'RJ' }));
+  assert.throws(() => profile({ ...sample, state: 'XX' }));
   assert.throws(() => profile({ ...sample, ideology: 'Inventada' }));
 });
 test('LegApp privado fica oculto inclusive para outros dirigentes', () => {

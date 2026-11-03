@@ -21,7 +21,7 @@ export const degrees = [
   'Medicina',
   'Agronomia',
 ];
-export const states = ['SP', 'MG', 'RS', 'BA'];
+export const states = ['SP', 'MG', 'RS', 'BA', 'RJ'];
 export function assert(ok, message, status = 400) {
   if (!ok) throw Object.assign(new Error(message), { status });
 }
@@ -66,7 +66,7 @@ export function profile(input) {
       key === 'bio' ? 280 : 120,
       ['name', 'state', 'ideology', 'season'].includes(key),
     );
-  assert(states.includes(result.state), 'Domicílio deve ser SP, MG, RS ou BA.');
+  assert(states.includes(result.state), 'Domicílio deve ser SP, MG, RS, BA ou RJ.');
   assert(ideologies.includes(result.ideology), 'Escolha uma das oito ideologias do Legado.');
   assert(
     !result.blue || /^@[\p{L}\p{N}_.]{1,40}$/u.test(result.blue),
@@ -83,6 +83,9 @@ export function profile(input) {
     '17',
     '18',
     '19',
+    '21',
+    '22',
+    '24',
     '31',
     '32',
     '33',

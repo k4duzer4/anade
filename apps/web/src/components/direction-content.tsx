@@ -11,6 +11,7 @@ const stateNames: Record<string, string> = {
   MG: 'Minas Gerais',
   RS: 'Rio Grande do Sul',
   BA: 'Bahia',
+  RJ: 'Rio de Janeiro',
 };
 export default function DirectionContent() {
   const { data } = usePortal();

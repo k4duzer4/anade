@@ -29,6 +29,7 @@ try {
     '017_plenary.sql',
     '018_affiliations.sql',
     '019_guest_access.sql',
+    '020_manual_affiliation_access.sql',
   ]) {
     const previous = await client.query('SELECT name FROM anade.migrations WHERE name=$1', [name]);
     if (previous.rowCount) continue;

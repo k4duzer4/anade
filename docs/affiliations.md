@@ -14,6 +14,16 @@ Solicitações são privadas; e-mail, motivação e aceite não entram no perfil
 
 Migração `018_affiliations.sql`: pedidos, decisões, aceite e estado de entregas; autorização local em tabela separada. RLS habilitada e privilégios de PUBLIC/anon/authenticated revogados. Locks por conta serializam pedidos, decisões e reserva das entregas, entre instâncias. Não há consulta Discord durante navegação; a autorização local fica ativa após aprovação.
 
+## Liberação manual pelo responsável do portal
+
+A migração `020_manual_affiliation_access.sql` permite preparar acesso local por
+ID do Discord antes do primeiro login, sem criar uma candidatura nem atribuir
+aceite de termos ao titular. Sem `request_id`, o registro exige `changed_by`
+(administrador responsável) e `grant_reason` (motivo). O OAuth continua obrigatório
+e atualiza o nome real da conta do Discord. Essa liberação não cria ficha, cargo,
+administração, mensagem ou cargo no servidor Discord. As regras de RLS e de leitura
+da filiação a cada requisição continuam as mesmas.
+
 ## Ativar o bot (pendente de configuração do responsável)
 
 1. Abra o aplicativo da ANADE no Discord Developer Portal, seção Bot, e obtenha seu token. Não coloque token no chat, Git, front-end nem em variável NEXT_PUBLIC_.

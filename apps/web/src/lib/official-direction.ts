@@ -2,18 +2,62 @@ import { type Member, type Director, searchText } from './types';
 const order = [
   'Presidente nacional',
   'Vice-presidente nacional',
+  'Líder da bancada da Câmara',
+  'Líder da bancada do Senado',
+  'Líder de bancada',
   'Presidente de honra',
   'Secretário-geral',
   'Presidente estadual',
   'Coordenador estadual',
-  'Líder de bancada',
-  'Líder da bancada da Câmara',
-  'Líder da bancada do Senado',
   'Jurídico',
   'Comunicação',
   'Financeiro',
   'Tesoureiro',
 ];
+const roleOf = (director: Director) => director.title.split(' · ')[0];
+export function directionSections(directors: Director[]) {
+  const presidency = ['Presidente nacional', 'Vice-presidente nacional'];
+  const leaders = ['Líder da bancada da Câmara', 'Líder da bancada do Senado', 'Líder de bancada'];
+  const states = ['Presidente estadual', 'Coordenador estadual'];
+  const selected = [...presidency, ...leaders, ...states];
+  return [
+    {
+      id: 'presidency',
+      title: 'Presidência nacional',
+      featured: true,
+      directors: directors
+        .filter((d) => presidency.includes(roleOf(d)))
+        .sort(
+          (a, b) =>
+            presidency.indexOf(roleOf(a)) - presidency.indexOf(roleOf(b)) ||
+            a.position - b.position,
+        ),
+    },
+    {
+      id: 'leaders',
+      title: 'Lideranças de bancada',
+      featured: false,
+      directors: directors
+        .filter((d) => leaders.includes(roleOf(d)))
+        .sort(
+          (a, b) =>
+            leaders.indexOf(roleOf(a)) - leaders.indexOf(roleOf(b)) || a.position - b.position,
+        ),
+    },
+    {
+      id: 'states',
+      title: 'Coordenações estaduais',
+      featured: false,
+      directors: directors.filter((d) => states.includes(roleOf(d))),
+    },
+    {
+      id: 'other',
+      title: 'Demais funções partidárias',
+      featured: false,
+      directors: directors.filter((d) => !selected.includes(roleOf(d))),
+    },
+  ].filter((section) => section.directors.length);
+}
 export function officialDirection(members: Member[], metadata: Director[] = []): Director[] {
   return members
     .flatMap((m) =>

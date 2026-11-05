@@ -3,7 +3,7 @@ import { Landmark, Plus, Pencil, ShieldCheck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePortal } from './portal-provider';
 import { PageHeading, Empty } from './ui';
-import { officialDirection } from '@/lib/official-direction';
+import { officialDirection, directionSections } from '@/lib/official-direction';
 import { type Director } from '@/lib/types';
 import { MemberAvatar } from './member-avatar';
 const stateNames: Record<string, string> = {
@@ -19,11 +19,17 @@ export default function DirectionContent() {
   const { data } = usePortal();
   if (!data) return null;
   const directors = officialDirection(data.members, data.directors);
+  const sections = directionSections(directors);
   const members = data.members;
   const isAdmin = data.user.admin;
   function renderDirector(director: Director, featured = false) {
     const member = members.find((m) => m.id === director.memberId);
     const name = member?.name || 'Ficha indisponível';
+    const state = ['Presidente estadual', 'Coordenador estadual'].includes(
+      director.title.split(' · ')[0],
+    )
+      ? member?.functionState || member?.state
+      : member?.state;
     return (
       <article className={`director-card ${featured ? 'is-featured' : ''}`} key={director.id}>
         <Link
@@ -35,7 +41,7 @@ export default function DirectionContent() {
           <span className="director-title">{director.title}</span>
           <h3>{name}</h3>
           <span className="director-state">
-            {stateNames[member?.state || ''] || member?.state || 'Domicílio não informado'}
+            {stateNames[state || ''] || state || 'Domicílio não informado'}
           </span>
         </Link>
         {isAdmin && (
@@ -98,22 +104,22 @@ export default function DirectionContent() {
       </div>
       {directors.length ? (
         <section className="direction-directory" aria-label="Composição do diretório">
-          <div
-            className="direction-grid direction-featured"
-            role="group"
-            aria-label="Primeira fileira da direção"
-          >
-            {directors.slice(0, 4).map((director) => renderDirector(director, true))}
-          </div>
-          {directors.length > 4 && (
-            <div
-              className="direction-grid direction-members"
-              role="group"
-              aria-label="Demais integrantes da direção"
+          {sections.map((section) => (
+            <section
+              key={section.id}
+              className={`direction-tier direction-tier-${section.id}`}
+              aria-labelledby={`direction-${section.id}`}
             >
-              {directors.slice(4).map((director) => renderDirector(director))}
-            </div>
-          )}
+              <header className="direction-tier-heading">
+                <h2 id={`direction-${section.id}`}>{section.title}</h2>
+              </header>
+              <div
+                className={`direction-grid ${section.featured ? 'direction-featured' : 'direction-members'}`}
+              >
+                {section.directors.map((director) => renderDirector(director, section.featured))}
+              </div>
+            </section>
+          ))}
         </section>
       ) : (
         <section className="panel full">

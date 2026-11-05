@@ -114,19 +114,48 @@
 }
 .direction-directory {
   container: direction-directory / inline-size;
+  display: grid;
+  gap: 30px;
+}
+.direction-tier + .direction-tier {
+  border-top: 1px solid var(--line);
+  padding-top: 27px;
+}
+.direction-tier-heading {
+  display: flex;
+  align-items: center;
+  margin-bottom: 17px;
+}
+.direction-tier-heading h2 {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+  margin: 0;
 }
 .direction-grid {
   display: grid;
   align-items: stretch;
 }
 .direction-featured {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
 .direction-members {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 26px 14px;
-  margin-top: 30px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.direction-tier-leaders .director-card {
+  min-height: 265px;
+}
+.direction-tier-leaders .director-avatar {
+  width: 100px;
+  height: 100px;
+}
+.direction-tier-states .director-card,
+.direction-tier-other .director-card {
+  min-height: 220px;
 }
 .director-card {
   display: flex;
@@ -243,7 +272,8 @@
   padding: 11px 8px;
   border-top: 1px solid var(--line);
 }
-.director-management button {
+.director-management button,
+.director-management a {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -256,10 +286,12 @@
   font-size: 10px;
   transition: color 0.2s;
 }
-.director-management button:hover {
+.director-management button:hover,
+.director-management a:hover {
   color: var(--accent);
 }
-.director-management button:focus-visible {
+.director-management button:focus-visible,
+.director-management a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 3px;
@@ -286,7 +318,7 @@ html[data-theme='dark'] .director-management .director-remove {
     gap: 18px;
   }
   .direction-members {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
   }
   .is-featured .director-avatar {
@@ -302,9 +334,6 @@ html[data-theme='dark'] .director-management .director-remove {
   .direction-members {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
-  }
-  .direction-members {
-    margin-top: 22px;
   }
   .is-featured .director-profile-link {
     padding: 20px 10px;

@@ -27,6 +27,7 @@ import { AffiliationStore } from './affiliation-store.js';
 import { AffiliationDiscord } from './affiliation-discord.js';
 import { applicantRoutes, affiliationAdminRoutes } from './affiliations.js';
 import { GuestAccess, emptyGuestState } from './guest-access.js';
+import { materialsRoutes, MAX_MATERIAL_BYTES } from './materials.js';
 import { OrganizationStore, seesMeeting, seesPoll } from './organization-store.js';
 import { votingRules } from './governance.js';
 import {
@@ -110,6 +111,7 @@ export function createApp({
   proofStorage,
   profileStorage,
   organizationStorage,
+  materialStorage,
   seasonRequest,
   now = () => new Date(),
 }) {
@@ -131,6 +133,15 @@ export function createApp({
           allowedMimeTypes: ['application/pdf', 'image/webp'],
         }));
   const storage = proofStorage || (demo ? new MemoryProofStorage() : new SupabaseProofStorage(env));
+  const marketingStorage =
+    materialStorage ||
+    (demo
+      ? new MemoryProofStorage()
+      : new SupabaseProofStorage(env, fetch, {
+          bucket: 'anade-materials',
+          maxBytes: MAX_MATERIAL_BYTES,
+          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'],
+        }));
   const mediaStorage =
     profileStorage ||
     (demo
@@ -378,6 +389,7 @@ export function createApp({
     next();
   });
   affiliationAdminRoutes(app, affiliations, admin, { bot, now });
+  materialsRoutes(app, repo, admin, marketingStorage, { now });
   app.get('/api/access', (_req, res) => {
     const user = res.locals.user;
     res.json({ user: { id: user.id, admin: user.admin } });

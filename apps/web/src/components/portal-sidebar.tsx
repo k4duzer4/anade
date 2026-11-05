@@ -11,6 +11,7 @@ import {
   Clock3,
   ContactRound,
   Flag,
+  FolderOpen,
   Landmark,
   LayoutDashboard,
   Lightbulb,
@@ -56,6 +57,7 @@ export const sidebarGroups = [
       { path: '/propostas', title: 'Central de propostas', icon: Lightbulb },
       { path: '/campanha', title: 'Central de campanha', icon: Rocket },
       { path: '/divulgacao', title: 'Mural de divulgação', icon: Newspaper },
+      { path: '/materiais', title: 'Acervo de comunicação', icon: FolderOpen },
     ],
   },
   {

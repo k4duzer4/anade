@@ -23,6 +23,7 @@ it('convidado é reescrito antes da página original, sem transportar queries co
     '/filiados/unknown',
     '/juridico',
     '/financeiro',
+    '/materiais',
     '/partido',
   ]) {
     const result = await proxy(request(path));
@@ -38,6 +39,7 @@ it('convidado é reescrito antes da página original, sem transportar queries co
   );
   expect(config.matcher).toContain('/administracao/:path*');
   expect(config.matcher).toContain('/filiados/:path*');
+  expect(config.matcher).toContain('/materiais/:path*');
 });
 it('filiado segue o fluxo original; erro de autorização não libera páginas por suposição', async () => {
   vi.stubGlobal(

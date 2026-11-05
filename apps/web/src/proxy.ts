@@ -50,6 +50,7 @@ export const config = {
     '/propostas/:path*',
     '/campanha/:path*',
     '/divulgacao/:path*',
+    '/materiais/:path*',
     '/grupos/:path*',
     '/bancadas/:path*',
     '/filiados/:path*',
